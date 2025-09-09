@@ -1,0 +1,56 @@
+{
+  "index": 2,
+  "filename": "datasets\\labeling\\cat.jpg",
+  "concept": "cat",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: cat</concept>\n<strokes>\n  <s1>\n    <text size=\"2.0\" color=\"#ffffff\">'head'</text>\n    <points>'x28y48'</points>\n    <callout>'x28y48','x28y36'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s1>\n  <s2>\n    <text size=\"2.0\" color=\"#ffffff\">'right_ear'</text>\n    <points>'x10y45'</points>\n    <callout>'x10y45','x17y39'</callout>\n    <t_values>0.00</t_values>\n    <id>label_right_ear</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#ffffff\">'left_ear'</text>\n    <points>'x42y45'</points>\n    <callout>'x42y45','x36y39'</callout>\n    <t_values>0.00</t_values>\n    <id>label_left_ear</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#ffffff\">'right_eye'</text>\n    <points>'x8y27'</points>\n    <callout>'x8y27','x19y27'</callout>\n    <t_values>0.00</t_values>\n    <id>label_right_eye</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffffff\">'left_eye'</text>\n    <points>'x42y27'</points>\n    <callout>'x42y27','x32y27'</callout>\n    <t_values>0.00</t_values>\n    <id>label_left_eye</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ffffff\">'nose'</text>\n    <points>'x25y12'</points>\n    <callout>'x25y12','x25y20'</callout>\n    <t_values>0.00</t_values>\n    <id>label_nose</id>\n  </s6>\n  <s7>\n    <text size=\"2.0\" color=\"#ffffff\">'whiskers'</text>\n    <points>'x8y16'</points>\n    <callout>'x8y16','x16y17'</callout>\n    <t_values>0.00</t_values>\n    <id>label_whiskers</id>\n  </s7>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "right_ear",
+      "id": "label_right_ear",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "left_ear",
+      "id": "label_left_ear",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "right_eye",
+      "id": "label_right_eye",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "left_eye",
+      "id": "label_left_eye",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "nose",
+      "id": "label_nose",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "whiskers",
+      "id": "label_whiskers",
+      "font_px": 24,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 7,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00002_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00002_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00002_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00002.svg"
+}

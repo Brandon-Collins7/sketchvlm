@@ -1,0 +1,12 @@
+{
+  "index": 453,
+  "prompt": "How many bottles are there in the image",
+  "ground_truth": 6,
+  "model_output": "<answer>\n    <concept>Numbering each bottles</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x6y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_bottles1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x14y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_bottles2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x22y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_bottles3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x30y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_bottles4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x38y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_bottles5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x46y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_bottles6</id>\n        </s6>\n    </strokes>\n</answer>",
+  "model_answer": 6,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00453_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00453_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00453_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00453.svg"
+}

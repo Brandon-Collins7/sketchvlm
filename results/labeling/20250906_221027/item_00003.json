@@ -1,0 +1,38 @@
+{
+  "index": 3,
+  "filename": "datasets\\labeling\\house.jpg",
+  "concept": "house",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Label parts: house</concept>\n<strokes>\n  <s1>\n    <text>'roof'</text>\n    <points>'x25y40'</points>\n    <t_values>0.00</t_values>\n    <id>roof</id>\n  </s1>\n  <s2>\n    <text>'attic_window'</text>\n    <points>'x25y32'</points>\n    <t_values>0.00</t_values>\n    <id>attic_window</id>\n  </s2>\n  <s3>\n    <text>'wall'</text>\n    <points>'x25y15'</points>\n    <t_values>0.00</t_values>\n    <id>wall</id>\n  </s3>\n  <s4>\n    <text>'door'</text>\n    <points>'x15y11'</points>\n    <t_values>0.00</t_values>\n    <id>door</id>\n  </s4>\n  <s5>\n    <text>'door_knob'</text>\n    <points>'x18y12'</points>\n    <t_values>0.00</t_values>\n    <id>door_knob</id>\n  </s5>\n  <s6>\n    <text>'window'</text>\n    <points>'x32y15'</points>\n    <t_values>0.00</t_values>\n    <id>window</id>\n  </s6>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "roof",
+      "id": "roof"
+    },
+    {
+      "text": "attic_window",
+      "id": "attic_window"
+    },
+    {
+      "text": "wall",
+      "id": "wall"
+    },
+    {
+      "text": "door",
+      "id": "door"
+    },
+    {
+      "text": "door_knob",
+      "id": "door_knob"
+    },
+    {
+      "text": "window",
+      "id": "window"
+    }
+  ],
+  "num_labels": 6,
+  "raw_image": "results\\labeling\\20250906_221027\\item_00003_orig.jpg",
+  "grid_image": "results\\labeling\\20250906_221027\\item_00003_grid.png",
+  "annotated_image": "results\\labeling\\20250906_221027\\item_00003_annotated.png",
+  "svg": "results\\labeling\\20250906_221027\\item_00003.svg"
+}

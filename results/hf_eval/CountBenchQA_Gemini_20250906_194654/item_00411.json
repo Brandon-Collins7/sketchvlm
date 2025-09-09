@@ -1,0 +1,12 @@
+{
+  "index": 411,
+  "prompt": "How many forks are there in the image",
+  "ground_truth": 6,
+  "model_output": "<answer>\n<concept>Numbering each forks</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x8y25'</points>\n<t_values>0.00</t_values>\n<id>marker_forks1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x16y25'</points>\n<t_values>0.00</t_values>\n<id>marker_forks2</id>\n</s2>\n<s3>\n<text>'3'</text>\n<points>'x24y25'</points>\n<t_values>0.00</t_values>\n<id>marker_forks3</id>\n</s3>\n<s4>\n<text>'4'</text>\n<points>'x32y25'</points>\n<t_values>0.00</t_values>\n<id>marker_forks4</id>\n</s4>\n<s5>\n<text>'5'</text>\n<points>'x40y25'</points>\n<t_values>0.00</t_values>\n<id>marker_forks5</id>\n</s5>\n<s6>\n<text>'6'</text>\n<points>'x48y25'</points>\n<t_values>0.00</t_values>\n<id>marker_forks6</id>\n</s6>\n</strokes>\n</answer>",
+  "model_answer": 6,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00411_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00411_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00411_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00411.svg"
+}

@@ -1,0 +1,12 @@
+{
+  "index": 421,
+  "prompt": "How many kittens are there in the image",
+  "ground_truth": 8,
+  "model_output": "<answer>\n    <concept>Numbering each kittens</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x7y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x12y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x19y27'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x24y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x28y28'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x32y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens6</id>\n        </s6>\n        <s7>\n            <text>'7'</text>\n            <points>'x37y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens7</id>\n        </s7>\n        <s8>\n            <text>'8'</text>\n            <points>'x42y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kittens8</id>\n        </s8>\n    </strokes>\n</answer>",
+  "model_answer": 8,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00421_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00421_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00421_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00421.svg"
+}

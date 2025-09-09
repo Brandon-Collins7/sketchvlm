@@ -1,0 +1,12 @@
+{
+  "index": 91,
+  "prompt": "How many nail polishes are there in the image",
+  "ground_truth": 5,
+  "model_output": "<answer>\n    <concept>Numbering each nail polishes</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x7y19'</points>\n            <t_values>0.00</t_values>\n            <id>marker_nail polishes1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x14y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_nail polishes2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x22y24'</points>\n            <t_values>0.00</t_values>\n            <id>marker_nail polishes3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x31y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_nail polishes4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x40y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_nail polishes5</id>\n        </s5>\n    </strokes>\n</answer>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00091_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00091_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00091_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00091.svg"
+}

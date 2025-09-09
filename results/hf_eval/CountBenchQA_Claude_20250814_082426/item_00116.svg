@@ -1,0 +1,12 @@
+<svg width="612" height="612" xmlns="http://www.w3.org/2000/svg"><g id="photo_frame" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 126.00 186.00 C 546.0000000000002 145.9999999999999 546.0000000000002 145.99999999999997 486.0 425.9999999999998 "/>
+    <path d="M 486.00 426.00 C 66.0 466.0000000000001 66.0 466.0 125.99999999999997 185.99999999999994 "/>
+</g>
+<g id="no_image_icon_square" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 246.00 246.00 C 386.0000000000002 225.9999999999999 386.0000000000001 225.99999999999991 365.99999999999994 365.9999999999998 "/>
+    <path d="M 366.00 366.00 C 226.0000000000001 386.0000000000001 226.0000000000001 386.00000000000006 246.00000000000006 245.99999999999997 "/>
+</g>
+<g id="no_image_icon_diagonal" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 246 246 L 366 366 "/>
+</g>
+<g id="no_photo_text_s4"><text x="306.0" y="486.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">No Photo</text></g></svg>

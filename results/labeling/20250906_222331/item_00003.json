@@ -1,0 +1,38 @@
+{
+  "index": 3,
+  "filename": "datasets\\labeling\\house.jpg",
+  "concept": "house",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: house</concept>\n<strokes>\n  <s1>\n    <text size=\"3.5\" color=\"#ffffff\">'roof'</text>\n    <points>'x25y40'</points>\n    <t_values>0.00</t_values>\n    <id>label_roof</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#ffffff\">'window'</text>\n    <points>'x27y33'</points>\n    <t_values>0.00</t_values>\n    <id>label_attic_window</id>\n  </s2>\n  <s3>\n    <text size=\"2.5\" color=\"#000000\">'window'</text>\n    <points>'x33y16'</points>\n    <t_values>0.00</t_values>\n    <id>label_main_window</id>\n  </s3>\n  <s4>\n    <text size=\"3.0\" color=\"#ffffff\">'door'</text>\n    <points>'x16y12'</points>\n    <t_values>0.00</t_values>\n    <id>label_door</id>\n  </s4>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "roof",
+      "id": "label_roof",
+      "font_px": 42,
+      "color": "#ffffff"
+    },
+    {
+      "text": "window",
+      "id": "label_attic_window",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "window",
+      "id": "label_main_window",
+      "font_px": 30,
+      "color": "#000000"
+    },
+    {
+      "text": "door",
+      "id": "label_door",
+      "font_px": 36,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 4,
+  "raw_image": "results\\labeling\\20250906_222331\\item_00003_orig.jpg",
+  "grid_image": "results\\labeling\\20250906_222331\\item_00003_grid.png",
+  "annotated_image": "results\\labeling\\20250906_222331\\item_00003_annotated.png",
+  "svg": "results\\labeling\\20250906_222331\\item_00003.svg"
+}

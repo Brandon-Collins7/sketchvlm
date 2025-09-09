@@ -1,0 +1,12 @@
+{
+  "index": 280,
+  "prompt": "How many baking trays are there in the image",
+  "ground_truth": 2,
+  "model_output": "<answer>\n<concept>Numbering each baking trays</concept>\n<strokes>\n<s1>\n    <text>'1'</text>\n    <points>'x13y27'</points>\n    <t_values>0.00</t_values>\n    <id>marker_baking trays1</id>\n</s1>\n<s2>\n    <text>'2'</text>\n    <points>'x38y27'</points>\n    <t_values>0.00</t_values>\n    <id>marker_baking trays2</id>\n</s2>\n</strokes>\n</answer>",
+  "model_answer": 2,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00280_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00280_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00280_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00280.svg"
+}

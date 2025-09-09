@@ -1,0 +1,12 @@
+{
+  "index": 293,
+  "prompt": "How many helicopters are there in the image",
+  "ground_truth": 5,
+  "model_output": "<answer>\n    <concept>Numbering each helicopters</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x24y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_helicopters1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x34y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_helicopters2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x24y21'</points>\n            <t_values>0.00</t_values>\n            <id>marker_helicopters3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x11y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_helicopters4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x39y15'</points>\n            <t_values>0.00</t_values>\n            <id>marker_helicopters5</id>\n        </s5>\n    </strokes>\n</answer>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00293_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00293_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00293_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00293.svg"
+}

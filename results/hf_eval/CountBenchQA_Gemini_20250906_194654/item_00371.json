@@ -1,0 +1,12 @@
+{
+  "index": 371,
+  "prompt": "How many soldiers are there in the image",
+  "ground_truth": 2,
+  "model_output": "<answer>\n<concept>Numbering each soldiers</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x15y25'</points>\n<t_values>0.00</t_values>\n<id>marker_soldiers1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x27y26'</points>\n<t_values>0.00</t_values>\n<id>marker_soldiers2</id>\n</s2>\n</strokes>\n</answer>",
+  "model_answer": 2,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00371_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00371_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00371_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00371.svg"
+}

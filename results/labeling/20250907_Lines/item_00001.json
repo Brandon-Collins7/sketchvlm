@@ -1,0 +1,62 @@
+{
+  "index": 1,
+  "filename": "datasets\\labeling\\boat.jpg",
+  "concept": "boat",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: boat</concept>\n<strokes>\n  <!-- one <sN> per label -->\n  <s1>\n    <text size=\"2.0\" color=\"#ffffff\">'mast'</text>\n    <points>'x15y40'</points>\n    <callout>'x15y40','x28y35'</callout>\n    <t_values>0.00</t_values>\n    <id>label_mast</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#ffffff\">'sail'</text>\n    <points>'x40y35'</points>\n    <callout>'x40y35','x32y28'</callout>\n    <t_values>0.00</t_values>\n    <id>label_sail</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#ffffff\">'hull'</text>\n    <points>'x25y2'</points>\n    <callout>'x25y2','x28y7'</callout>\n    <t_values>0.00</t_values>\n    <id>label_hull</id>\n  </s3>\n  <s4>\n    <text size=\"1.8\" color=\"#ffffff\">'boom'</text>\n    <points>'x45y15'</points>\n    <callout>'x45y15','x35y11'</callout>\n    <t_values>0.00</t_values>\n    <id>label_boom</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffffff\">'stern'</text>\n    <points>'x10y4'</points>\n    <callout>'x10y4','x19y7'</callout>\n    <t_values>0.00</t_values>\n    <id>label_stern</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ffffff\">'bow'</text>\n    <points>'x48y10'</points>\n    <callout>'x48y10','x41y8'</callout>\n    <t_values>0.00</t_values>\n    <id>label_bow</id>\n  </s6>\n  <s7>\n    <text size=\"1.5\" color=\"#ffffff\">'flag'</text>\n    <points>'x10y12'</points>\n    <callout>'x10y12','x18y8'</callout>\n    <t_values>0.00</t_values>\n    <id>label_flag</id>\n  </s7>\n  <s8>\n    <text size=\"2.0\" color=\"#ffffff\">'sea'</text>\n    <points>'x5y18'</points>\n    <callout>'x5y18','x15y16'</callout>\n    <t_values>0.00</t_values>\n    <id>label_sea</id>\n  </s8>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "mast",
+      "id": "label_mast",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "sail",
+      "id": "label_sail",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "hull",
+      "id": "label_hull",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "boom",
+      "id": "label_boom",
+      "font_px": 22,
+      "color": "#ffffff"
+    },
+    {
+      "text": "stern",
+      "id": "label_stern",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "bow",
+      "id": "label_bow",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "flag",
+      "id": "label_flag",
+      "font_px": 18,
+      "color": "#ffffff"
+    },
+    {
+      "text": "sea",
+      "id": "label_sea",
+      "font_px": 24,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 8,
+  "raw_image": "results\\labeling\\20250907_213015\\item_00001_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_213015\\item_00001_grid.png",
+  "annotated_image": "results\\labeling\\20250907_213015\\item_00001_annotated.png",
+  "svg": "results\\labeling\\20250907_213015\\item_00001.svg"
+}

@@ -1,0 +1,12 @@
+{
+  "index": 86,
+  "prompt": "How many figurines are there in the image",
+  "ground_truth": 5,
+  "model_output": "<answer>\n<concept>Numbering each figurines</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x9y26'</points>\n<t_values>0.00</t_values>\n<id>marker_figurines1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x20y25'</points>\n<t_values>0.00</t_values>\n<id>marker_figurines2</id>\n</s2>\n<s3>\n<text>'3'</text>\n<points>'x26y21'</points>\n<t_values>0.00</t_values>\n<id>marker_figurines3</id>\n</s3>\n<s4>\n<text>'4'</text>\n<points>'x35y25'</points>\n<t_values>0.00</t_values>\n<id>marker_figurines4</id>\n</s4>\n<s5>\n<text>'5'</text>\n<points>'x43y24'</points>\n<t_values>0.00</t_values>\n<id>marker_figurines5</id>\n</s5>\n</strokes>\n</answer>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00086_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00086_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00086_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00086.svg"
+}

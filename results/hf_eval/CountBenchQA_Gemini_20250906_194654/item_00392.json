@@ -1,0 +1,12 @@
+{
+  "index": 392,
+  "prompt": "How many windows are there in the image",
+  "ground_truth": 2,
+  "model_output": "<answer>\n    <concept>Numbering each windows</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x7y30'</points>\n            <t_values>0.00</t_values>\n            <id>marker_windows1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x44y30'</points>\n            <t_values>0.00</t_values>\n            <id>marker_windows2</id>\n        </s2>\n    </strokes>\n</answer>",
+  "model_answer": 2,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00392_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00392_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00392_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00392.svg"
+}

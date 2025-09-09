@@ -1,0 +1,12 @@
+{
+  "index": 316,
+  "prompt": "How many samurai are there in the image",
+  "ground_truth": 2,
+  "model_output": "<answer>\n<concept>Numbering each samurai</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x14y24'</points>\n<t_values>0.00</t_values>\n<id>marker_samurai1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x32y24'</points>\n<t_values>0.00</t_values>\n<id>marker_samurai2</id>\n</s2>\n</strokes>\n</answer>",
+  "model_answer": 2,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00316_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00316_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00316_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00316.svg"
+}

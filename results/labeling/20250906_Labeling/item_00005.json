@@ -1,0 +1,32 @@
+{
+  "index": 5,
+  "filename": "datasets\\labeling\\city.jpg",
+  "concept": "city",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: city</concept>\n<strokes>\n  <s1>\n    <text size=\"6.0\" color=\"#FFFFFF\">'sky'</text>\n    <points>'x25y40'</points>\n    <t_values>0.00</t_values>\n    <id>label_sky</id>\n  </s1>\n  <s2>\n    <text size=\"8.0\" color=\"#FFFFFF\">'city'</text>\n    <points>'x25y26'</points>\n    <t_values>0.00</t_values>\n    <id>label_city</id>\n  </s2>\n  <s3>\n    <text size=\"6.0\" color=\"#FFFFFF\">'water'</text>\n    <points>'x25y10'</points>\n    <t_values>0.00</t_values>\n    <id>label_water</id>\n  </s3>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "sky",
+      "id": "label_sky",
+      "font_px": 72,
+      "color": "#FFFFFF"
+    },
+    {
+      "text": "city",
+      "id": "label_city",
+      "font_px": 72,
+      "color": "#FFFFFF"
+    },
+    {
+      "text": "water",
+      "id": "label_water",
+      "font_px": 72,
+      "color": "#FFFFFF"
+    }
+  ],
+  "num_labels": 3,
+  "raw_image": "results\\labeling\\20250906_224315\\item_00005_orig.jpg",
+  "grid_image": "results\\labeling\\20250906_224315\\item_00005_grid.png",
+  "annotated_image": "results\\labeling\\20250906_224315\\item_00005_annotated.png",
+  "svg": "results\\labeling\\20250906_224315\\item_00005.svg"
+}

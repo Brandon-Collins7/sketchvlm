@@ -1,0 +1,26 @@
+{
+  "index": 13,
+  "filename": "datasets\\labeling\\jellyfish.png",
+  "concept": "jellyfish",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: jellyfish</concept>\n<strokes>\n  <!-- one <sN> per label -->\n  <s1>\n    <text size=\"2.5\" color=\"#ff0000\">'head'</text>\n    <points>'x25y46'</points>\n    <callout>'x25y46','x25y38'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#0000ff\">'tentacles'</text>\n    <points>'x10y5'</points>\n    <callout>'x10y5','x23y18'</callout>\n    <t_values>0.00</t_values>\n    <id>label_tentacles</id>\n  </s2>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 30,
+      "color": "#ff0000"
+    },
+    {
+      "text": "tentacles",
+      "id": "label_tentacles",
+      "font_px": 30,
+      "color": "#0000ff"
+    }
+  ],
+  "num_labels": 2,
+  "raw_image": "results\\labeling\\20250907_213015\\item_00013_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_213015\\item_00013_grid.png",
+  "annotated_image": "results\\labeling\\20250907_213015\\item_00013_annotated.png",
+  "svg": "results\\labeling\\20250907_213015\\item_00013.svg"
+}

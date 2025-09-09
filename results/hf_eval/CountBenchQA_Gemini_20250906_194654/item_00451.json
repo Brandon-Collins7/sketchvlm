@@ -1,0 +1,12 @@
+{
+  "index": 451,
+  "prompt": "How many puppies are there in the image",
+  "ground_truth": 7,
+  "model_output": "<answer>\n    <concept>Numbering each puppies</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x7y24'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x13y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x18y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x23y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x29y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x35y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies6</id>\n        </s6>\n        <s7>\n            <text>'7'</text>\n            <points>'x42y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_puppies7</id>\n        </s7>\n    </strokes>\n</answer>",
+  "model_answer": 7,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00451_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00451_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00451_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00451.svg"
+}

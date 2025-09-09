@@ -1,0 +1,12 @@
+{
+  "index": 333,
+  "prompt": "How many wine glasses are there in the image",
+  "ground_truth": 4,
+  "model_output": "<answer>\n    <concept>Numbering each wine glasses</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x11y28'</points>\n            <t_values>0.00</t_values>\n            <id>marker_wine glasses1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x21y27'</points>\n            <t_values>0.00</t_values>\n            <id>marker_wine glasses2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x30y29'</points>\n            <t_values>0.00</t_values>\n            <id>marker_wine glasses3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x42y30'</points>\n            <t_values>0.00</t_values>\n            <id>marker_wine glasses4</id>\n        </s4>\n    </strokes>\n</answer>",
+  "model_answer": 4,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00333_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00333_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00333_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00333.svg"
+}

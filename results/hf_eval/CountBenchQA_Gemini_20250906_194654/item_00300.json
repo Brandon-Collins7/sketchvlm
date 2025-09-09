@@ -1,0 +1,12 @@
+{
+  "index": 300,
+  "prompt": "How many sculptures are there in the image",
+  "ground_truth": 7,
+  "model_output": "<answer>\n    <concept>Numbering each sculptures</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x11y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x16y28'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x21y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x26y23'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x31y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x38y24'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures6</id>\n        </s6>\n        <s7>\n            <text>'7'</text>\n            <points>'x33y17'</points>\n            <t_values>0.00</t_values>\n            <id>marker_sculptures7</id>\n        </s7>\n    </strokes>\n</answer>",
+  "model_answer": 7,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00300_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00300_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00300_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00300.svg"
+}

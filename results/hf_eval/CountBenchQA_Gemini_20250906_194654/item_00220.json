@@ -1,0 +1,12 @@
+{
+  "index": 220,
+  "prompt": "How many people on stage are there in the image",
+  "ground_truth": 10,
+  "model_output": "<answer>\n<concept>Numbering each people on stage</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x3y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x8y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage2</id>\n</s2>\n<s3>\n<text>'3'</text>\n<points>'x13y25'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage3</id>\n</s3>\n<s4>\n<text>'4'</text>\n<points>'x17y25'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage4</id>\n</s4>\n<s5>\n<text>'5'</text>\n<points>'x22y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage5</id>\n</s5>\n<s6>\n<text>'6'</text>\n<points>'x26y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage6</id>\n</s6>\n<s7>\n<text>'7'</text>\n<points>'x31y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage7</id>\n</s7>\n<s8>\n<text>'8'</text>\n<points>'x36y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage8</id>\n</s8>\n<s9>\n<text>'9'</text>\n<points>'x41y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage9</id>\n</s9>\n<s10>\n<text>'10'</text>\n<points>'x46y26'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage10</id>\n</s10>\n<s11>\n<text>'11'</text>\n<points>'x14y13'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage11</id>\n</s11>\n<s12>\n<text>'12'</text>\n<points>'x21y13'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage12</id>\n</s12>\n<s13>\n<text>'13'</text>\n<points>'x38y12'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage13</id>\n</s13>\n<s14>\n<text>'14'</text>\n<points>'x44y12'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage14</id>\n</s14>\n<s15>\n<text>'15'</text>\n<points>'x49y12'</points>\n<t_values>0.00</t_values>\n<id>marker_people on stage15</id>\n</s15>\n</strokes>\n</answer>",
+  "model_answer": 15,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00220_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00220_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00220_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00220.svg"
+}

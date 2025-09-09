@@ -1,0 +1,12 @@
+{
+  "index": 116,
+  "prompt": "How many game cartridges are there in the image",
+  "ground_truth": 5,
+  "model_output": "<answer>\n    <concept>Numbering each game cartridges</concept>\n    <strokes>\n    </strokes>\n</answer>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00116_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00116_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00116_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00116.svg"
+}

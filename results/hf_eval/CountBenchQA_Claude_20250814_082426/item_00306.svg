@@ -1,0 +1,22 @@
+<svg width="612" height="612" xmlns="http://www.w3.org/2000/svg"><g id="cottage_outline" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 179.14 492.86 C 880.0952380952383 645.2380952380954 26.761904761904816 -208.09523809523847 179.14285714285728 492.85714285714295 "/>
+</g>
+<g id="roof" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 186.00 246.00 Q 306.00000000000034 6.000000000000043 425.9999999999999 245.99999999999991 "/>
+</g>
+<g id="lower_left_window" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 244.97 427.03 C 350.11428571428553 449.88571428571436 222.11428571428567 321.88571428571413 244.97142857142853 427.0285714285712 "/>
+</g>
+<g id="lower_right_window" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 328.97 427.03 C 434.11428571428576 449.88571428571436 306.1142857142857 321.88571428571413 328.9714285714284 427.0285714285712 "/>
+</g>
+<g id="upper_left_window" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 244.97 319.03 C 350.11428571428553 341.88571428571464 222.11428571428567 213.88571428571422 244.97142857142853 319.02857142857147 "/>
+</g>
+<g id="upper_right_window" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 328.97 319.03 C 434.11428571428576 341.88571428571464 306.1142857142857 213.88571428571422 328.9714285714284 319.02857142857147 "/>
+</g>
+<g id="door" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 282.00 486.00 C 227.76294995610186 413.6345545002257 384.2370500438981 413.6345545002258 329.9999999999999 485.99999999999966 "/>
+</g>
+<g id="ground_floor_number_s8"><text x="222.0" y="450.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">1</text></g><g id="upper_floor_number_s9"><text x="222.0" y="294.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">2</text></g></svg>

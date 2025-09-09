@@ -1,0 +1,26 @@
+{
+  "index": 12,
+  "filename": "datasets\\labeling\\house.png",
+  "concept": "house",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: house</concept>\n<strokes>\n  <s1>\n    <text size=\"2.5\" color=\"#ff0000\">'door'</text>\n    <points>'x28y18'</points>\n    <t_values>0.00</t_values>\n    <id>label_door</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#0000ff\">'window'</text>\n    <points>'x25y23'</points>\n    <t_values>0.00</t_values>\n    <id>label_window</id>\n  </s2>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "door",
+      "id": "label_door",
+      "font_px": 30,
+      "color": "#ff0000"
+    },
+    {
+      "text": "window",
+      "id": "label_window",
+      "font_px": 30,
+      "color": "#0000ff"
+    }
+  ],
+  "num_labels": 2,
+  "raw_image": "results\\labeling\\20250906_224315\\item_00012_orig.jpg",
+  "grid_image": "results\\labeling\\20250906_224315\\item_00012_grid.png",
+  "annotated_image": "results\\labeling\\20250906_224315\\item_00012_annotated.png",
+  "svg": "results\\labeling\\20250906_224315\\item_00012.svg"
+}

@@ -1,0 +1,12 @@
+{
+  "index": 261,
+  "prompt": "How many wineglasses are there in the image",
+  "ground_truth": 2,
+  "model_output": "<answer>\n<concept>Numbering each wineglasses</concept>\n<strokes>\n<s1>\n    <text>'1'</text>\n    <points>'x23y28'</points>\n    <t_values>0.00</t_values>\n    <id>marker_wineglasses1</id>\n</s1>\n<s2>\n    <text>'2'</text>\n    <points>'x16y29'</points>\n    <t_values>0.00</t_values>\n    <id>marker_wineglasses2</id>\n</s2>\n</strokes>\n</answer>",
+  "model_answer": 2,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00261_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00261_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00261_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00261.svg"
+}

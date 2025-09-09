@@ -1,0 +1,12 @@
+{
+  "index": 442,
+  "prompt": "How many globes are there in the image",
+  "ground_truth": 6,
+  "model_output": "<answer>\n    <concept>Numbering each globes</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x9y37'</points>\n            <t_values>0.00</t_values>\n            <id>marker_globes1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x25y37'</points>\n            <t_values>0.00</t_values>\n            <id>marker_globes2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x41y37'</points>\n            <t_values>0.00</t_values>\n            <id>marker_globes3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x9y16'</points>\n            <t_values>0.00</t_values>\n            <id>marker_globes4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x25y16'</points>\n            <t_values>0.00</t_values>\n            <id>marker_globes5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x41y16'</points>\n            <t_values>0.00</t_values>\n            <id>marker_globes6</id>\n        </s6>\n    </strokes>\n</answer>",
+  "model_answer": 6,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00442_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00442_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00442_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00442.svg"
+}

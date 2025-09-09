@@ -1,0 +1,38 @@
+{
+  "index": 8,
+  "filename": "datasets\\labeling\\family2.jpg",
+  "concept": "family2",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: family2</concept>\n<strokes>\n  <s1>\n    <text size=\"2.0\" color=\"#ff0000\">'man'</text>\n    <points>'x36y38'</points>\n    <callout>'x36y38','x30y37'</callout>\n    <t_values>0.00</t_values>\n    <id>label_man</id>\n  </s1>\n  <s2>\n    <text size=\"2.0\" color=\"#ff0000\">'woman'</text>\n    <points>'x15y35'</points>\n    <callout>'x15y35','x20y32'</callout>\n    <t_values>0.00</t_values>\n    <id>label_woman</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#ff0000\">'girl'</text>\n    <points>'x26y38'</points>\n    <callout>'x26y38','x25y33'</callout>\n    <t_values>0.00</t_values>\n    <id>label_girl</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#ff0000\">'baby'</text>\n    <points>'x12y30'</points>\n    <callout>'x12y30','x18y33'</callout>\n    <t_values>0.00</t_values>\n    <id>label_baby</id>\n  </s4>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "man",
+      "id": "label_man",
+      "font_px": 24,
+      "color": "#ff0000"
+    },
+    {
+      "text": "woman",
+      "id": "label_woman",
+      "font_px": 24,
+      "color": "#ff0000"
+    },
+    {
+      "text": "girl",
+      "id": "label_girl",
+      "font_px": 24,
+      "color": "#ff0000"
+    },
+    {
+      "text": "baby",
+      "id": "label_baby",
+      "font_px": 24,
+      "color": "#ff0000"
+    }
+  ],
+  "num_labels": 4,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00008_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00008_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00008_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00008.svg"
+}

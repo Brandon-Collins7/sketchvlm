@@ -1,0 +1,50 @@
+{
+  "index": 1,
+  "filename": "datasets\\labeling\\boat.jpg",
+  "concept": "boat",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: boat</concept>\n<strokes>\n  <!-- one <sN> per label -->\n  <s1>\n    <text size=\"4.0\" color=\"#000000\">'sky'</text>\n    <points>'x10y40'</points>\n    <t_values>0.00</t_values>\n    <id>label_sky</id>\n  </s1>\n  <s2>\n    <text size=\"4.0\" color=\"#FFFFFF\">'water'</text>\n    <points>'x40y15'</points>\n    <t_values>0.00</t_values>\n    <id>label_water</id>\n  </s2>\n  <s3>\n    <text size=\"2.5\" color=\"#FFFF00\">'mast'</text>\n    <points>'x23y28'</points>\n    <t_values>0.00</t_values>\n    <id>label_mast</id>\n  </s3>\n  <s4>\n    <text size=\"4.0\" color=\"#0000FF\">'sail'</text>\n    <points>'x29y22'</points>\n    <t_values>0.00</t_values>\n    <id>label_sail</id>\n  </s4>\n  <s5>\n    <text size=\"3.0\" color=\"#000000\">'hull'</text>\n    <points>'x29y7'</points>\n    <t_values>0.00</t_values>\n    <id>label_hull</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#FFFF00\">'flag'</text>\n    <points>'x17y8'</points>\n    <t_values>0.00</t_values>\n    <id>label_flag</id>\n  </s6>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "sky",
+      "id": "label_sky",
+      "font_px": 48,
+      "color": "#000000"
+    },
+    {
+      "text": "water",
+      "id": "label_water",
+      "font_px": 48,
+      "color": "#FFFFFF"
+    },
+    {
+      "text": "mast",
+      "id": "label_mast",
+      "font_px": 30,
+      "color": "#FFFF00"
+    },
+    {
+      "text": "sail",
+      "id": "label_sail",
+      "font_px": 48,
+      "color": "#0000FF"
+    },
+    {
+      "text": "hull",
+      "id": "label_hull",
+      "font_px": 36,
+      "color": "#000000"
+    },
+    {
+      "text": "flag",
+      "id": "label_flag",
+      "font_px": 24,
+      "color": "#FFFF00"
+    }
+  ],
+  "num_labels": 6,
+  "raw_image": "results\\labeling\\20250908_200003\\item_00001_orig.jpg",
+  "grid_image": "results\\labeling\\20250908_200003\\item_00001_grid.png",
+  "annotated_image": "results\\labeling\\20250908_200003\\item_00001_annotated.png",
+  "svg": "results\\labeling\\20250908_200003\\item_00001.svg"
+}

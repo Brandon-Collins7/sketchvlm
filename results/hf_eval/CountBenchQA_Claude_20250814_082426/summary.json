@@ -1,0 +1,7 @@
+{
+  "dataset": "vikhyatk/CountBenchQA",
+  "split": "test",
+  "total": 491,
+  "correct": 439,
+  "accuracy": 0.8940936863543788
+}

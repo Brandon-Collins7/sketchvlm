@@ -1,0 +1,92 @@
+{
+  "index": 7,
+  "filename": "datasets\\labeling\\family.jpg",
+  "concept": "family",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: family</concept>\n<strokes>\n  <s1>\n    <text size=\"2.0\" color=\"#ffffff\">'head'</text>\n    <points>'x13y38'</points>\n    <callout>'x13y38','x18y35'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s1>\n  <s2>\n    <text size=\"2.0\" color=\"#ffffff\">'torso'</text>\n    <points>'x13y27'</points>\n    <callout>'x13y27','x21y29'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#ffffff\">'left_arm'</text>\n    <points>'x14y22'</points>\n    <callout>'x14y22','x18y26'</callout>\n    <t_values>0.00</t_values>\n    <id>label_left_arm</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#ffffff\">'right_leg'</text>\n    <points>'x25y17'</points>\n    <callout>'x25y17','x23y20'</callout>\n    <t_values>0.00</t_values>\n    <id>label_right_leg</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffffff\">'head'</text>\n    <points>'x20y36'</points>\n    <callout>'x20y36','x25y31'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ffffff\">'torso'</text>\n    <points>'x20y22'</points>\n    <callout>'x20y22','x25y25'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso</id>\n  </s6>\n  <s7>\n    <text size=\"2.0\" color=\"#ffffff\">'head'</text>\n    <points>'x35y39'</points>\n    <callout>'x35y39','x30y34'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s7>\n  <s8>\n    <text size=\"2.0\" color=\"#ffffff\">'torso'</text>\n    <points>'x36y31'</points>\n    <callout>'x36y31','x31y30'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso</id>\n  </s8>\n  <s9>\n    <text size=\"2.0\" color=\"#ffffff\">'head'</text>\n    <points>'x43y38'</points>\n    <callout>'x43y38','x37y35'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s9>\n  <s10>\n    <text size=\"2.0\" color=\"#ffffff\">'torso'</text>\n    <points>'x44y29'</points>\n    <callout>'x44y29','x38y29'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso</id>\n  </s10>\n  <s11>\n    <text size=\"2.0\" color=\"#ffffff\">'right_arm'</text>\n    <points>'x44y23'</points>\n    <callout>'x44y23','x39y23'</callout>\n    <t_values>0.00</t_values>\n    <id>label_right_arm</id>\n  </s11>\n  <s12>\n    <text size=\"2.0\" color=\"#ffffff\">'left_leg'</text>\n    <points>'x26y15'</points>\n    <callout>'x26y15','x31y20'</callout>\n    <t_values>0.00</t_values>\n    <id>label_left_leg</id>\n  </s12>\n  <s13>\n    <text size=\"2.0\" color=\"#ffffff\">'right_leg'</text>\n    <points>'x33y14'</points>\n    <callout>'x33y14','x36y19'</callout>\n    <t_values>0.00</t_values>\n    <id>label_right_leg</id>\n  </s13>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "left_arm",
+      "id": "label_left_arm",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "right_leg",
+      "id": "label_right_leg",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "right_arm",
+      "id": "label_right_arm",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "left_leg",
+      "id": "label_left_leg",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "right_leg",
+      "id": "label_right_leg",
+      "font_px": 24,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 13,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00007_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00007_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00007_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00007.svg"
+}

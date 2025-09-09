@@ -1,0 +1,37 @@
+<svg width="612" height="612" xmlns="http://www.w3.org/2000/svg"><g id="building_facade" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 126.00 66.00 C 546.0000000000002 -14.000000000000114 546.0000000000002 -14.000000000000071 486.0 545.9999999999999 "/>
+    <path d="M 486.00 546.00 C 66.0 626.0000000000001 66.0 626.0 125.99999999999997 66.00000000000003 "/>
+</g>
+<g id="window_1" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 162.00 126.00 C 246.0 110.0 246.0 110.00000000000003 233.99999999999994 221.99999999999994 "/>
+    <path d="M 234.00 222.00 C 149.99999999999997 238.00000000000017 149.99999999999997 238.00000000000009 162.0 125.99999999999997 "/>
+</g>
+<g id="window_2" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 270.00 126.00 C 354.0000000000001 110.0 354.0000000000001 110.00000000000003 341.9999999999999 221.99999999999994 "/>
+    <path d="M 342.00 222.00 C 258.0 238.00000000000017 258.0 238.00000000000009 269.99999999999994 125.99999999999997 "/>
+</g>
+<g id="window_3" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 378.00 126.00 C 462.0 110.0 462.00000000000006 110.00000000000003 449.99999999999966 221.99999999999994 "/>
+    <path d="M 450.00 222.00 C 366.0 238.00000000000017 366.00000000000006 238.00000000000009 377.99999999999994 125.99999999999997 "/>
+</g>
+<g id="window_4" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 162.00 306.00 C 246.0 290.00000000000017 246.0 290.00000000000017 233.99999999999994 401.9999999999999 "/>
+    <path d="M 234.00 402.00 C 149.99999999999997 418.0000000000002 149.99999999999997 418.00000000000006 162.0 306.0 "/>
+</g>
+<g id="window_5" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 270.00 306.00 C 354.0000000000001 290.00000000000017 354.0000000000001 290.00000000000017 341.9999999999999 401.9999999999999 "/>
+    <path d="M 342.00 402.00 C 258.0 418.0000000000002 258.0 418.00000000000006 269.99999999999994 306.0 "/>
+</g>
+<g id="window_6" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 378.00 306.00 C 462.0 290.00000000000017 462.00000000000006 290.00000000000017 449.99999999999966 401.9999999999999 "/>
+    <path d="M 450.00 402.00 C 366.0 418.0000000000002 366.00000000000006 418.00000000000006 377.99999999999994 306.0 "/>
+</g>
+<g id="window_7" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 162.00 486.00 C 246.0 470.0000000000001 246.0 470.00000000000006 233.99999999999994 582.0 "/>
+    <path d="M 234.00 582.00 C 149.99999999999997 598.0000000000002 149.99999999999997 598.0000000000001 162.0 486.0 "/>
+</g>
+<g id="window_8" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 270.00 486.00 C 354.0000000000001 470.0000000000001 354.0000000000001 470.00000000000006 341.9999999999999 582.0 "/>
+    <path d="M 342.00 582.00 C 258.0 598.0000000000002 258.0 598.0000000000001 269.99999999999994 486.0 "/>
+</g>
+<g id="number_1_s10"><text x="198.0" y="174.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">1</text></g><g id="number_2_s11"><text x="306.0" y="174.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">2</text></g><g id="number_3_s12"><text x="414.0" y="174.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">3</text></g><g id="number_4_s13"><text x="198.0" y="354.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">4</text></g><g id="number_5_s14"><text x="306.0" y="354.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">5</text></g><g id="number_6_s15"><text x="414.0" y="354.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">6</text></g><g id="number_7_s16"><text x="198.0" y="534.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">7</text></g><g id="number_8_s17"><text x="306.0" y="534.0" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="38" fill="green">8</text></g></svg>

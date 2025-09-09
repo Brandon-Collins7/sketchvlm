@@ -1,0 +1,12 @@
+{
+  "index": 42,
+  "prompt": "How many fish are there in the image",
+  "ground_truth": 5,
+  "model_output": "<answer>\n<concept>Numbering each fish</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x6y25'</points>\n<t_values>0.00</t_values>\n<id>marker_fish1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x15y28'</points>\n<t_values>0.00</t_values>\n<id>marker_fish2</id>\n</s2>\n<s3>\n<text>'3'</text>\n<points>'x25y29'</points>\n<t_values>0.00</t_values>\n<id>marker_fish3</id>\n</s3>\n<s4>\n<text>'4'</text>\n<points>'x35y29'</points>\n<t_values>0.00</t_values>\n<id>marker_fish4</id>\n</s4>\n<s5>\n<text>'5'</text>\n<points>'x44y30'</points>\n<t_values>0.00</t_values>\n<id>marker_fish5</id>\n</s5>\n</strokes>\n</answer>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00042_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00042_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00042_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00042.svg"
+}

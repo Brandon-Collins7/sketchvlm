@@ -1,0 +1,56 @@
+{
+  "index": 16,
+  "filename": "datasets\\labeling\\person3.jpg",
+  "concept": "person3",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: person3</concept>\n<strokes>\n  <s1>\n    <text size=\"4.0\" color=\"#ffffff\">'head'</text>\n    <points>'x25y28'</points>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s1>\n  <s2>\n    <text size=\"4.0\" color=\"#ffffff\">'torso'</text>\n    <points>'x24y10'</points>\n    <t_values>0.00</t_values>\n    <id>label_torso</id>\n  </s2>\n  <s3>\n    <text size=\"2.5\" color=\"#ffff00\">'hair'</text>\n    <points>'x25y44'</points>\n    <t_values>0.00</t_values>\n    <id>label_hair</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#00ffff\">'left_eye'</text>\n    <points>'x31y34'</points>\n    <t_values>0.00</t_values>\n    <id>label_left_eye</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#00ffff\">'right_eye'</text>\n    <points>'x20y34'</points>\n    <t_values>0.00</t_values>\n    <id>label_right_eye</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ff00ff\">'nose'</text>\n    <points>'x26y29'</points>\n    <t_values>0.00</t_values>\n    <id>label_nose</id>\n  </s6>\n  <s7>\n    <text size=\"2.0\" color=\"#ffaa00\">'mouth'</text>\n    <points>'x26y24'</points>\n    <t_values>0.00</t_values>\n    <id>label_mouth</id>\n  </s7>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 48,
+      "color": "#ffffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso",
+      "font_px": 48,
+      "color": "#ffffff"
+    },
+    {
+      "text": "hair",
+      "id": "label_hair",
+      "font_px": 30,
+      "color": "#ffff00"
+    },
+    {
+      "text": "left_eye",
+      "id": "label_left_eye",
+      "font_px": 24,
+      "color": "#00ffff"
+    },
+    {
+      "text": "right_eye",
+      "id": "label_right_eye",
+      "font_px": 24,
+      "color": "#00ffff"
+    },
+    {
+      "text": "nose",
+      "id": "label_nose",
+      "font_px": 24,
+      "color": "#ff00ff"
+    },
+    {
+      "text": "mouth",
+      "id": "label_mouth",
+      "font_px": 24,
+      "color": "#ffaa00"
+    }
+  ],
+  "num_labels": 7,
+  "raw_image": "results\\labeling\\20250906_224315\\item_00016_orig.jpg",
+  "grid_image": "results\\labeling\\20250906_224315\\item_00016_grid.png",
+  "annotated_image": "results\\labeling\\20250906_224315\\item_00016_annotated.png",
+  "svg": "results\\labeling\\20250906_224315\\item_00016.svg"
+}

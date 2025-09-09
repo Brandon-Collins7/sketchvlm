@@ -1,0 +1,50 @@
+{
+  "index": 10,
+  "filename": "datasets\\labeling\\forest.jpg",
+  "concept": "forest",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: forest</concept>\n<strokes>\n  <s1>\n    <text size=\"3.0\" color=\"#ffffff\">'tree_trunk'</text>\n    <points>'x4y30'</points>\n    <callout>'x4y30','x14y30'</callout>\n    <t_values>0.00</t_values>\n    <id>label_tree_trunk_left</id>\n  </s1>\n  <s2>\n    <text size=\"3.0\" color=\"#ffffff\">'tree_trunk'</text>\n    <points>'x47y30'</points>\n    <callout>'x47y30','x37y30'</callout>\n    <t_values>0.00</t_values>\n    <id>label_tree_trunk_right</id>\n  </s2>\n  <s3>\n    <text size=\"3.0\" color=\"#ffffff\">'path'</text>\n    <points>'x25y5'</points>\n    <callout>'x25y5','x26y15'</callout>\n    <t_values>0.00</t_values>\n    <id>label_path</id>\n  </s3>\n  <s4>\n    <text size=\"3.0\" color=\"#ffffff\">'undergrowth'</text>\n    <points>'x2y10'</points>\n    <callout>'x2y10','x8y18'</callout>\n    <t_values>0.00</t_values>\n    <id>label_undergrowth</id>\n  </s4>\n  <s5>\n    <text size=\"2.5\" color=\"#ffffff\">'roots'</text>\n    <points>'x12y6'</points>\n    <callout>'x12y6','x13y13'</callout>\n    <t_values>0.00</t_values>\n    <id>label_roots</id>\n  </s5>\n  <s6>\n    <text size=\"2.5\" color=\"#ffffff\">'branch'</text>\n    <points>'x10y45'</points>\n    <callout>'x10y45','x12y38'</callout>\n    <t_values>0.00</t_values>\n    <id>label_branch</id>\n  </s6>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "tree_trunk",
+      "id": "label_tree_trunk_left",
+      "font_px": 36,
+      "color": "#ffffff"
+    },
+    {
+      "text": "tree_trunk",
+      "id": "label_tree_trunk_right",
+      "font_px": 36,
+      "color": "#ffffff"
+    },
+    {
+      "text": "path",
+      "id": "label_path",
+      "font_px": 36,
+      "color": "#ffffff"
+    },
+    {
+      "text": "undergrowth",
+      "id": "label_undergrowth",
+      "font_px": 36,
+      "color": "#ffffff"
+    },
+    {
+      "text": "roots",
+      "id": "label_roots",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "branch",
+      "id": "label_branch",
+      "font_px": 30,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 6,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00010_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00010_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00010_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00010.svg"
+}

@@ -1,0 +1,12 @@
+{
+  "index": 141,
+  "prompt": "How many smartphones are there in the image",
+  "ground_truth": 5,
+  "model_output": "<answer>\n    <concept>Numbering each smartphones</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x7y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_smartphones1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x17y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_smartphones2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x25y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_smartphones3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x35y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_smartphones4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x45y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_smartphones5</id>\n        </s5>\n    </strokes>\n</answer>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00141_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00141_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00141_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00141.svg"
+}

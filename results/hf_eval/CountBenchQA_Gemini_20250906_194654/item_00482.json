@@ -1,0 +1,12 @@
+{
+  "index": 482,
+  "prompt": "How many dice are there in the image",
+  "ground_truth": 6,
+  "model_output": "<answer>\n<concept>Numbering each dice</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x7y23'</points>\n<t_values>0.00</t_values>\n<id>marker_dice1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x14y33'</points>\n<t_values>0.00</t_values>\n<id>marker_dice2</id>\n</s2>\n<s3>\n<text>'3'</text>\n<points>'x20y19'</points>\n<t_values>0.00</t_values>\n<id>marker_dice3</id>\n</s3>\n<s4>\n<text>'4'</text>\n<points>'x29y33'</points>\n<t_values>0.00</t_values>\n<id>marker_dice4</id>\n</s4>\n<s5>\n<text>'5'</text>\n<points>'x32y19'</points>\n<t_values>0.00</t_values>\n<id>marker_dice5</id>\n</s5>\n<s6>\n<text>'6'</text>\n<points>'x40y29'</points>\n<t_values>0.00</t_values>\n<id>marker_dice6</id>\n</s6>\n</strokes>\n</answer>",
+  "model_answer": 6,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00482_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00482_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00482_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00482.svg"
+}

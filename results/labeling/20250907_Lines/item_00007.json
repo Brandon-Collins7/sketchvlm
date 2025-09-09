@@ -1,0 +1,74 @@
+{
+  "index": 7,
+  "filename": "datasets\\labeling\\family.jpg",
+  "concept": "family",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: family</concept>\n<strokes>\n  <s1>\n    <text size=\"2.0\" color=\"#00ffff\">'head'</text>\n    <points>'x15y38'</points>\n    <callout>'x15y38','x19y32'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head_woman</id>\n  </s1>\n  <s2>\n    <text size=\"2.0\" color=\"#00ffff\">'torso'</text>\n    <points>'x14y23'</points>\n    <callout>'x14y23','x20y27'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso_woman</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#00ffff\">'left_leg'</text>\n    <points>'x12y17'</points>\n    <callout>'x12y17','x19y20'</callout>\n    <t_values>0.00</t_values>\n    <id>label_left_leg_woman</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#ffff00\">'head'</text>\n    <points>'x28y35'</points>\n    <callout>'x28y35','x25y29'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head_girl</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffff00\">'torso'</text>\n    <points>'x20y18'</points>\n    <callout>'x20y18','x26y23'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso_girl</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ff00ff\">'head'</text>\n    <points>'x25y40'</points>\n    <callout>'x25y40','x30y34'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head_boy</id>\n  </s6>\n  <s7>\n    <text size=\"2.0\" color=\"#ff00ff\">'torso'</text>\n    <points>'x26y24'</points>\n    <callout>'x26y24','x31y28'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso_boy</id>\n  </s7>\n  <s8>\n    <text size=\"2.0\" color=\"#00ff00\">'head'</text>\n    <points>'x41y39'</points>\n    <callout>'x41y39','x36y35'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head_man</id>\n  </s8>\n  <s9>\n    <text size=\"2.0\" color=\"#00ff00\">'torso'</text>\n    <points>'x42y26'</points>\n    <callout>'x42y26','x36y28'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso_man</id>\n  </s9>\n  <s10>\n    <text size=\"2.0\" color=\"#00ff00\">'left_leg'</text>\n    <points>'x28y15'</points>\n    <callout>'x28y15','x33y19'</callout>\n    <t_values>0.00</t_values>\n    <id>label_left_leg_man</id>\n  </s10>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head_woman",
+      "font_px": 24,
+      "color": "#00ffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso_woman",
+      "font_px": 24,
+      "color": "#00ffff"
+    },
+    {
+      "text": "left_leg",
+      "id": "label_left_leg_woman",
+      "font_px": 24,
+      "color": "#00ffff"
+    },
+    {
+      "text": "head",
+      "id": "label_head_girl",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso_girl",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "head",
+      "id": "label_head_boy",
+      "font_px": 24,
+      "color": "#ff00ff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso_boy",
+      "font_px": 24,
+      "color": "#ff00ff"
+    },
+    {
+      "text": "head",
+      "id": "label_head_man",
+      "font_px": 24,
+      "color": "#00ff00"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso_man",
+      "font_px": 24,
+      "color": "#00ff00"
+    },
+    {
+      "text": "left_leg",
+      "id": "label_left_leg_man",
+      "font_px": 24,
+      "color": "#00ff00"
+    }
+  ],
+  "num_labels": 10,
+  "raw_image": "results\\labeling\\20250907_213015\\item_00007_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_213015\\item_00007_grid.png",
+  "annotated_image": "results\\labeling\\20250907_213015\\item_00007_annotated.png",
+  "svg": "results\\labeling\\20250907_213015\\item_00007.svg"
+}

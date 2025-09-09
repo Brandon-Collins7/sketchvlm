@@ -1,0 +1,56 @@
+{
+  "index": 6,
+  "filename": "datasets\\labeling\\cow.jpg",
+  "concept": "cow",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: cow</concept>\n<strokes>\n  <s1>\n    <text size=\"2.5\" color=\"#ffffff\">'head'</text>\n    <points>'x43y43'</points>\n    <callout>'x43y43','x38y33'</callout>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#ffffff\">'torso'</text>\n    <points>'x20y45'</points>\n    <callout>'x20y45','x22y32'</callout>\n    <t_values>0.00</t_values>\n    <id>label_torso</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#ffffff\">'front leg'</text>\n    <points>'x38y15'</points>\n    <callout>'x38y15','x33y22'</callout>\n    <t_values>0.00</t_values>\n    <id>label_front_leg</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#ffffff\">'hind leg'</text>\n    <points>'x5y15'</points>\n    <callout>'x5y15','x12y20'</callout>\n    <t_values>0.00</t_values>\n    <id>label_hind_leg</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffffff\">'udder'</text>\n    <points>'x20y15'</points>\n    <callout>'x20y15','x16y22'</callout>\n    <t_values>0.00</t_values>\n    <id>label_udder</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ffffff\">'tail'</text>\n    <points>'x2y25'</points>\n    <callout>'x2y25','x7y28'</callout>\n    <t_values>0.00</t_values>\n    <id>label_tail</id>\n  </s6>\n  <s7>\n    <text size=\"1.8\" color=\"#ffffff\">'ear tag'</text>\n    <points>'x47y36'</points>\n    <callout>'x47y36','x42y34'</callout>\n    <t_values>0.00</t_values>\n    <id>label_ear_tag</id>\n  </s7>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "torso",
+      "id": "label_torso",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "front leg",
+      "id": "label_front_leg",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "hind leg",
+      "id": "label_hind_leg",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "udder",
+      "id": "label_udder",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "tail",
+      "id": "label_tail",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "ear tag",
+      "id": "label_ear_tag",
+      "font_px": 22,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 7,
+  "raw_image": "results\\labeling\\20250907_213015\\item_00006_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_213015\\item_00006_grid.png",
+  "annotated_image": "results\\labeling\\20250907_213015\\item_00006_annotated.png",
+  "svg": "results\\labeling\\20250907_213015\\item_00006.svg"
+}

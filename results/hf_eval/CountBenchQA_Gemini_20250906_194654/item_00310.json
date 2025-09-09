@@ -1,0 +1,12 @@
+{
+  "index": 310,
+  "prompt": "How many children are there in the image",
+  "ground_truth": 10,
+  "model_output": "<answer>\n    <concept>Numbering each children</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x5y29'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x10y29'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x14y28'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x17y28'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x20y27'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x23y27'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children6</id>\n        </s6>\n        <s7>\n            <text>'7'</text>\n            <points>'x26y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children7</id>\n        </s7>\n        <s8>\n            <text>'8'</text>\n            <points>'x29y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children8</id>\n        </s8>\n        <s9>\n            <text>'9'</text>\n            <points>'x31y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children9</id>\n        </s9>\n        <s10>\n            <text>'10'</text>\n            <points>'x35y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_children10</id>\n        </s10>\n    </strokes>\n</answer>",
+  "model_answer": 10,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00310_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00310_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00310_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00310.svg"
+}

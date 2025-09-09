@@ -1,0 +1,12 @@
+{
+  "index": 5,
+  "prompt": "How many girls are there in the image",
+  "ground_truth": 2,
+  "model_output": "<answer>\n<concept>Numbering each girls</concept>\n<strokes>\n<s1>\n  <text>'1'</text>\n  <points>'x15y21'</points>\n  <t_values>0.00</t_values>\n  <id>marker_girls1</id>\n</s1>\n<s2>\n  <text>'2'</text>\n  <points>'x33y20'</points>\n  <t_values>0.00</t_values>\n  <id>marker_girls2</id>\n</s2>\n</strokes>\n</answer>",
+  "model_answer": 2,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00005_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00005_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00005_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00005.svg"
+}

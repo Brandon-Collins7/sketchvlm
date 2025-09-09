@@ -1,0 +1,12 @@
+{
+  "index": 437,
+  "prompt": "How many people are there in the image",
+  "ground_truth": 4,
+  "model_output": "<answer>\n<concept>Numbering each people</concept>\n<strokes>\n<s1>\n    <text>'1'</text>\n    <points>'x6y26'</points>\n    <t_values>0.00</t_values>\n    <id>marker_people1</id>\n</s1>\n<s2>\n    <text>'2'</text>\n    <points>'x15y25'</points>\n    <t_values>0.00</t_values>\n    <id>marker_people2</id>\n</s2>\n<s3>\n    <text>'3'</text>\n    <points>'x30y28'</points>\n    <t_values>0.00</t_values>\n    <id>marker_people3</id>\n</s3>\n<s4>\n    <text>'4'</text>\n    <points>'x42y27'</points>\n    <t_values>0.00</t_values>\n    <id>marker_people4</id>\n</s4>\n</strokes>\n</answer>",
+  "model_answer": 4,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00437_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00437_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00437_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00437.svg"
+}

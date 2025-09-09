@@ -1,0 +1,38 @@
+{
+  "index": 5,
+  "filename": "datasets\\labeling\\city.jpg",
+  "concept": "city",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: city</concept>\n<strokes>\n  <s1>\n    <text size=\"2.5\" color=\"#ffffff\">'Sky'</text>\n    <points>'x45y48'</points>\n    <callout>'x45y48','x35y40'</callout>\n    <t_values>0.00</t_values>\n    <id>label_sky</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#ffffff\">'Skyscraper'</text>\n    <points>'x5y48'</points>\n    <callout>'x5y48','x19y35'</callout>\n    <t_values>0.00</t_values>\n    <id>label_skyscraper</id>\n  </s2>\n  <s3>\n    <text size=\"2.5\" color=\"#ffffff\">'Water'</text>\n    <points>'x5y5'</points>\n    <callout>'x5y5','x20y10'</callout>\n    <t_values>0.00</t_values>\n    <id>label_water</id>\n  </s3>\n  <s4>\n    <text size=\"2.5\" color=\"#ffffff\">'Reflection'</text>\n    <points>'x45y5'</points>\n    <callout>'x45y5','x30y12'</callout>\n    <t_values>0.00</t_values>\n    <id>label_reflection</id>\n  </s4>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "Sky",
+      "id": "label_sky",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "Skyscraper",
+      "id": "label_skyscraper",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "Water",
+      "id": "label_water",
+      "font_px": 30,
+      "color": "#ffffff"
+    },
+    {
+      "text": "Reflection",
+      "id": "label_reflection",
+      "font_px": 30,
+      "color": "#ffffff"
+    }
+  ],
+  "num_labels": 4,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00005_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00005_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00005_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00005.svg"
+}

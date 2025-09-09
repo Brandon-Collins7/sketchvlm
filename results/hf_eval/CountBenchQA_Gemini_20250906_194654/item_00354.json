@@ -1,0 +1,12 @@
+{
+  "index": 354,
+  "prompt": "How many owls are there in the image",
+  "ground_truth": 9,
+  "model_output": "<answer>\n<concept>Numbering each owls</concept>\n<strokes>\n<s1>\n<text>'1'</text>\n<points>'x12y43'</points>\n<t_values>0.00</t_values>\n<id>marker_owls1</id>\n</s1>\n<s2>\n<text>'2'</text>\n<points>'x27y43'</points>\n<t_values>0.00</t_values>\n<id>marker_owls2</id>\n</s2>\n<s3>\n<text>'3'</text>\n<points>'x42y43'</points>\n<t_values>0.00</t_values>\n<id>marker_owls3</id>\n</s3>\n<s4>\n<text>'4'</text>\n<points>'x11y26'</points>\n<t_values>0.00</t_values>\n<id>marker_owls4</id>\n</s4>\n<s5>\n<text>'5'</text>\n<points>'x27y26'</points>\n<t_values>0.00</t_values>\n<id>marker_owls5</id>\n</s5>\n<s6>\n<text>'6'</text>\n<points>'x42y26'</points>\n<t_values>0.00</t_values>\n<id>marker_owls6</id>\n</s6>\n<s7>\n<text>'7'</text>\n<points>'x8y11'</points>\n<t_values>0.00</t_values>\n<id>marker_owls7</id>\n</s7>\n<s8>\n<text>'8'</text>\n<points>'x24y10'</points>\n<t_values>0.00</t_values>\n<id>marker_owls8</id>\n</s8>\n<s9>\n<text>'9'</text>\n<points>'x42y11'</points>\n<t_values>0.00</t_values>\n<id>marker_owls9</id>\n</s9>\n</strokes>\n</answer>",
+  "model_answer": 9,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00354_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00354_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00354_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00354.svg"
+}

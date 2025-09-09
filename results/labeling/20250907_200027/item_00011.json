@@ -1,0 +1,44 @@
+{
+  "index": 11,
+  "filename": "datasets\\labeling\\house.jpg",
+  "concept": "house",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: house</concept>\n<strokes>\n  <s1>\n    <text size=\"3.0\" color=\"#0000ff\">'roof'</text>\n    <points>'x48y45'</points>\n    <callout>'x48y45','x38y40'</callout>\n    <t_values>0.00</t_values>\n    <id>label_roof</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#0000ff\">'gable'</text>\n    <points>'x25y50'</points>\n    <callout>'x25y50','x25y38'</callout>\n    <t_values>0.00</t_values>\n    <id>label_gable</id>\n  </s2>\n  <s3>\n    <text size=\"3.0\" color=\"#0000ff\">'wall'</text>\n    <points>'x2y15'</points>\n    <callout>'x2y15','x7y15'</callout>\n    <t_values>0.00</t_values>\n    <id>label_wall</id>\n  </s4>\n  <s4>\n    <text size=\"2.5\" color=\"#0000ff\">'window'</text>\n    <points>'x33y8'</points>\n    <callout>'x33y8','x33y12'</callout>\n    <t_values>0.00</t_values>\n    <id>label_window</id>\n  </s4>\n  <s5>\n    <text size=\"2.5\" color=\"#0000ff\">'door'</text>\n    <points>'x16y1'</points>\n    <callout>'x16y1','x16y5'</callout>\n    <t_values>0.00</t_values>\n    <id>label_door</id>\n  </s5>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "roof",
+      "id": "label_roof",
+      "font_px": 36,
+      "color": "#0000ff"
+    },
+    {
+      "text": "gable",
+      "id": "label_gable",
+      "font_px": 30,
+      "color": "#0000ff"
+    },
+    {
+      "text": "wall",
+      "id": "label_wall",
+      "font_px": 36,
+      "color": "#0000ff"
+    },
+    {
+      "text": "window",
+      "id": "label_window",
+      "font_px": 30,
+      "color": "#0000ff"
+    },
+    {
+      "text": "door",
+      "id": "label_door",
+      "font_px": 30,
+      "color": "#0000ff"
+    }
+  ],
+  "num_labels": 5,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00011_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00011_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00011_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00011.svg"
+}

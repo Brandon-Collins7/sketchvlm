@@ -1,0 +1,56 @@
+{
+  "index": 1,
+  "filename": "datasets\\labeling\\boat.jpg",
+  "concept": "boat",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: boat</concept>\n<strokes>\n  <s1>\n    <text size=\"2.0\" color=\"#ffff00\">'mainsail'</text>\n    <points>'x40y30'</points>\n    <callout>'x40y30','x30y25'</callout>\n    <t_values>0.00</t_values>\n    <id>label_mainsail</id>\n  </s1>\n  <s2>\n    <text size=\"2.0\" color=\"#ffff00\">'jib'</text>\n    <points>'x15y35'</points>\n    <callout>'x15y35','x25y25'</callout>\n    <t_values>0.00</t_values>\n    <id>label_jib</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#ffff00\">'mast'</text>\n    <points>'x18y25'</points>\n    <callout>'x18y25','x27y28'</callout>\n    <t_values>0.00</t_values>\n    <id>label_mast</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#ffff00\">'boom'</text>\n    <points>'x36y12'</points>\n    <callout>'x36y12','x29y10'</callout>\n    <t_values>0.00</t_values>\n    <id>label_boom</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffff00\">'hull'</text>\n    <points>'x35y2'</points>\n    <callout>'x35y2','x35y6'</callout>\n    <t_values>0.00</t_values>\n    <id>label_hull</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ffff00\">'stern'</text>\n    <points>'x15y2'</points>\n    <callout>'x15y2','x19y7'</callout>\n    <t_values>0.00</t_values>\n    <id>label_stern</id>\n  </s6>\n  <s7>\n    <text size=\"1.8\" color=\"#ffff00\">'flag'</text>\n    <points>'x12y5'</points>\n    <callout>'x12y5','x18y8'</callout>\n    <t_values>0.00</t_values>\n    <id>label_flag</id>\n  </s7>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "mainsail",
+      "id": "label_mainsail",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "jib",
+      "id": "label_jib",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "mast",
+      "id": "label_mast",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "boom",
+      "id": "label_boom",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "hull",
+      "id": "label_hull",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "stern",
+      "id": "label_stern",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "flag",
+      "id": "label_flag",
+      "font_px": 22,
+      "color": "#ffff00"
+    }
+  ],
+  "num_labels": 7,
+  "raw_image": "results\\labeling\\20250907_200027\\item_00001_orig.jpg",
+  "grid_image": "results\\labeling\\20250907_200027\\item_00001_grid.png",
+  "annotated_image": "results\\labeling\\20250907_200027\\item_00001_annotated.png",
+  "svg": "results\\labeling\\20250907_200027\\item_00001.svg"
+}

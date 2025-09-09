@@ -1,0 +1,12 @@
+{
+  "index": 424,
+  "prompt": "How many toys are there in the image",
+  "ground_truth": 8,
+  "model_output": "<answer>\n    <concept>Numbering each toys</concept>\n    <strokes>\n        <s1>\n            <text>'1'</text>\n            <points>'x12y28'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys1</id>\n        </s1>\n        <s2>\n            <text>'2'</text>\n            <points>'x10y18'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys2</id>\n        </s2>\n        <s3>\n            <text>'3'</text>\n            <points>'x21y29'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys3</id>\n        </s3>\n        <s4>\n            <text>'4'</text>\n            <points>'x24y19'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys4</id>\n        </s4>\n        <s5>\n            <text>'5'</text>\n            <points>'x30y32'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys5</id>\n        </s5>\n        <s6>\n            <text>'6'</text>\n            <points>'x33y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys6</id>\n        </s6>\n        <s7>\n            <text>'7'</text>\n            <points>'x44y23'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys7</id>\n        </s7>\n        <s8>\n            <text>'8'</text>\n            <points>'x38y15'</points>\n            <t_values>0.00</t_values>\n            <id>marker_toys8</id>\n        </s8>\n    </strokes>\n</answer>",
+  "model_answer": 8,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00424_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00424_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00424_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250906_194654\\item_00424.svg"
+}
