@@ -1,3 +1,4 @@
+# sketch_app.py  (Py 3.7–3.9 compatible)
 import argparse
 import ast
 import base64
@@ -24,7 +25,7 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
-from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT
+from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT, MIX_TOOLKIT
 
 from PIL import Image, ImageOps
 
@@ -550,6 +551,144 @@ class SketchApp:
 
         return keep
 
+    def evaluate_counting_folder(
+        self,
+        src_dir: str = "datasets/biased",
+        outdir: str = "results/biased_eval",
+        max_images: int = None,
+        count_only_text: bool = True,
+    ):
+        """
+        Evaluate a folder with paired image + prompt files:
+          datasets/biased/
+            cat.png
+            cat.txt         # e.g., "Count the legs of the horse in the image"
+        Produces the same outputs as evaluate_dataset(): per-item SVG/PNG/JSON,
+        a results.jsonl, and a summary.json (accuracy omitted unless you add gold).
+        """
+        src = Path(src_dir)
+        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = Path(outdir) / ts
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        # Collect images
+        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+        images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
+        if max_images is not None:
+            images = images[:max_images]
+
+        results = []
+        total = 0
+
+        pbar = tqdm(images, desc="Evaluating (folder)", unit="item") if hasattr(tqdm, "__call__") else images
+
+        for i, img_path in enumerate(pbar):
+            txt_path = img_path.with_suffix(".txt")
+            question = None
+            try:
+                if not txt_path.exists():
+                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
+
+                # 1) Read image + prompt
+                img = Image.open(img_path).convert("RGB")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    question = f.read().strip()
+
+                # 2) Place background (letterbox to grid, overlay grid)
+                self.set_background_from_pil(img, mode="fit")
+
+                # 3) Build a counting prompt from the question
+                #    (mimics your HF path: extract the "thing" and feed COUNTING_PROMPT)
+                thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
+                prompt = COUNTING_PROMPT.format(thing=thing)
+
+                use_stop = not isinstance(self.llm, GeminiAdapter)
+
+                # 4) Single LLM call → full <strokes>...</strokes> XML with numbered <text> labels
+                answer = self.get_response_from_llm(
+                    msg=prompt,
+                    system_message=system_prompt.format(res=self.res),
+                    msg_history=[],
+                    init_canvas_str=self.last_canvas_b64,
+                    seed_mode=self.seed_mode,
+                    gen_mode="generation",
+                    stop_sequences="</answer>" if use_stop else None,
+                )
+
+                # 5) Count predicted items (same logic)
+                pred = self._count_strokes(answer, count_only_text=count_only_text)
+
+                # 6) Save artifacts (same naming scheme as HF eval)
+                raw_path = out_root / f"item_{i:05d}_orig.jpg"
+                img.save(str(raw_path), quality=95)
+
+                svg_path = out_root / f"item_{i:05d}.svg"
+                png_path = out_root / f"item_{i:05d}_annotated.png"
+                self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
+
+                # 7) Per-item JSON (ground_truth omitted; add if you later supply it)
+                row = {
+                    "index": i,
+                    "prompt": question,
+                    "ground_truth": None,           # put your gold here if you add it later
+                    "model_output": answer,
+                    "model_answer": pred,
+                    "correct": None,                # cannot compute without gold
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(row, jf, indent=2)
+
+                results.append({
+                    "index": i,
+                    "question": question,
+                    "pred_number": pred,
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path)
+                })
+                total += 1
+
+            except Exception as e:
+                total += 1
+                err = {
+                    "index": i,
+                    "prompt": question,
+                    "error": str(e),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(err, jf, indent=2)
+                results.append(err)
+
+        # results.jsonl + summary (no accuracy without gold)
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+        summary = {
+            "folder": str(src),
+            "timestamp": ts,
+            "total_items": len(images),
+            "processed": total,
+            "out_root": str(out_root),
+            "notes": "Folder-based counting; no accuracy computed (no ground truth)."
+        }
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"\nSaved to: {out_root}")
+        print(f"Processed: {total}")
+        return summary
 
 
     # ---------- routes ----------
@@ -724,6 +863,183 @@ class SketchApp:
             m2["content"] = parts
             redacted.append(m2)
         return redacted
+    
+    def _start_counting_session(self, question: str):
+        """
+        Seed the assistant 'thinking header' + <strokes> for a counting task,
+        reusing the same pattern as init_thinking_tags but with COUNTING_PROMPT.
+        """
+        # derive the 'thing' like evaluate_dataset()
+        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
+        self.input_prompt = COUNTING_PROMPT.format(thing=thing)
+
+        add_args = {"stop_sequences": "<strokes>"}  # safe for Claude/OpenAI; removed for Gemini inside get_response
+        assistant_suffix = self.get_response_from_llm(
+            msg=self.input_prompt,
+            system_message=system_prompt.format(res=self.res),
+            msg_history=[],
+            init_canvas_str=self.last_canvas_b64,
+            seed_mode=self.seed_mode,
+            gen_mode="generation",
+            **add_args
+        )
+        # Keep the assistant header + open <strokes> tag in history (exactly like UI flow)
+        self.thinking_tags = assistant_suffix + "<strokes>"
+        self.update_history(self.thinking_tags)
+
+    def evaluate_counting_folder_stepwise(
+        self,
+        src_dir: str = "datasets/biased",
+        outdir: str = "results/biased_eval_stepwise",
+        max_images: int = None,
+        max_turns: int = 40,
+        count_only_text: bool = True,
+    ):
+        """
+        Folder eval that runs one stroke per LLM turn (multi-turn), feeding the updated
+        canvas back each time. Produces same artifact set as evaluate_dataset, but built stepwise.
+        """
+        src = Path(src_dir)
+        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = Path(outdir) / ts
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+        images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
+        if max_images is not None:
+            images = images[:max_images]
+
+        results = []
+        pbar = tqdm(images, desc="Evaluating (stepwise)", unit="item") if hasattr(tqdm, "__call__") else images
+
+        for i, img_path in enumerate(pbar):
+            txt_path = img_path.with_suffix(".txt")
+            question = None
+            try:
+                if not txt_path.exists():
+                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
+
+                # Reset per-sample drawing state and background
+                self.all_strokes_svg = f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+                self.stroke_counter = 0
+                self.assitant_history = ""
+                self.cur_svg_to_render = "None"
+
+                img = Image.open(img_path).convert("RGB")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    question = f.read().strip()
+
+                self.set_background_from_pil(img, mode="fit")  # sets last_canvas_b64
+
+                # Seed the session and switch to one-by-one mode
+                self._start_counting_session(question)
+                self.multi_stroke = False
+
+                turns = 0
+                while turns < max_turns:
+                    turns += 1
+
+                    # Ask for the next single stroke
+                    new_svg = self.predict_next_stroke()  # returns empty string if model produced none
+                    if not new_svg:
+                        break  # model stopped
+
+                    # Accumulate, close tag for rendering, and composite so the LLM sees updates
+                    self.all_strokes_svg += new_svg
+                    self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+
+                    # Persist incremental canvas to PNG and refresh last_canvas_b64
+                    step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
+                    self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
+
+                    # (Optional) tiny delay can help some providers avoid empty replies
+                    delay = getattr(self, "api_delay_sec", 0.0) or 0.0
+                    if delay > 0:
+                        time.sleep(delay)
+
+                # Count the strokes from the final accumulated XML
+                final_xml = self.cur_svg_to_render  # already has </svg>
+                # Build a <strokes>...</strokes> wrapper so _count_strokes sees <s*> blocks:
+                answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', final_xml, flags=re.S)
+                answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+                pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
+
+                # Save artifacts (mirror evaluate_dataset names)
+                raw_path = out_root / f"item_{i:05d}_orig.jpg"
+                img.save(str(raw_path), quality=95)
+
+                svg_path = out_root / f"item_{i:05d}.svg"
+                with open(svg_path, "w", encoding="utf-8") as f:
+                    f.write(self.cur_svg_to_render)
+
+                png_path = out_root / f"item_{i:05d}_annotated.png"
+                # Re-composite final (the last step png already reflects it, but ensure canonical name)
+                self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+
+                row = {
+                    "index": i,
+                    "prompt": question,
+                    "ground_truth": None,
+                    "model_output": answer_xml,       # the <strokes>... form
+                    "model_answer": pred,
+                    "correct": None,
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                    "turns": turns,
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(row, jf, indent=2)
+
+                results.append({
+                    "index": i,
+                    "question": question,
+                    "pred_number": pred,
+                    "turns": turns,
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                })
+
+            except Exception as e:
+                err = {
+                    "index": i,
+                    "prompt": question,
+                    "error": str(e),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(err, jf, indent=2)
+                results.append(err)
+
+        # results.jsonl + summary (no accuracy without gold)
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+        summary = {
+            "folder": str(src),
+            "timestamp": ts,
+            "total_items": len(images),
+            "processed": len(results),
+            "out_root": str(out_root),
+            "mode": "stepwise_one_stroke_per_turn",
+            "notes": "Multi-turn counting; no accuracy computed (no ground truth)."
+        }
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"\nSaved to: {out_root}")
+        print(f"Processed: {len(results)}")
+        return summary
+
 
 
     def get_user_stroke(self):
@@ -1116,14 +1432,57 @@ class SketchApp:
 
     def _count_strokes(self, answer_xml: str, count_only_text: bool = True) -> int:
         """
-        Count predicted strokes:
-        - if count_only_text=True → count only <s*> blocks that contain <text>...</text>
-        - otherwise → count all <s*> blocks inside <strokes>…</strokes>
+        Count predicted strokes.
+
+        Supports two forms:
+        (A) Raw assistant XML with <strokes><s1>...</s1>...</strokes>
+        (B) Final rendered SVG groups (<g id="..._sN"> ... <text ...> ... </text> </g>)
+
+        If count_only_text=True, count only strokes that contain a <text ...>...</text>.
+        Otherwise, count all strokes.
         """
-        blocks = re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S)
+        xml_str = str(answer_xml or "")
+        # strip accidental codefences
+        xml_str = re.sub(r"^```(?:xml|html)?\s*|\s*```$", "", xml_str.strip())
+
+        # ---------- Case A: assistant XML with <sN> blocks ----------
+        s_blocks = re.findall(r"(<s\d+>.*?</s\d+>)", xml_str, flags=re.S | re.I)
+        if s_blocks:
+            if not count_only_text:
+                return len(s_blocks)
+            # <text ...> 'value' | "value" | bare value </text>  (attributes tolerated)
+            text_tag = re.compile(
+                r"<text(?:\s+[^>]*)?>\s*(?:'[^']*'|\"[^\"]*\"|[0-9A-Za-z._\-]+)\s*</text>",
+                flags=re.S | re.I
+            )
+            return sum(1 for b in s_blocks if text_tag.search(b))
+
+        # ---------- Case B: rendered SVG without <sN>, but with <g id="..._sN"> ----------
+        # Count groups with stroke-like ids
+        g_blocks = re.findall(
+            r"(<g\b[^>]*\bid\s*=\s*['\"][^'\"]*_s\d+['\"][^>]*>.*?</g>)",
+            xml_str, flags=re.S | re.I
+        )
+        if g_blocks:
+            if not count_only_text:
+                return len(g_blocks)
+            text_tag = re.compile(
+                r"<text(?:\s+[^>]*)?>\s*(?:'[^']*'|\"[^\"]*\"|[0-9A-Za-z._\-]+)\s*</text>",
+                flags=re.S | re.I
+            )
+            return sum(1 for g in g_blocks if text_tag.search(g))
+
+        # ---------- Fallback: count any <text> elements in the string ----------
+        # (This handles odd outputs; safer than returning 0.)
         if count_only_text:
-            blocks = [b for b in blocks if re.search(r"<text>\s*(?:'[^']*'|\"[^\"]*\")\s*</text>", b, re.S)]
-        return len(blocks)
+            return len(re.findall(
+                r"<text(?:\s+[^>]*)?>\s*(?:'[^']*'|\"[^\"]*\"|[0-9A-Za-z._\-]+)\s*</text>",
+                xml_str, flags=re.S | re.I
+            ))
+        else:
+            # As a last resort, count text nodes as strokes
+            return len(re.findall(r"<text\b", xml_str, flags=re.I))
+
 
     def _render_answer_xml(self, answer_xml: str, svg_out: Path, png_out: Path):
         """
@@ -1352,6 +1711,126 @@ class SketchApp:
             font_px = max(lo, min(font_px, hi))
 
         return (font_px, self._sanitize_color(color_val))
+    
+
+    def _canon_strokes(self, s: str) -> str:
+        """Coerce any provider output into a clean <strokes>…</strokes> string."""
+        if not isinstance(s, str):
+            s = str(s or "")
+        s = s.strip()
+
+        # Strip any code fences or duplicated prologs/chatter
+        s = re.sub(r"```.*?```", "", s, flags=re.S)
+        s = re.sub(r"^<\?xml[^>]*\?>", "", s)
+
+        # If there is an explicit <strokes>…</strokes>, keep exactly that section
+        m = re.search(r"<strokes\b[^>]*>(.*?)</strokes>", s, re.S)
+        if m:
+            return "<strokes>" + m.group(1) + "</strokes>"
+
+        # Otherwise, collect all <sN>…</sN> blocks if any; else return empty strokes
+        blocks = re.findall(r"(<s\d+>.*?</s\d+>)", s, re.S)
+        return "<strokes>" + "".join(blocks) + "</strokes>"
+
+    
+    
+    def _start_counting_session(self, question: str):
+        # derive the counted "thing" and seed a counting header (like init_thinking_tags)
+        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
+        self.input_prompt = COUNTING_PROMPT.format(thing=thing)
+        add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
+        assistant_suffix = self.get_response_from_llm(
+            msg=self.input_prompt,
+            system_message=system_prompt.format(res=self.res),
+            msg_history=[],
+            init_canvas_str=self.last_canvas_b64,
+            seed_mode=self.seed_mode,
+            gen_mode="generation",
+            **add_args
+        )
+        self.thinking_tags = assistant_suffix + "<strokes>"
+        self.update_history(self.thinking_tags)
+
+    def evaluate_dataset_stepwise(
+        self,
+        dataset_id: str = "vikhyatk/CountBenchQA",
+        split: str = "test",
+        outdir: str = "results/hf_eval_stepwise",
+        max_examples: int = None,
+        max_turns: int = 40,
+        count_only_text: bool = True,
+    ):
+        out_root = Path(outdir) / f"{dataset_id.replace('/', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        ds = load_dataset(dataset_id, split=split)
+        results = []
+        pbar = tqdm(ds, desc="Evaluating (stepwise)", unit="item")
+
+        for i, row in enumerate(pbar):
+            if max_examples is not None and i >= max_examples: break
+            question = str(row["question"]).rstrip(" ?").strip()
+            img = row["image"].convert("RGB")
+
+            # reset per-sample state & background
+            self.all_strokes_svg = f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+            self.stroke_counter = 0
+            self.assitant_history = ""
+            self.cur_svg_to_render = "None"
+            self.set_background_from_pil(img, mode="fit")
+
+            # seed the counting session and force single-stroke turns
+            self._start_counting_session(question)
+            self.multi_stroke = False
+
+            turns = 0
+            while turns < max_turns:
+                turns += 1
+                svg_chunk = self.predict_next_stroke()  # yields one <sN>…</sN> when multi_stroke=False
+                if not svg_chunk:
+                    break
+                self.all_strokes_svg += svg_chunk
+                self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+                # composite so updated canvas is visible to the next LLM turn
+                self._composite_svg_on_base(self.cur_svg_to_render, str(out_root / f"item_{i:05d}_step_{turns:03d}.png"))
+
+            # wrap to <strokes>…</strokes> for counting
+            answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
+            answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+            pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
+
+            # save artifacts (same naming pattern)
+            raw_path = out_root / f"item_{i:05d}_orig.jpg"; img.save(str(raw_path), quality=95)
+            svg_path = out_root / f"item_{i:05d}.svg"
+            with open(svg_path, "w", encoding="utf-8") as f: f.write(self.cur_svg_to_render)
+            png_path = out_root / f"item_{i:05d}_annotated.png"
+            self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+
+            gold = int(row["number"])
+            row_json = {
+                "index": i,
+                "prompt": question,
+                "ground_truth": gold,
+                "model_output": answer_xml,
+                "model_answer": pred,
+                "correct": (pred == gold),
+                "raw_image": str(raw_path),
+                "grid_image": str(png_path).replace("_annotated", "_grid"),
+                "annotated_image": str(png_path),
+                "svg": str(svg_path),
+            }
+            with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                json.dump(row_json, jf, indent=2)
+            results.append({"index": i, "gold_number": gold, "pred_number": pred, "correct": bool(pred == gold)})
+
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results: f.write(json.dumps(r) + "\n")
+        acc = sum(r["correct"] for r in results)/len(results) if results else 0.0
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump({"dataset": dataset_id, "split": split, "total": len(results),
+                    "correct": sum(r["correct"] for r in results), "accuracy": acc}, f, indent=2)
+        print(f"\nFinal accuracy: {acc:.3%} ({sum(r['correct'] for r in results)}/{len(results)})")
+        return acc
 
     
     def evaluate_labeling_folder(
@@ -1619,6 +2098,218 @@ class SketchApp:
         print(f"\nFinal accuracy: {accuracy:.3%}  ({correct}/{total})")
         return accuracy
 
+    def _start_generic_session(self, user_prompt: str):
+        """
+        Seed a session for arbitrary prompts by appending a gated capability toolkit,
+        then end at <strokes> exactly like the UI so Gemini is 'in protocol'.
+        """
+        # Build the seeded instruction (raw prompt + gated toolkit)
+        # Keep your existing system_prompt(res=...) for grid details.
+        self.input_prompt = (
+            f"{user_prompt.strip()}\n\n"
+            "Use the following capability patterns only if relevant to the request:\n"
+            f"{MIX_TOOLKIT}\n"
+            # Ask the model to produce its header and stop right before strokes
+            "Begin your answer now. Stop after writing the header that precedes <strokes>."
+        )
+
+        add_args = {"stop_sequences": "<strokes>"}  # dropped automatically for Gemini in get_response_from_llm
+        assistant_suffix = self.get_response_from_llm(
+            msg=self.input_prompt,
+            system_message=system_prompt.format(res=self.res),
+            msg_history=[],
+            init_canvas_str=self.last_canvas_b64,
+            seed_mode=self.seed_mode,
+            gen_mode="generation",
+            **add_args
+        )
+
+        # Store the header and open the strokes section
+        self.thinking_tags = assistant_suffix + "<strokes>"
+        self.update_history(self.thinking_tags)
+
+    def evaluate_mixed_folder(
+        self,
+        src_dir: str = "datasets/mix",
+        outdir: str = "results/mix_eval",
+        stepwise: bool = False,
+        max_images: int = None,
+        max_turns: int = 40,
+        count_only_text: bool = True,
+    ):
+        """
+        Batch process a folder of paired images + prompts:
+        datasets/mix/
+            cat.jpg
+            cat.txt      # prompt text for that image (your prompt should instruct drawing)
+        If stepwise=False: single-shot (one LLM call). If True: one stroke per turn.
+        Saves per-item JSON, SVG, annotated PNG (+ step frames), results.jsonl, summary.json.
+        """
+        src = Path(src_dir)
+        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = Path(outdir) / ts
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        # collect images
+        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+        images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
+        if max_images is not None:
+            images = images[:max_images]
+
+        results = []
+        pbar = tqdm(images, desc=f"Mixed folder ({'stepwise' if stepwise else 'single-shot'})", unit="img") \
+            if hasattr(tqdm, "__call__") else images
+
+        for i, img_path in enumerate(pbar):
+            txt_path = img_path.with_suffix(".txt")
+            prompt_from_txt = None
+            turns = 0  # predefine so we can safely log it on errors
+
+            # Predefine artifact paths so 'except' can reference them safely
+            raw_path = out_root / f"item_{i:05d}_orig.jpg"
+            svg_path = out_root / f"item_{i:05d}.svg"
+            png_path = out_root / f"item_{i:05d}_annotated.png"
+
+            try:
+                if not txt_path.exists():
+                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
+
+                # reset per-sample state & background
+                self.all_strokes_svg = (
+                    f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+                )
+                self.stroke_counter = 0
+                self.assitant_history = ""
+                self.cur_svg_to_render = "None"
+
+                img = Image.open(img_path).convert("RGB")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    prompt_from_txt = f.read().strip()
+
+                # Place background (letterbox + grid) and save the raw image early
+                self.set_background_from_pil(img, mode="fit")  # sets last_canvas_b64
+                img.save(str(raw_path), quality=95)
+
+                if stepwise:
+                    # Seed a generic “toolkit” + <strokes> header (the UI-style starter)
+                    # This assumes you added _start_generic_session from earlier instructions.
+                    self._start_generic_session(prompt_from_txt)
+                    self.multi_stroke = False  # one stroke per call
+
+                    while turns < max_turns:
+                        turns += 1
+                        svg_chunk = self.predict_next_stroke()  # one <sN>...</sN> or ""
+                        if not svg_chunk:
+                            break
+                        self.all_strokes_svg += svg_chunk
+                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+                        # Composite so Gemini sees the updated canvas next turn
+                        self._composite_svg_on_base(
+                            self.cur_svg_to_render,
+                            str(out_root / f"item_{i:05d}_step_{turns:03d}.png")
+                        )
+
+                    # Wrap final SVG to <strokes>…</strokes> for counters/consistency
+                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
+                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+
+                    # Also produce the canonical final artifacts under standard names
+                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                else:
+                    # SINGLE-SHOT:
+                    # Recommended: seed a generic header like the UI then complete.
+                    # Falls back automatically for Gemini (stop seq removed upstream).
+                    self._start_generic_session(prompt_from_txt)
+                    use_stop = not isinstance(self.llm, GeminiAdapter)
+                    answer = self.get_response_from_llm(
+                        msg=self.input_prompt,                             # same text used to seed
+                        system_message=system_prompt.format(res=self.res),
+                        msg_history=[],
+                        init_canvas_str=self.last_canvas_b64,
+                        seed_mode=self.seed_mode,
+                        gen_mode="completion",
+                        prefill_msg=self.assitant_history.strip(),         # continue from header
+                        stop_sequences="</answer>" if use_stop else None
+                    )
+
+                    # Canonicalize whatever came back to <strokes>…</strokes>
+                    answer_xml = self._canon_strokes(answer)
+
+                    # Render even if empty
+                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                # At this point, self.cur_svg_to_render contains the final SVG
+                # Compose counters
+                total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
+                text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
+
+                row = {
+                    "index": i,
+                    "prompt": prompt_from_txt,
+                    "mode": "stepwise" if stepwise else "single_shot",
+                    "turns": (turns if stepwise else None),
+                    "model_output": answer_xml,
+                    "num_strokes_total": total_strokes,
+                    "num_strokes_text": text_strokes,
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(row, jf, indent=2)
+
+                results.append({
+                    "index": i,
+                    "mode": row["mode"],
+                    "num_strokes_total": total_strokes,
+                    "num_strokes_text": text_strokes,
+                })
+
+            except Exception as e:
+                err = {
+                    "index": i,
+                    "prompt": prompt_from_txt,
+                    "mode": "stepwise" if stepwise else "single_shot",
+                    "turns": (turns if stepwise else None),
+                    "error": str(e),
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(err, jf, indent=2)
+                results.append(err)
+
+        # results.jsonl + summary
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+        summary = {
+            "folder": str(src),
+            "timestamp": ts,
+            "total_items": len(images),
+            "processed": len(results),
+            "out_root": str(out_root),
+            "mode": "stepwise" if stepwise else "single_shot",
+            "notes": "Prompts are taken verbatim from paired .txt files.",
+        }
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"\nSaved to: {out_root}")
+        print(f"Processed: {len(results)}")
+        return summary
+
 
 
 
@@ -1674,9 +2365,36 @@ if __name__ == '__main__':
     parser.add_argument("--max-images", type=int, default=None, help="Limit number of images to process")
     parser.add_argument("--label-outdir", type=str, default="results/labeling",
                         help="Root folder for labeling outputs")
+    
+    parser.add_argument("--count-dir", type=str,
+                        help="Folder with paired image + .txt prompt files (e.g., datasets/biased)")
+    parser.add_argument("--count-outdir", type=str, default="results/biased_eval",
+                        help="Output root for folder-based counting eval")
+    
+    parser.add_argument("--count-stepwise-dir", type=str,
+                        help="Folder (e.g., datasets/biased) for stepwise counting, one stroke per turn")
+    parser.add_argument("--count-stepwise-outdir", type=str, default="results/biased_eval_stepwise",
+                        help="Output root for stepwise folder counting")
+    parser.add_argument("--count-stepwise-max-turns", type=int, default=40,
+                        help="Max turns (strokes) per image in stepwise mode")
+    parser.add_argument("--eval-stepwise", action="store_true",
+                    help="Run CountBench in stepwise mode (one stroke per turn)")
+
+    parser.add_argument("--mixed-dir", type=str,
+                        help="Folder with paired image + .txt prompt files (e.g., datasets/mix)")
+    parser.add_argument("--mixed-outdir", type=str, default="results/mix_eval",
+                        help="Output root for mixed folder eval")
+    parser.add_argument("--mixed-stepwise", action="store_true",
+                        help="Run one stroke per turn (stepwise). Otherwise single-shot.")
+    parser.add_argument("--mixed-max-turns", type=int, default=40,
+                        help="Max turns (strokes) per image in stepwise mode")
+
+
 
 
     args = parser.parse_args()
+    
+    
 
     # default model per provider if none given
     if not args.model:
@@ -1715,7 +2433,55 @@ if __name__ == '__main__':
 
     if args.deterministic:
         app.seed_mode = "deterministic"
+    
+    
+    # If --mixed-dir is provided, run mixed folder eval and exit
+    if args.mixed_dir:
+        app.evaluate_mixed_folder(
+            src_dir=args.mixed_dir,
+            outdir=args.mixed_outdir,
+            stepwise=args.mixed_stepwise,
+            max_images=args.max_examples,
+            max_turns=args.mixed_max_turns,
+            count_only_text=args.count_only_text
+        )
+        raise SystemExit(0)
+
+    
+    if args.eval_stepwise:
+        app.evaluate_dataset_stepwise(
+            dataset_id=args.eval_dataset or "vikhyatk/CountBenchQA",
+            split=args.eval_split,
+            outdir=args.outdir or "results/hf_eval_stepwise",
+            max_examples=args.max_examples,
+            count_only_text=args.count_only_text
+        )
+        raise SystemExit(0)
+
         
+    # If --count-stepwise-dir is provided, run stepwise counting and exit
+    if args.count_stepwise_dir:
+        app.evaluate_counting_folder_stepwise(
+            src_dir=args.count_stepwise_dir,
+            outdir=args.count_stepwise_outdir,
+            max_images=args.max_examples,
+            max_turns=args.count_stepwise_max_turns,
+            count_only_text=args.count_only_text
+        )
+        raise SystemExit(0)
+
+    
+    
+    # If --count-dir is provided, run folder counting eval and exit
+    if args.count_dir:
+        app.evaluate_counting_folder(
+            src_dir=args.count_dir,
+            outdir=args.count_outdir,
+            max_images=args.max_examples,
+            count_only_text=args.count_only_text
+        )
+        raise SystemExit(0)
+
         
     # If --eval-dataset is provided, run batch mode and exit
     if args.eval_dataset:
@@ -1739,6 +2505,8 @@ if __name__ == '__main__':
             max_images=args.max_images,
         )
         raise SystemExit(0)
+    
+    
 
 
 
