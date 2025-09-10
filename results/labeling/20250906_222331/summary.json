@@ -1,8 +1,0 @@
-{
-  "folder": "datasets\\labeling",
-  "timestamp": "20250906_222331",
-  "total_images": 4,
-  "processed": 4,
-  "total_labels": 20,
-  "out_root": "results\\labeling\\20250906_222331"
-}

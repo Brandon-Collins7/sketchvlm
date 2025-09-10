@@ -100,7 +100,8 @@ class GeminiAdapter(BaseLLMAdapter):
     def __init__(self, model: str, cache: bool = False, max_tokens: int = 8192):
         super().__init__(model, cache, max_tokens)
         load_dotenv()
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        genai.configure(api_key=api_key)
         self._genai = genai
         self._model = None
         self._last_response = None
