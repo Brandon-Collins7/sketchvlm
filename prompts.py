@@ -314,3 +314,51 @@ Hints (optional): {labels_hint}
 
 
 DEFAULT_LABELS_HINT = "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight"
+
+
+# A small, gated library of patterns the model may use **only if relevant**.
+MIX_TOOLKIT = """
+You must reply in the XML protocol.
+
+Allowed patterns (choose only the one that matches the user's request):
+- Counting: place a consecutive number per object using <text>…</text>, anchored by one <points> cell near each object.
+  Example stroke:
+    <s1>
+      <text size="1.6" color="#ff0066">'1'</text>
+      <points>'x12y28'</points>
+      <t_values>0.00</t_values>
+      <id>marker_1</id>
+    </s1>
+
+- Labeling: write short part names using <text>…</text>, one label per part, anchored near each part by one <points> cell.
+  Example stroke:
+    <s1>
+      <text size="1.8" color="#0066ff">'wheel'</text>
+      <points>'x10y22'</points>
+      <t_values>0.00</t_values>
+      <id>label_wheel</id>
+    </s1>
+
+- Dot/mark: if asked to “place a dot/mark”, emit a tiny path with 1–2 cells (no <text>).
+  Example stroke:
+    <s1>
+      <points>'x14y17','x14y17'</points>
+      <t_values>0.00,0.10</t_values>
+      <id>dot_1</id>
+    </s1>
+
+- Box/outline: if asked to draw a box/outline, trace a rectangular (or outline) path by listing corner cells in order.
+  Example stroke:
+    <s1>
+      <points>'x8y20','x20y20','x20y10','x8y10','x8y20'</points>
+      <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
+      <id>box_1</id>
+    </s1>
+
+Rules:
+- Output only <answer>…</answer> with a single <strokes>…</strokes> section.
+- For counting/labeling tasks, prefer <text> with short values ('1','2',… or 'wheel','seat',…).
+- Use <points> with exactly one anchor cell for each text label/number (one per item/part).
+- Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
+- Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
+"""
