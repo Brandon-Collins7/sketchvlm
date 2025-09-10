@@ -9,8 +9,6 @@ python collab_sketch_with_label.py --llm gpt --model o3
 
 # Gemini 2.5 Pro
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro
-python bias_test.py --llm gemini --model gemini-2.5-pro
-
 
 
 ------- COUNTING -------
@@ -24,14 +22,12 @@ python collab_sketch_with_label.py --llm gpt --model o3 --eval-dataset vikhyatk/
 
 # Gemini:
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text
-python bias_test.py --llm gemini --model gemini-2.5-pro --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text
 
 
 ------- Labeling -------
 
 # Gemini 2.5 Pro, label everything in datasets/labeling, concept from filenames:
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --api-delay 0.0 --label-dir datasets/labeling
-python collab_sketch_label_line.py --llm gemini --model gemini-2.5-pro --api-delay 0.0 --label-dir datasets/labeling
 
 
 ---- Eval one stroke at a time ----
