@@ -12,9 +12,6 @@ python collab_sketch_all.py --llm gemini --model gemini-2.5-pro
 
 
 sketch_app.py is now collab_sketch_all.py
-
-
-
 ------- COUNTING -------
 # EVALUATING CountBenchQA
 
