@@ -396,7 +396,8 @@ class OpenAIAdapter(BaseLLMAdapter):
 class SketchApp:
     def __init__(
         self, res, cell_size, grid_size, stroke_width, target_concept,
-        user_always_first, llm_adapter: BaseLLMAdapter, show_full_grid: bool = False
+        user_always_first, llm_adapter: BaseLLMAdapter, show_full_grid: bool = False,
+        dynamic_grid: bool = True, min_grid: int = 10, max_grid: int = 100
     ):
         self.app = Flask(__name__)
         self.session_id = str(uuid.uuid4())
@@ -408,12 +409,17 @@ class SketchApp:
         self.llm = llm_adapter
 
         # Grid setup
-        self.res = res
+        self.res = res  # Keep for backward compatibility (square grids)
+        self.res_x = res  # Number of columns
+        self.res_y = res  # Number of rows
         self.num_cells = res
         self.cell_size = cell_size
         self.grid_size = grid_size
         self.show_full_grid = show_full_grid
         self.multi_stroke = True
+        self.dynamic_grid = dynamic_grid
+        self.min_grid = min_grid
+        self.max_grid = max_grid
         self.init_canvas_grid, self.positions = utils.create_grid_image(
             res=res, cell_size=cell_size, header_size=cell_size, full=self.show_full_grid
         )
@@ -557,7 +563,7 @@ class SketchApp:
     def toggle_grid(self):
         self.show_full_grid = not self.show_full_grid
         self.init_canvas_grid, self.positions = utils.create_grid_image(
-            res=self.res, cell_size=self.cell_size, header_size=self.cell_size, full=self.show_full_grid
+            res_x=self.res_x, res_y=self.res_y, cell_size=self.cell_size, header_size=self.cell_size, full=self.show_full_grid
         )
         self.base_canvas = self.base_canvas.convert("RGBA")
         grid = self.init_canvas_grid.convert("RGBA")
@@ -599,12 +605,15 @@ class SketchApp:
 
         img = Image.open(file.stream).convert("RGB")
 
+        # Update grid size based on image dimensions if dynamic sizing is enabled
+        self._update_grid_for_image(img)
+
         # choose "fit" (letterbox) or "fill" (cover); "fit" avoids cropping
         placed = self._fit_image_to_canvas(img, mode="fit", bgcolor=(255, 255, 255))
         composited = self._overlay_grid(placed)
         self._set_base_canvas(composited)
 
-        return jsonify({"status": "success", "filename": fname})
+        return jsonify({"status": "success", "filename": fname, "grid_size": self.res})
 
 
     def get_agent_svg(self):
@@ -923,9 +932,9 @@ class SketchApp:
         for point_data in stroke:
             x, y, t = point_data['x'], point_data['y'], point_data['timestamp']
             x = min(self.grid_size[0] - 1, max(self.cell_size, x))
-            y = min(self.grid_size[0] - 1 - self.cell_size, max(0, y))
+            y = min(self.grid_size[1] - 1 - self.cell_size, max(0, y))
             grid_x = int(x // self.cell_size)
-            grid_y = int(self.num_cells - (y // self.cell_size))
+            grid_y = int(self.res_y - (y // self.cell_size))
             point_str = f'x{grid_x}y{grid_y}'
             cell_center = self.positions[point_str]
             distance = math.sqrt((x - cell_center[0]) ** 2 + (y - cell_center[1]) ** 2)
@@ -938,9 +947,9 @@ class SketchApp:
             for point_data in stroke:
                 x, y, t = point_data['x'], point_data['y'], point_data['timestamp']
                 x = min(self.grid_size[0] - 1, max(self.cell_size, x))
-                y = min(self.grid_size[0] - 1 - self.cell_size, max(0, y))
+                y = min(self.grid_size[1] - 1 - self.cell_size, max(0, y))
                 grid_x = int(x // self.cell_size)
-                grid_y = int(self.num_cells - (y // self.cell_size))
+                grid_y = int(self.res_y - (y // self.cell_size))
                 point_str = f'x{grid_x}y{grid_y}'
                 cell_center = self.positions[point_str]
                 distance = math.sqrt((x - cell_center[0]) ** 2 + (y - cell_center[1]) ** 2)
@@ -1027,7 +1036,7 @@ class SketchApp:
 
         # ----- default: curve/path stroke (unchanged) -----
         strokes_list_str, t_values_str = utils.parse_xml_string_single_stroke(
-            stroke_model, self.res, stroke_no
+            stroke_model, self.res, stroke_no, self.res_x, self.res_y
         )
         strokes_list = ast.literal_eval(strokes_list_str)
         t_values     = ast.literal_eval(t_values_str)
@@ -1223,8 +1232,33 @@ class SketchApp:
         self._update_canvas_b64("static/init_canvas.png")
 
 
+    def _update_grid_for_image(self, img: Image.Image):
+        """Update grid size based on image dimensions if dynamic_grid is enabled."""
+        if self.dynamic_grid:
+            img_width, img_height = img.size
+            new_res_x, new_res_y, new_grid_width, new_grid_height = calculate_dynamic_grid_size(
+                img_width, img_height, self.cell_size, self.min_grid, self.max_grid
+            )
+            
+            # Only update if the grid size would actually change
+            if new_res_x != self.res_x or new_res_y != self.res_y:
+                self.res_x = new_res_x
+                self.res_y = new_res_y
+                self.res = max(new_res_x, new_res_y)  # Keep for backward compatibility
+                self.num_cells = max(new_res_x, new_res_y)  # Keep for backward compatibility
+                self.grid_size = (new_grid_width, new_grid_height)
+                
+                # Recreate grid and positions
+                self.init_canvas_grid, self.positions = utils.create_grid_image(
+                    res_x=self.res_x, res_y=self.res_y, cell_size=self.cell_size, 
+                    header_size=self.cell_size, full=self.show_full_grid
+                )
+
     def set_background_from_pil(self, pil_img: Image.Image, mode: str = "fit", bgcolor=(255, 255, 255)):
         """Public helper used by batch eval to mimic an uploaded image."""
+        # Update grid size first if dynamic sizing is enabled
+        self._update_grid_for_image(pil_img)
+        
         placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
         composited = self._overlay_grid(placed)
         self._set_base_canvas(composited)
@@ -1390,7 +1424,7 @@ class SketchApp:
 
         for idx, path in enumerate(pbar):
             try:
-                # 1) load + set background (keeps aspect with letterbox padding)
+                # 1) load + set background (keeps aspect with letterbox padding and handles dynamic grid sizing)
                 img = Image.open(path).convert("RGB")
                 self.set_background_from_pil(img, mode="fit")
 
@@ -1515,7 +1549,7 @@ class SketchApp:
                 question = str(row["question"]).rstrip(" ?").strip()
                 gold = int(row["number"])
 
-                # 1) background
+                # 1) background - this will automatically handle dynamic grid sizing
                 self.set_background_from_pil(img, mode="fit")
 
                 # 2) prompt TODO
@@ -1636,6 +1670,35 @@ class SketchApp:
 # =========================
 # Entrypoint
 # =========================
+def calculate_dynamic_grid_size(image_width: int, image_height: int, cell_size: int = 12, min_grid: int = 10, max_grid: int = 100):
+    """
+    Calculate optimal grid size based on image dimensions.
+    
+    Args:
+        image_width: Width of the image in pixels
+        image_height: Height of the image in pixels  
+        cell_size: Size of each grid cell in pixels
+        min_grid: Minimum grid size
+        max_grid: Maximum grid size
+        
+    Returns:
+        tuple: (grid_res_x, grid_res_y, grid_width, grid_height)
+    """
+    # Calculate how many cells would fit in each dimension
+    cells_x = max(min_grid, min(max_grid, image_width // cell_size))
+    cells_y = max(min_grid, min(max_grid, image_height // cell_size))
+    
+    # Keep rectangular grid that matches image aspect ratio
+    grid_res_x = cells_x
+    grid_res_y = cells_y
+    
+    # Calculate actual grid dimensions (add 1 for header)
+    grid_width = (grid_res_x + 1) * cell_size
+    grid_height = (grid_res_y + 1) * cell_size
+    
+    return grid_res_x, grid_res_y, grid_width, grid_height
+
+
 def make_adapter(llm_name: str, model: str, cache: bool, max_tokens: int) -> BaseLLMAdapter:
     name = (llm_name or "").lower()
     if name in ("claude", "anthropic"):
@@ -1709,7 +1772,10 @@ if __name__ == '__main__':
         stroke_width=stroke_width,
         target_concept="sailboat",
         user_always_first=user_always_first,
-        llm_adapter=adapter
+        llm_adapter=adapter,
+        dynamic_grid=True,
+        min_grid=10,
+        max_grid=100
     )
 
     app.api_delay_sec = args.api_delay
