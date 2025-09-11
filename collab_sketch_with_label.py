@@ -24,6 +24,8 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
+from grid_manager import GridManager
+from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
 from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT
 
 from PIL import Image, ImageOps
@@ -37,357 +39,6 @@ except Exception:
     tqdm = lambda x, **k: x
 
 
-# =========================
-# LLM Adapters
-# =========================
-class BaseLLMAdapter:
-    """
-    Minimal interface the app relies on:
-      - build_user_content(init_canvas_b64, text) -> provider-specific "content" array
-      - call(system_message, messages, additional_args) -> raw response
-      - extract_text(raw_response) -> str content
-      - request_has_image(messages) -> bool
-    """
-    def __init__(self, model: str, cache: bool = False, max_tokens: int = 3000):
-        self.model = model
-        self.cache = cache
-        self.max_tokens = max_tokens
-
-    def build_user_content(self, init_canvas_b64: Optional[str], text: str):
-        raise NotImplementedError
-
-    def call(self, system_message, messages, additional_args):
-        raise NotImplementedError
-
-    def extract_text(self, raw_response) -> str:
-        raise NotImplementedError
-
-    def request_has_image(self, messages: List[Dict]) -> bool:
-        """Return True iff any message uses an image (image or image_url)."""
-        for m in messages:
-            for part in m.get("content", []):
-                t = part.get("type")
-                if t in ("image", "image_url"):
-                    return True
-        return False
-    
-    def response_metadata(self, raw_response) -> dict:
-        """Provider-specific metadata (finish_reason, usage, safety, etc.)."""
-        return {}
-
-    def debug_dump(self, raw_response) -> dict:
-        """Small, JSON-serializable snapshot of the raw provider response."""
-        try:
-            return {"repr": repr(raw_response)[:8000]}
-        except Exception:
-            return {}
-
-# --- at top of file (with other imports) ---
-import base64, re
-import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockThreshold
-
-# =========================
-# Gemini Adapter (2.5 Pro/Flash)
-# =========================
-class GeminiAdapter(BaseLLMAdapter):
-    """
-    Works with Gemini 2.5 Pro (and Flash). Accepts your existing 'messages'
-    shape (OpenAI/Claude style) and converts to Gemini {role, parts} format.
-    If the response has no .text, we aggregate all text parts.
-    """
-
-    def __init__(self, model: str, cache: bool = False, max_tokens: int = 8192):
-        super().__init__(model, cache, max_tokens)
-        load_dotenv()
-        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-        genai.configure(api_key=api_key)
-        self._genai = genai
-        self._model = None
-        self._last_response = None
-        self._last_sys = None
-
-        # permissive safety so evals don't silently block
-        self.safety_settings = [
-            {"category": HarmCategory.HARM_CATEGORY_HARASSMENT,         "threshold": HarmBlockThreshold.BLOCK_NONE},
-            {"category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,        "threshold": HarmBlockThreshold.BLOCK_NONE},
-            {"category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,             "threshold": HarmBlockThreshold.BLOCK_NONE},
-            {"category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,  "threshold": HarmBlockThreshold.BLOCK_NONE},
-        ]
-
-    # ---------- helpers ----------
-    def _ensure_model(self, system_message: str):
-        if self._model is None or self._last_sys != system_message:
-            self._model = self._genai.GenerativeModel(
-                self.model,
-                system_instruction=system_message,
-                safety_settings=self.safety_settings
-            )
-            self._last_sys = system_message
-
-    @staticmethod
-    def _decode_data_url(url: str):
-        """
-        Accepts data URLs like 'data:image/png;base64,AAAA...'
-        Returns (mime_type:str, raw_bytes:bytes) or (None, None) if not a data URL.
-        """
-        m = re.match(r"^data:(.*?);base64,(.+)$", url)
-        if not m:
-            return None, None
-        mime = m.group(1)
-        raw = base64.b64decode(m.group(2))
-        return mime, raw
-
-    def _parts_from_our_content(self, content):
-        """
-        Convert your OpenAI/Claude-style 'content' list into Gemini 'parts'.
-        """
-        parts = []
-        for item in content or []:
-            # If a stray string sneaks in, treat it as text
-            if isinstance(item, str):
-                parts.append({"text": item})
-                continue
-
-            t = item.get("type")
-            if t == "text":
-                parts.append({"text": item.get("text", "")})
-
-            elif t == "image":
-                src = item.get("source", {})
-                if src.get("type") == "base64":
-                    mt = src.get("media_type", "image/png")
-                    data_b = base64.b64decode(src.get("data", "") or b"")
-                    parts.append({"inline_data": {"mime_type": mt, "data": data_b}})
-
-            elif t == "image_url":
-                # Expected to be a *data URL* for local canvas
-                url = (item.get("image_url") or {}).get("url", "")
-                mt, data_b = self._decode_data_url(url)
-                if mt and data_b:
-                    parts.append({"inline_data": {"mime_type": mt, "data": data_b}})
-
-            # ignore unknown types quietly
-        return parts
-
-    def _to_gemini_messages(self, messages):
-        """
-        Turn your messages into a list of {role, parts}.
-        'assistant' -> 'model' role for Gemini.
-        """
-        out = []
-        for m in messages:
-            role = m.get("role", "user")
-            content = m.get("content", "")
-
-            # if content is already a string, make it a single text part
-            if isinstance(content, str):
-                parts = [{"text": content}]
-            else:
-                parts = self._parts_from_our_content(content)
-
-            g_role = "model" if role == "assistant" else "user"
-            out.append({"role": g_role, "parts": parts})
-        return out
-
-    # ---------- interface ----------
-    def build_user_content(self, init_canvas_b64: Optional[str], text: str):
-        """
-        Keep your app's contract: returns a list of parts in OpenAI/Claude shape.
-        """
-        content = []
-        if init_canvas_b64:
-            mime = "image/jpeg" if init_canvas_b64.startswith("/9j") else "image/png"
-            content.append({
-                "type": "image",
-                "source": {"type": "base64", "media_type": mime, "data": init_canvas_b64}
-            })
-        content.append({"type": "text", "text": text})
-        return content
-
-    def call(self, system_message, messages, additional_args):
-        self._ensure_model(system_message)
-
-        gen_cfg = {"max_output_tokens": self.max_tokens}
-        if "temperature" in additional_args:
-            gen_cfg["temperature"] = additional_args["temperature"]
-        # Gemini supports stop_sequences in generation_config
-        ss = additional_args.get("stop_sequences")
-        if ss:
-            gen_cfg["stop_sequences"] = ss if isinstance(ss, list) else [ss]
-
-        # Prefer structured {role, parts}. If something looks off, fallback to flat text.
-        try:
-            contents = self._to_gemini_messages(messages)
-            resp = self._model.generate_content(contents=contents, generation_config=gen_cfg)
-        except Exception:
-            # Fallback: flatten all text into a single prompt string
-            text_blocks = []
-            for m in messages:
-                c = m.get("content")
-                if isinstance(c, str):
-                    text_blocks.append(c)
-                elif isinstance(c, list):
-                    for p in c:
-                        if isinstance(p, dict) and p.get("type") == "text":
-                            text_blocks.append(p.get("text", ""))
-            prompt = "\n\n".join(x for x in text_blocks if x)
-            resp = self._model.generate_content(prompt, generation_config=gen_cfg)
-
-        self._last_response = resp
-        return resp
-
-    def extract_text(self, raw_response) -> str:
-        # 1) try the convenience accessor
-        try:
-            if raw_response.text:
-                return raw_response.text
-        except Exception:
-            pass
-
-        # 2) aggregate parts
-        try:
-            chunks = []
-            for cand in getattr(raw_response, "candidates", []) or []:
-                cnt = getattr(cand, "content", None)
-                for part in getattr(cnt, "parts", []) or []:
-                    txt = getattr(part, "text", None)
-                    if isinstance(txt, str) and txt:
-                        chunks.append(txt)
-            return "".join(chunks)
-        except Exception:
-            return ""
-
-    def request_has_image(self, messages: List[Dict]) -> bool:
-        for m in messages:
-            for part in m.get("content", []):
-                t = isinstance(part, dict) and part.get("type")
-                if t in ("image", "image_url"):
-                    return True
-        return False
-
-    def debug_dump(self, raw_response) -> dict:
-        out = {
-            "provider": "gemini",
-            "model": self.model,
-            "combined_text": "",
-            "finish_reason": None,
-            "has_candidates": False,
-            "prompt_block_reason": None,
-            "safety": [],
-        }
-        try:
-            out["combined_text"] = self.extract_text(raw_response) or ""
-            cands = getattr(raw_response, "candidates", None)
-            out["has_candidates"] = bool(cands)
-            if cands:
-                fr = getattr(cands[0], "finish_reason", None)
-                out["finish_reason"] = str(fr)
-                sr = getattr(cands[0], "safety_ratings", None)
-                if sr:
-                    out["safety"] = [str(x) for x in sr]
-            pf = getattr(raw_response, "prompt_feedback", None)
-            if pf:
-                out["prompt_block_reason"] = str(getattr(pf, "block_reason", None))
-        except Exception as e:
-            out["debug_error"] = str(e)
-        return out
-
-
-
-class ClaudeAdapter(BaseLLMAdapter):
-    """
-    Uses anthropic.Anthropic messages API.
-    - Images sent as base64 parts with media_type detection.
-    - stop_sequences -> stop_sequences (as list)
-    """
-    def __init__(self, model: str, cache: bool = False, max_tokens: int = 3000):
-        super().__init__(model, cache, max_tokens)
-        import anthropic
-        load_dotenv()
-        key = os.getenv("ANTHROPIC_API_KEY")
-        self.client = anthropic.Anthropic(api_key=key)
-        self._anthropic = anthropic
-
-    def build_user_content(self, init_canvas_b64: Optional[str], text: str):
-        content: List[Dict] = []
-        if init_canvas_b64:
-            media_type = "image/jpeg" if init_canvas_b64[:3] == "/9j" else "image/png"
-            content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": media_type,
-                    "data": init_canvas_b64
-                }
-            })
-        content.append({"type": "text", "text": text})
-        if self.cache:
-            content[-1]["cache_control"] = {"type": "ephemeral"}
-        return content
-
-    def call(self, system_message, messages, additional_args):
-        args = dict(
-            model=self.model,
-            max_tokens=self.max_tokens,
-            system=system_message,
-            messages=messages,
-        )
-        if "stop_sequences" in additional_args:
-            ss = additional_args["stop_sequences"]
-            args["stop_sequences"] = ss if isinstance(ss, list) else [ss]
-        if "temperature" in additional_args:
-            args["temperature"] = additional_args["temperature"]
-        if "top_k" in additional_args:
-            args["top_k"] = additional_args["top_k"]
-
-        if self.cache:
-            return self.client.beta.prompt_caching.messages.create(**args)
-        return self.client.messages.create(**args)
-
-    def extract_text(self, raw_response) -> str:
-        return raw_response.content[0].text
-
-
-class OpenAIAdapter(BaseLLMAdapter):
-    """
-    Uses openai.chat.completions API.
-    - Images must be sent as image_url (data URI) in message content.
-    - stop_sequences -> stop (but we skip 'stop' if images are present).
-    """
-    def __init__(self, model: str, cache: bool = False, max_tokens: int = 3000):
-        super().__init__(model, cache, max_tokens)
-        import openai
-        load_dotenv()
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        self._client = openai.OpenAI()
-
-    def build_user_content(self, init_canvas_b64: Optional[str], text: str):
-        content: List[Dict] = []
-        if init_canvas_b64:
-            hdr = "data:image/jpeg;base64," if init_canvas_b64[:3] == "/9j" else "data:image/png;base64,"
-            content.append({
-                "type": "image_url",
-                "image_url": {"url": hdr + init_canvas_b64}
-            })
-        content.append({"type": "text", "text": text})
-        return content
-
-    def call(self, system_message, messages, additional_args):
-        args = dict(
-            model=self.model,
-            messages=messages,
-            max_completion_tokens=self.max_tokens,
-        )
-        if "temperature" in additional_args:
-            args["temperature"] = additional_args["temperature"]
-        if "stop_sequences" in additional_args and not self.request_has_image(messages):
-            ss = additional_args["stop_sequences"]
-            args["stop"] = ss if isinstance(ss, list) else [ss]
-        return self._client.chat.completions.create(**args)
-
-    def extract_text(self, raw_response) -> str:
-        return raw_response.choices[0].message.content
 
 
 # =========================
@@ -409,17 +60,20 @@ class SketchApp:
         self.llm = llm_adapter
 
         # Grid setup
-        self.res = res  # Keep for backward compatibility (square grids)
-        self.res_x = res  # Number of columns
-        self.res_y = res  # Number of rows
-        self.num_cells = res
-        self.cell_size = cell_size
-        self.grid_size = grid_size
+        self.grid_manager = GridManager(cell_size=cell_size, min_grid=min_grid, max_grid=max_grid)
         self.show_full_grid = show_full_grid
         self.multi_stroke = True
         self.dynamic_grid = dynamic_grid
-        self.min_grid = min_grid
-        self.max_grid = max_grid
+        
+        # Backward compatibility properties
+        self.res = res
+        self.res_x = res
+        self.res_y = res
+        self.num_cells = res
+        self.cell_size = cell_size
+        self.grid_size = grid_size
+        
+        # Initialize default grid
         self.init_canvas_grid, self.positions = utils.create_grid_image(
             res=res, cell_size=cell_size, header_size=cell_size, full=self.show_full_grid
         )
@@ -562,9 +216,15 @@ class SketchApp:
     # ---------- routes ----------
     def toggle_grid(self):
         self.show_full_grid = not self.show_full_grid
-        self.init_canvas_grid, self.positions = utils.create_grid_image(
+        
+        # Update grid manager
+        self.grid_manager.grid_image, self.grid_manager.positions = utils.create_grid_image(
             res_x=self.res_x, res_y=self.res_y, cell_size=self.cell_size, header_size=self.cell_size, full=self.show_full_grid
         )
+        
+        # Update backward compatibility properties
+        self.init_canvas_grid = self.grid_manager.grid_image
+        self.positions = self.grid_manager.positions
         self.base_canvas = self.base_canvas.convert("RGBA")
         grid = self.init_canvas_grid.convert("RGBA")
         mask = grid.convert("L").point(lambda p: 255 if p < 200 else 0)
@@ -605,15 +265,15 @@ class SketchApp:
 
         img = Image.open(file.stream).convert("RGB")
 
-        # Update grid size based on image dimensions if dynamic sizing is enabled
-        self._update_grid_for_image(img)
+        # Use the new grid manager workflow
+        self.set_background_from_pil(img)
 
-        # choose "fit" (letterbox) or "fill" (cover); "fit" avoids cropping
-        placed = self._fit_image_to_canvas(img, mode="fit", bgcolor=(255, 255, 255))
-        composited = self._overlay_grid(placed)
-        self._set_base_canvas(composited)
-
-        return jsonify({"status": "success", "filename": fname, "grid_size": self.res})
+        return jsonify({
+            "status": "success", 
+            "filename": fname, 
+            "grid_size": self.res,
+            "grid_info": self.grid_manager.get_grid_info()
+        })
 
 
     def get_agent_svg(self):
@@ -1192,12 +852,7 @@ class SketchApp:
 
     def _overlay_grid(self, img_rgb: Image.Image) -> Image.Image:
         """Overlay the current grid on top of `img_rgb` (no distortion)."""
-        grid = self.init_canvas_grid.convert("RGBA")
-        base = img_rgb.convert("RGBA")
-        # Keep only the grid lines (white/transparent background)
-        mask = grid.convert("L").point(lambda p: 255 if p < 200 else 0)
-        base.paste(grid, (0, 0), mask)
-        return base.convert("RGB")
+        return self.grid_manager.overlay_grid(img_rgb)
 
 
     def _set_base_canvas(self, img_rgb: Image.Image):
@@ -1212,32 +867,38 @@ class SketchApp:
     def _update_grid_for_image(self, img: Image.Image):
         """Update grid size based on image dimensions if dynamic_grid is enabled."""
         if self.dynamic_grid:
-            img_width, img_height = img.size
-            new_res_x, new_res_y, new_grid_width, new_grid_height = calculate_dynamic_grid_size(
-                img_width, img_height, self.cell_size, self.min_grid, self.max_grid
-            )
+            grid_changed = self.grid_manager.update_grid_for_image(img, self.show_full_grid)
             
-            # Only update if the grid size would actually change
-            if new_res_x != self.res_x or new_res_y != self.res_y:
-                self.res_x = new_res_x
-                self.res_y = new_res_y
-                self.res = max(new_res_x, new_res_y)  # Keep for backward compatibility
-                self.num_cells = max(new_res_x, new_res_y)  # Keep for backward compatibility
-                self.grid_size = (new_grid_width, new_grid_height)
-                
-                # Recreate grid and positions
-                self.init_canvas_grid, self.positions = utils.create_grid_image(
-                    res_x=self.res_x, res_y=self.res_y, cell_size=self.cell_size, 
-                    header_size=self.cell_size, full=self.show_full_grid
-                )
+            if grid_changed:
+                # Update backward compatibility properties
+                self.res_x = self.grid_manager.res_x
+                self.res_y = self.grid_manager.res_y
+                self.res = max(self.res_x, self.res_y)  # Keep for backward compatibility
+                self.num_cells = max(self.res_x, self.res_y)  # Keep for backward compatibility
+                self.grid_size = self.grid_manager.grid_size
+                self.init_canvas_grid = self.grid_manager.grid_image
+                self.positions = self.grid_manager.positions
 
     def set_background_from_pil(self, pil_img: Image.Image, mode: str = "fit", bgcolor=(255, 255, 255)):
         """Public helper used by batch eval to mimic an uploaded image."""
-        # Update grid size first if dynamic sizing is enabled
-        self._update_grid_for_image(pil_img)
-        
-        placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
-        composited = self._overlay_grid(placed)
+        if self.dynamic_grid:
+            # Use the new grid manager for dynamic sizing
+            composited = self.grid_manager.create_annotated_image(pil_img, self.show_full_grid, bgcolor)
+            
+            # Update backward compatibility properties
+            self.res_x = self.grid_manager.res_x
+            self.res_y = self.grid_manager.res_y
+            self.res = max(self.res_x, self.res_y)
+            self.num_cells = max(self.res_x, self.res_y)
+            self.grid_size = self.grid_manager.grid_size
+            self.init_canvas_grid = self.grid_manager.grid_image
+            self.positions = self.grid_manager.positions
+        else:
+            # Fall back to old method for static grids
+            self._update_grid_for_image(pil_img)
+            placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
+            composited = self._overlay_grid(placed)
+            
         self._set_base_canvas(composited)
         
         
@@ -1647,45 +1308,6 @@ class SketchApp:
 # =========================
 # Entrypoint
 # =========================
-def calculate_dynamic_grid_size(image_width: int, image_height: int, cell_size: int = 15, min_grid: int = 10, max_grid: int = 100):
-    """
-    Calculate grid size to fit exactly around the image with top and right padding only.
-    Image will be positioned at bottom-left corner of the grid.
-    
-    Args:
-        image_width: Width of the image in pixels
-        image_height: Height of the image in pixels  
-        cell_size: Size of each grid cell in pixels
-        min_grid: Minimum grid size
-        max_grid: Maximum grid size
-        
-    Returns:
-        tuple: (grid_res_x, grid_res_y, grid_width, grid_height)
-    """
-    # Calculate exact cells needed to fit the image (round up fractional cells)
-    min_cells_x = (image_width + cell_size - 1) // cell_size  # Ceiling division
-    min_cells_y = (image_height + cell_size - 1) // cell_size  # Ceiling division
-    
-    # Use exact cells needed, no extra padding
-    grid_res_x = max(min_grid, min(max_grid, min_cells_x))
-    grid_res_y = max(min_grid, min(max_grid, min_cells_y))
-    
-    # utils.py adds +1 for header automatically, so final grid dimensions are:
-    grid_width = (grid_res_x + 1) * cell_size  # utils.py calculation
-    grid_height = (grid_res_y + 1) * cell_size  # utils.py calculation
-    
-    return grid_res_x, grid_res_y, grid_width, grid_height
-
-
-def make_adapter(llm_name: str, model: str, cache: bool, max_tokens: int) -> BaseLLMAdapter:
-    name = (llm_name or "").lower()
-    if name in ("claude", "anthropic"):
-        return ClaudeAdapter(model=model, cache=cache, max_tokens=max_tokens)
-    if name in ("gpt", "openai"):
-        return OpenAIAdapter(model=model, cache=cache, max_tokens=max_tokens)
-    if name in ("gemini", "google"):
-        return GeminiAdapter(model=model, cache=cache, max_tokens=max_tokens)
-    raise ValueError("Unknown --llm. Use 'claude', 'gpt', or 'gemini'.")
 
 
 if __name__ == '__main__':
