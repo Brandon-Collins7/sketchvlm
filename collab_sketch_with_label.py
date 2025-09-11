@@ -1662,18 +1662,13 @@ def calculate_dynamic_grid_size(image_width: int, image_height: int, cell_size: 
     Returns:
         tuple: (grid_res_x, grid_res_y, grid_width, grid_height)
     """
-    # Calculate grid cells needed to fit the image exactly (no padding on bottom/left)
-    # Add some extra cells for annotations on top and right
-    extra_cells_right = 2  # Extra cells for annotations on the right
-    extra_cells_top = 2    # Extra cells for annotations on the top
+    # Calculate exact cells needed to fit the image (round up fractional cells)
+    min_cells_x = (image_width + cell_size - 1) // cell_size  # Ceiling division
+    min_cells_y = (image_height + cell_size - 1) // cell_size  # Ceiling division
     
-    # Calculate minimum cells needed for image
-    min_cells_x = (image_width + cell_size - 1) // cell_size
-    min_cells_y = (image_height + cell_size - 1) // cell_size
-    
-    # Add extra cells for annotation space
-    grid_res_x = max(min_grid, min(max_grid, min_cells_x + extra_cells_right))
-    grid_res_y = max(min_grid, min(max_grid, min_cells_y + extra_cells_top))
+    # Use exact cells needed, no extra padding
+    grid_res_x = max(min_grid, min(max_grid, min_cells_x))
+    grid_res_y = max(min_grid, min(max_grid, min_cells_y))
     
     # utils.py adds +1 for header automatically, so final grid dimensions are:
     grid_width = (grid_res_x + 1) * cell_size  # utils.py calculation
