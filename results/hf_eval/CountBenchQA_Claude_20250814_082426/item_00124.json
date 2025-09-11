@@ -1,6 +1,0 @@
-{
-  "index": 124,
-  "prompt": "How many bridesmaids are there in the image",
-  "ground_truth": 8,
-  "error": "Text stroke s9 uses out-of-grid cell x55y40"
-}

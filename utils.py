@@ -23,34 +23,40 @@ from PIL import Image, ImageDraw, ImageFont
 
 def create_grid_image(
         res: int = 50,
-        cell_size: int = 12,
-        header_size: int = 12,
+        cell_size: int = 15,
+        header_size: int = 15,
         *,
         line_w: int = 2,
         font_sz: Optional[int] = None,
         font_path: Optional[str] = None,
-        full: bool = True
+        full: bool = True,
+        res_x: Optional[int] = None,
+        res_y: Optional[int] = None
 ) -> Tuple[Image.Image, Dict[str, Tuple[int, int]]]:
     """
     Build a numbered grid.
 
     Parameters
     ----------
-    res          : number of usable cells per axis (not counting headers)
+    res          : number of usable cells per axis (not counting headers) - used for square grids
+    res_x        : number of columns (overrides res if provided)
+    res_y        : number of rows (overrides res if provided)
     cell_size    : size of one grid square (px)
     header_size  : height/width reserved for the axis labels (px)
     line_w       : thickness of grid lines
     font_sz      : label size (defaults to 0.6 × cell_size)
     font_path    : custom TrueType path (falls back to default font)
     full         : if *True* draw every lattice line; if *False* draw only
-                   axis lines plus tick “stubs” (the old compact style).
+                   axis lines plus tick "stubs" (the old compact style).
 
     Returns
     -------
     (image, positions) where *positions* maps "xAyB" → centre-pixel (x,y)
     """
 
-    rows = cols = res
+    # Support rectangular grids
+    cols = res_x if res_x is not None else res
+    rows = res_y if res_y is not None else res
     W = (cols + 1) * cell_size          # +1 because of the left header col
     H = (rows + 1) * cell_size          # +1 because of the bottom header row
 
@@ -124,7 +130,7 @@ def create_grid_image(
 
 
 
-def cells_to_pixels(res=50, cell_size=12, header_size=12):
+def cells_to_pixels(res=50, cell_size=15, header_size=15):
     # Define the size of the grid
     rows = res
     cols = res
@@ -411,7 +417,7 @@ def parse_xml_string(llm_output, res):
 
 
 
-def parse_xml_string_single_stroke(xml_text: str, res: int, stroke_no: int):
+def parse_xml_string_single_stroke(xml_text: str, res: int, stroke_no: int, res_x: int = None, res_y: int = None):
     """
     Extract a single stroke <s#> … </s#> from either
       • a full LLM answer  *or*
@@ -455,10 +461,13 @@ def parse_xml_string_single_stroke(xml_text: str, res: int, stroke_no: int):
     # ------------------------------------------------------------------
     # 3)  Normalise -- clamp grid indices + tidy t-values
     # ------------------------------------------------------------------
+    max_x = res_x if res_x is not None else res
+    max_y = res_y if res_y is not None else res
+    
     pts_text = re.sub(
         r"x(\d+)y(\d+)",
-        lambda m: f"x{max(1, min(int(m.group(1)), res))}"
-                  f"y{max(1, min(int(m.group(2)), res))}",
+        lambda m: f"x{max(1, min(int(m.group(1)), max_x))}"
+                  f"y{max(1, min(int(m.group(2)), max_y))}",
         pts_text
     )
 

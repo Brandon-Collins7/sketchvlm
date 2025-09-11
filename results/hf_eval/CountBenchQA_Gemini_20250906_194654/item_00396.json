@@ -1,6 +1,0 @@
-{
-  "index": 396,
-  "prompt": "How many groomsmen are there in the image",
-  "ground_truth": 7,
-  "error": "Text stroke s6 uses out-of-grid cell x52y23"
-}

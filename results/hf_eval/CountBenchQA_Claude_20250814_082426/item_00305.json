@@ -1,6 +1,0 @@
-{
-  "index": 305,
-  "prompt": "How many bottles are there in the image",
-  "ground_truth": 7,
-  "error": "Text stroke s7 uses out-of-grid cell x55y40"
-}
