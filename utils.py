@@ -23,8 +23,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 def create_grid_image(
         res: int = 50,
-        cell_size: int = 12,
-        header_size: int = 12,
+        cell_size: int = 15,
+        header_size: int = 15,
         *,
         line_w: int = 2,
         font_sz: Optional[int] = None,
@@ -130,7 +130,7 @@ def create_grid_image(
 
 
 
-def cells_to_pixels(res=50, cell_size=12, header_size=12):
+def cells_to_pixels(res=50, cell_size=15, header_size=15):
     # Define the size of the grid
     rows = res
     cols = res

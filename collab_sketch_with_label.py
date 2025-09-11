@@ -1172,62 +1172,21 @@ class SketchApp:
     # --- aspect-ratio aware image placement ---------------------------------
     def _fit_image_to_canvas(self, img: Image.Image, mode: str = "fit", bgcolor=(255, 255, 255)) -> Image.Image:
         """
-        Place `img` onto a canvas of size self.grid_size without distortion.
-        Positions image with cell_size padding from left and bottom edges.
-
-        mode:
-        - "fit"   : letterbox (contain) — keep all of the image, pad with bgcolor
-        - "fill"  : cover — fill canvas, center-crop the overflow
-        - "stretch": old behavior (distort to exactly grid size)
-        - "center": no scaling, just center with possible cropping outside canvas
+        Place image at its natural size at the bottom-left corner of the grid.
+        No scaling or stretching - just positioning the original image.
         """
         img = ImageOps.exif_transpose(img)  # respect EXIF orientation
         W, H = self.grid_size
-        iw, ih = img.size
         
-        # Calculate available space for image (excluding padding areas)
-        available_width = W - (self.cell_size + self.cell_size)  # Subtract left padding + header
-        available_height = H - (self.cell_size + self.cell_size)  # Subtract bottom padding + header
-
-        if mode == "stretch":
-            # Resize to available space and position with padding
-            canvas = Image.new("RGB", (W, H), bgcolor)
-            resized = img.resize((available_width, available_height), Image.LANCZOS).convert("RGB")
-            canvas.paste(resized, (self.cell_size, 0))  # Left padding, top aligned
-            return canvas
-
-        if mode == "center":
-            canvas = Image.new("RGB", (W, H), bgcolor)
-            # Center within available space, then add padding offset
-            x = self.cell_size + (available_width - iw) // 2
-            y = (available_height - ih) // 2
-            canvas.paste(img.convert("RGB"), (x, y))
-            return canvas
-
-        if mode == "fill":
-            # Scale to fill available space
-            s = max(available_width / iw, available_height / ih)
-            nw, nh = int(round(iw * s)), int(round(ih * s))
-            im = img.resize((nw, nh), Image.LANCZOS)
-            
-            canvas = Image.new("RGB", (W, H), bgcolor)
-            # Center the scaled image within available space, then add padding offset
-            x0 = (nw - available_width) // 2
-            y0 = (nh - available_height) // 2
-            cropped = im.crop((x0, y0, x0 + available_width, y0 + available_height))
-            canvas.paste(cropped.convert("RGB"), (self.cell_size, 0))
-            return canvas
-
-        # default "fit" (letterbox) - preserve aspect ratio within available space
-        s = min(available_width / iw, available_height / ih)
-        nw, nh = int(round(iw * s)), int(round(ih * s))
-        im = img.resize((nw, nh), Image.LANCZOS)
-        
+        # Create canvas
         canvas = Image.new("RGB", (W, H), bgcolor)
-        # Center within available space, then add padding offset
-        x = self.cell_size + (available_width - nw) // 2
-        y = (available_height - nh) // 2
-        canvas.paste(im.convert("RGB"), (x, y))
+        
+        # Position image at bottom-left corner (aligned with grid)
+        x = self.cell_size  # Start right after the header column
+        y = H - self.cell_size - img.height  # Bottom aligned (above bottom header row)
+        
+        # Paste the image at its natural size
+        canvas.paste(img.convert("RGB"), (x, y))
         return canvas
 
 
@@ -1688,9 +1647,10 @@ class SketchApp:
 # =========================
 # Entrypoint
 # =========================
-def calculate_dynamic_grid_size(image_width: int, image_height: int, cell_size: int = 12, min_grid: int = 10, max_grid: int = 100):
+def calculate_dynamic_grid_size(image_width: int, image_height: int, cell_size: int = 15, min_grid: int = 10, max_grid: int = 100):
     """
-    Calculate optimal grid size based on image dimensions with padding.
+    Calculate grid size to fit exactly around the image with top and right padding only.
+    Image will be positioned at bottom-left corner of the grid.
     
     Args:
         image_width: Width of the image in pixels
@@ -1702,22 +1662,22 @@ def calculate_dynamic_grid_size(image_width: int, image_height: int, cell_size: 
     Returns:
         tuple: (grid_res_x, grid_res_y, grid_width, grid_height)
     """
-    # Add one cell width/height of padding to bottom and left
-    # This ensures there's space for grid annotations without overlapping image content
-    padded_width = image_width + cell_size
-    padded_height = image_height + cell_size
+    # Calculate grid cells needed to fit the image exactly (no padding on bottom/left)
+    # Add some extra cells for annotations on top and right
+    extra_cells_right = 2  # Extra cells for annotations on the right
+    extra_cells_top = 2    # Extra cells for annotations on the top
     
-    # Calculate how many cells would fit in each dimension (including padding)
-    cells_x = max(min_grid, min(max_grid, padded_width // cell_size))
-    cells_y = max(min_grid, min(max_grid, padded_height // cell_size))
+    # Calculate minimum cells needed for image
+    min_cells_x = (image_width + cell_size - 1) // cell_size
+    min_cells_y = (image_height + cell_size - 1) // cell_size
     
-    # Keep rectangular grid that matches image aspect ratio plus padding
-    grid_res_x = cells_x
-    grid_res_y = cells_y
+    # Add extra cells for annotation space
+    grid_res_x = max(min_grid, min(max_grid, min_cells_x + extra_cells_right))
+    grid_res_y = max(min_grid, min(max_grid, min_cells_y + extra_cells_top))
     
-    # Calculate actual grid dimensions (add 1 for header)
-    grid_width = (grid_res_x + 1) * cell_size
-    grid_height = (grid_res_y + 1) * cell_size
+    # utils.py adds +1 for header automatically, so final grid dimensions are:
+    grid_width = (grid_res_x + 1) * cell_size  # utils.py calculation
+    grid_height = (grid_res_y + 1) * cell_size  # utils.py calculation
     
     return grid_res_x, grid_res_y, grid_width, grid_height
 
@@ -1784,8 +1744,8 @@ if __name__ == '__main__':
 
     user_always_first = False
     res = 50
-    cell_size = 12
-    grid_size = (612, 612)
+    cell_size = 15
+    grid_size = (765, 765)  # 50 * 15 + 15 for header
     stroke_width = cell_size * 0.6
 
     app = SketchApp(
