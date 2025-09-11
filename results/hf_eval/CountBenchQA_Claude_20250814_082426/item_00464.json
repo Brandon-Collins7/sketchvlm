@@ -1,6 +1,0 @@
-{
-  "index": 464,
-  "prompt": "How many colored tiles are there in the image",
-  "ground_truth": 10,
-  "error": "Text stroke s10 uses out-of-grid cell x55y20"
-}
