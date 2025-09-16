@@ -1,0 +1,15 @@
+{
+  "index": 8,
+  "prompt": "write a label on each part of the cow in the image",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x40y34'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Head'</text>\n  <id>label_head</id>\n</s1>\n<s2>\n  <points>'x36y36'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Ear'</text>\n  <id>label_ear</id>\n</s2>\n<s3>\n  <points>'x38y33'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Eye'</text>\n  <id>label_eye</id>\n</s3>\n<s4>\n  <points>'x41y29'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Nose'</text>\n  <id>label_nose</id>\n</s4>\n<s5>\n  <points>'x33y28'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Neck'</text>\n  <id>label_neck</id>\n</s5>\n<s6>\n  <points>'x22y36'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Back'</text>\n  <id>label_back</id>\n</s6>\n<s7>\n  <points>'x25y28'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Body'</text>\n  <id>label_body</id>\n</s7>\n<s8>\n  <points>'x16y22'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Udder'</text>\n  <id>label_udder</id>\n</s8>\n<s9>\n  <points>'x17y19'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Teat'</text>\n  <id>label_teat</id>\n</s9>\n<s10>\n  <points>'x12y18'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Hind Leg'</text>\n  <id>label_hind_leg</id>\n</s10>\n<s11>\n  <points>'x32y18'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Front Leg'</text>\n  <id>label_front_leg</id>\n</s11>\n<s12>\n  <points>'x33y10'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Hoof'</text>\n  <id>label_hoof</id>\n</s12>\n<s13>\n  <points>'x8y30'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Tail'</text>\n  <id>label_tail</id>\n</s13>\n<s14>\n  <points>'x43y34'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Ear Tag'</text>\n  <id>label_ear_tag</id>\n</s14>\n</strokes>",
+  "num_strokes_total": 14,
+  "num_strokes_text": 14,
+  "raw_image": "results\\mix_eval\\20250911_095528\\item_00008_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_095528\\item_00008_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_095528\\item_00008_annotated.png",
+  "svg": "results\\mix_eval\\20250911_095528\\item_00008.svg",
+  "source_image": "datasets\\mix\\cow.jpg",
+  "source_prompt": "datasets\\mix\\cow.txt"
+}

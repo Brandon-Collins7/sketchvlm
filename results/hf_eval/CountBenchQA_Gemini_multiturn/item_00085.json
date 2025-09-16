@@ -1,0 +1,12 @@
+{
+  "index": 85,
+  "prompt": "How many boots are there in the image",
+  "ground_truth": 7,
+  "model_output": "<strokes><g id=\"marker_boots1_s1\"><text x=\"66.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">1</text></g><g id=\"marker_boots2_s2\"><text x=\"138.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">2</text></g><g id=\"marker_boots3_s3\"><text x=\"210.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">3</text></g><g id=\"marker_boots4_s4\"><text x=\"282.0\" y=\"294.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">4</text></g><g id=\"marker_boots5_s5\"><text x=\"354.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">5</text></g><g id=\"marker_boots6_s6\"><text x=\"438.0\" y=\"294.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">6</text></g><g id=\"marker_boots7_s7\"><text x=\"522.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">7</text></g></strokes>",
+  "model_answer": 7,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00085_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00085_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00085_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00085.svg"
+}

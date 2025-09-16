@@ -1,0 +1,8 @@
+{
+  "folder": "datasets\\biased",
+  "timestamp": "20250908_203714",
+  "total_items": 3,
+  "processed": 3,
+  "out_root": "results\\biased_eval\\20250908_203714",
+  "notes": "Folder-based counting; no accuracy computed (no ground truth)."
+}

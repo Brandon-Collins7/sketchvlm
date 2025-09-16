@@ -1,0 +1,16 @@
+{
+  "index": 65,
+  "question": "How many people in the image",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n<s1>\n<text size=\"2.5\" color=\"#ff0000\">'1'</text>\n<points>'x25y31'</points>\n<t_values>0.00</t_values>\n<id>marker_people in the image1</id>\n</s1>\n<s2>\n<text size=\"2.0\" color=\"#00ffff\">'2'</text>\n<points>'x8y28'</points>\n<t_values>0.00</t_values>\n<id>marker_people in the image2</id>\n</s2>\n</strokes>",
+  "model_answer": 2,
+  "correct": false,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00065_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00065_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00065_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00065.svg",
+  "source_image": "data\\VG_100K\\2335001.jpg",
+  "question_id": 30149363,
+  "image_id": 92335001
+}

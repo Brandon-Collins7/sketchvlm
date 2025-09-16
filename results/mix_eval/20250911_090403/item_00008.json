@@ -1,0 +1,15 @@
+{
+  "index": 8,
+  "prompt": "write a label on each part of the cow in the image",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n    <s1>\n      <text size=\"1.8\" color=\"#0000ff\">'Head'</text>\n      <points>'x40y32'</points>\n      <t_values>0.00</t_values>\n      <id>label_head</id>\n    </s1>\n    <s2>\n      <text size=\"1.8\" color=\"#0000ff\">'Ear'</text>\n      <points>'x43y35'</points>\n      <t_values>0.00</t_values>\n      <id>label_ear</id>\n    </s2>\n    <s3>\n      <text size=\"1.8\" color=\"#0000ff\">'Eye'</text>\n      <points>'x38y33'</points>\n      <t_values>0.00</t_values>\n      <id>label_eye</id>\n    </s3>\n    <s4>\n      <text size=\"1.8\" color=\"#0000ff\">'Muzzle'</text>\n      <points>'x42y29'</points>\n      <t_values>0.00</t_values>\n      <id>label_muzzle</id>\n    </s4>\n    <s5>\n      <text size=\"1.8\" color=\"#0000ff\">'Neck'</text>\n      <points>'x34y29'</points>\n      <t_values>0.00</t_values>\n      <id>label_neck</id>\n    </s5>\n    <s6>\n      <text size=\"1.8\" color=\"#0000ff\">'Back'</text>\n      <points>'x20y38'</points>\n      <t_values>0.00</t_values>\n      <id>label_back</id>\n    </s6>\n    <s7>\n      <text size=\"1.8\" color=\"#0000ff\">'Body'</text>\n      <points>'x22y28'</points>\n      <t_values>0.00</t_values>\n      <id>label_body</id>\n    </s7>\n    <s8>\n      <text size=\"1.8\" color=\"#0000ff\">'Udder'</text>\n      <points>'x15y24'</points>\n      <t_values>0.00</t_values>\n      <id>label_udder</id>\n    </s8>\n    <s9>\n      <text size=\"1.8\" color=\"#0000ff\">'Teat'</text>\n      <points>'x15y19'</points>\n      <t_values>0.00</t_values>\n      <id>label_teat</id>\n    </s9>\n    <s10>\n      <text size=\"1.8\" color=\"#0000ff\">'Hindleg'</text>\n      <points>'x12y18'</points>\n      <t_values>0.00</t_values>\n      <id>label_hindleg</id>\n    </s10>\n    <s11>\n      <text size=\"1.8\" color=\"#0000ff\">'Foreleg'</text>\n      <points>'x32y18'</points>\n      <t_values>0.00</t_values>\n      <id>label_foreleg</id>\n    </s11>\n    <s12>\n      <text size=\"1.8\" color=\"#0000ff\">'Hoof'</text>\n      <points>'x16y11'</points>\n      <t_values>0.00</t_values>\n      <id>label_hoof</id>\n    </s12>\n    <s13>\n      <text size=\"1.8\" color=\"#0000ff\">'Shoulder'</text>\n      <points>'x30y31'</points>\n      <t_values>0.00</t_values>\n      <id>label_shoulder</id>\n    </s13>\n    <s14>\n      <text size=\"1.8\" color=\"#0000ff\">'Rump'</text>\n      <points>'x9y32'</points>\n      <t<strokes>\n\n_values>0.00</t_values>\n      <id>label_rump</id>\n    </s14>\n  </strokes>",
+  "num_strokes_total": 14,
+  "num_strokes_text": 14,
+  "raw_image": "results\\mix_eval\\20250911_090403\\item_00008_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_090403\\item_00008_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_090403\\item_00008_annotated.png",
+  "svg": "results\\mix_eval\\20250911_090403\\item_00008.svg",
+  "source_image": "datasets\\mix\\cow.jpg",
+  "source_prompt": "datasets\\mix\\cow.txt"
+}

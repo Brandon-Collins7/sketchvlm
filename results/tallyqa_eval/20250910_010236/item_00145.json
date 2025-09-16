@@ -1,0 +1,16 @@
+{
+  "index": 145,
+  "question": "How many nail holes are on the left side of this photo",
+  "ground_truth": 2,
+  "model_output": "<strokes>\n<s1>\n<text size=\"1.6\" color=\"#ff0066\">'1'</text>\n<points>'x2y16'</points>\n<t_values>0.00</t_values>\n<id>marker_nail holes are on the left side of this photo1</id>\n</s1>\n<s2>\n<text size=\"1.6\" color=\"#ff0066\">'2'</text>\n<points>'x2y11'</points>\n<t_values>0.00</t_values>\n<id>marker_nail holes are on the left side of this photo2</id>\n</s2>\n</strokes>",
+  "model_answer": 2,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00145_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00145_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00145_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00145.svg",
+  "source_image": "data\\VG_100K\\2362441.jpg",
+  "question_id": 9236244117352,
+  "image_id": 92362441
+}

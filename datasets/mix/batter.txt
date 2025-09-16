@@ -1,0 +1,1 @@
+draw a box around the batter in the image

@@ -1,0 +1,12 @@
+{
+  "index": 52,
+  "prompt": "How many christmas cards are there in the image",
+  "ground_truth": 10,
+  "model_output": "<strokes><g id=\"marker_christmas_cards1_s1\"><text x=\"66.0\" y=\"198.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">1</text></g><g id=\"marker_christmas_cards2_s2\"><text x=\"186.0\" y=\"186.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">2</text></g><g id=\"marker_christmas_cards3_s3\"><text x=\"306.0\" y=\"186.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">3</text></g><g id=\"marker_christmas_cards4_s4\"><text x=\"426.0\" y=\"186.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">4</text></g><g id=\"marker_christmas_cards5_s5\"><text x=\"546.0\" y=\"186.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">5</text></g><g id=\"marker_christmas_cards6_s6\"><text x=\"66.0\" y=\"426.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">6</text></g><g id=\"marker_christmas_cards7_s7\"><text x=\"186.0\" y=\"426.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">7</text></g><g id=\"marker_christmas_cards8_s8\"><text x=\"306.0\" y=\"426.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">8</text></g><g id=\"marker_christmas_cards9_s9\"><text x=\"426.0\" y=\"426.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">9</text></g><g id=\"marker_christmas_cards10_s10\"><text x=\"546.0\" y=\"426.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"42\" fill=\"#FF0000\">10</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00052_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00052_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00052_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00052.svg"
+}

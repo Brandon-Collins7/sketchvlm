@@ -1,0 +1,15 @@
+{
+  "index": 1,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "stepwise",
+  "turns": 2,
+  "model_output": "<strokes><g id=\"connect_the_dots\" stroke=\"green\" stroke-width=\"7.199999999999999\" fill=\"none\" stroke-linecap=\"round\">\n    <path d=\"M 316.10 139.71 C 448.2116402116401 22.09523809523779 604.9312169312165 268.7619047619047 508.47619047618986 379.71428571428544 \"/>\n    <path d=\"M 508.48 379.71 C 494.16465935729957 450.6531648671273 417.12912999167656 582.7129880400585 317.61675679705985 521.9528118203917 \"/>\n</g>\n</strokes>",
+  "num_strokes_total": 0,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_172946\\item_00001_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_172946\\item_00001_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_172946\\item_00001_annotated.png",
+  "svg": "results\\mix_eval\\20250911_172946\\item_00001.svg",
+  "source_image": "datasets\\mix3\\apple.png",
+  "source_prompt": "datasets\\mix3\\apple.txt"
+}

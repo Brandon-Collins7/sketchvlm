@@ -1,0 +1,16 @@
+{
+  "index": 92,
+  "question": "How many men are there",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n<s1>\n    <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n    <points>'x29y29'</points>\n    <t_values>0.00</t_values>\n    <id>marker_men1</id>\n</s1>\n</strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00092_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00092_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00092_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00092.svg",
+  "source_image": "data\\VG_100K\\2335657.jpg",
+  "question_id": 30148952,
+  "image_id": 92335657
+}

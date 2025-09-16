@@ -1,0 +1,13 @@
+{
+  "index": 0,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "single_shot",
+  "turns": null,
+  "error": "unhashable type: 'list'",
+  "raw_image": "results\\mix_eval\\20250911_170245\\item_00000_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_170245\\item_00000_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_170245\\item_00000_annotated.png",
+  "svg": "results\\mix_eval\\20250911_170245\\item_00000.svg",
+  "source_image": "datasets\\mix3\\a.png",
+  "source_prompt": "datasets\\mix3\\a.txt"
+}

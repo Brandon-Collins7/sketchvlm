@@ -1,0 +1,68 @@
+{
+  "index": 0,
+  "filename": "datasets\\labeling\\bike.jpg",
+  "concept": "bike",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "```xml\n<answer>\n<concept>Labeling: bike</concept>\n<strokes>\n  <s1>\n    <text size=\"2.5\" color=\"#ff0000\">'frame'</text>\n    <points>'x26y28'</points>\n    <t_values>0.00</t_values>\n    <id>label_frame</id>\n  </s1>\n  <s2>\n    <text size=\"2.5\" color=\"#0000ff\">'wheel'</text>\n    <points>'x11y20'</points>\n    <t_values>0.00</t_values>\n    <id>label_rear_wheel</id>\n  </s2>\n  <s3>\n    <text size=\"2.5\" color=\"#0000ff\">'wheel'</text>\n    <points>'x40y20'</points>\n    <t_values>0.00</t_values>\n    <id>label_front_wheel</id>\n  </s3>\n  <s4>\n    <text size=\"2.0\" color=\"#00dd00\">'tire'</text>\n    <points>'x11y11'</points>\n    <t_values>0.00</t_values>\n    <id>label_rear_tire</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#00dd00\">'tire'</text>\n    <points>'x40y11'</points>\n    <t_values>0.00</t_values>\n    <id>label_front_tire</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ff4500\">'seat'</text>\n    <points>'x18y41'</points>\n    <t_values>0.00</t_values>\n    <id>label_seat</id>\n  </s6>\n  <s7>\n    <text size=\"2.0\" color=\"#ff00ff\">'handlebar'</text>\n    <points>'x38y37'</points>\n    <t_values>0.00</t_values>\n    <id>label_handlebar</id>\n  </s7>\n  <s8>\n    <text size=\"2.0\" color=\"#000000\">'pedal'</text>\n    <points>'x24y13'</points>\n    <t_values>0.00</t_values>\n    <id>label_pedal</id>\n  </s8>\n  <s9>\n    <text size=\"2.0\" color=\"#000000\">'chain'</text>\n    <points>'x17y16'</points>\n    <t_values>0.00</t_values>\n    <id>label_chain</id>\n  </s9>\n</strokes>\n</answer>\n```",
+  "labels": [
+    {
+      "text": "frame",
+      "id": "label_frame",
+      "font_px": 30,
+      "color": "#ff0000"
+    },
+    {
+      "text": "wheel",
+      "id": "label_rear_wheel",
+      "font_px": 30,
+      "color": "#0000ff"
+    },
+    {
+      "text": "wheel",
+      "id": "label_front_wheel",
+      "font_px": 30,
+      "color": "#0000ff"
+    },
+    {
+      "text": "tire",
+      "id": "label_rear_tire",
+      "font_px": 24,
+      "color": "#00dd00"
+    },
+    {
+      "text": "tire",
+      "id": "label_front_tire",
+      "font_px": 24,
+      "color": "#00dd00"
+    },
+    {
+      "text": "seat",
+      "id": "label_seat",
+      "font_px": 24,
+      "color": "#ff4500"
+    },
+    {
+      "text": "handlebar",
+      "id": "label_handlebar",
+      "font_px": 24,
+      "color": "#ff00ff"
+    },
+    {
+      "text": "pedal",
+      "id": "label_pedal",
+      "font_px": 24,
+      "color": "#000000"
+    },
+    {
+      "text": "chain",
+      "id": "label_chain",
+      "font_px": 24,
+      "color": "#000000"
+    }
+  ],
+  "num_labels": 9,
+  "raw_image": "results\\labeling\\20250909_203825\\item_00000_orig.jpg",
+  "grid_image": "results\\labeling\\20250909_203825\\item_00000_grid.png",
+  "annotated_image": "results\\labeling\\20250909_203825\\item_00000_annotated.png",
+  "svg": "results\\labeling\\20250909_203825\\item_00000.svg"
+}

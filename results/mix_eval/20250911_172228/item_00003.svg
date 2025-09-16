@@ -1,0 +1,34 @@
+<svg width="612" height="612" xmlns="http://www.w3.org/2000/svg"><g id="line_1" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 234  90 L 342 450 "/>
+</g>
+<g id="line_2" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 342 450 L 114 102 "/>
+</g>
+<g id="line_3" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 114 102 L 450 402 "/>
+</g>
+<g id="line_4" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 450 402 L 114 222 "/>
+</g>
+<g id="line_5" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 114 222 L 522 306 "/>
+</g>
+<g id="line_6" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 522 306 L 126 330 "/>
+</g>
+<g id="line_7" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 126 330 L 486 174 "/>
+</g>
+<g id="line_8" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 486 174 L 114 438 "/>
+</g>
+<g id="line_9" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 114 438 L 354 102 "/>
+</g>
+<g id="line_10" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 354 102 L 234 462 "/>
+</g>
+<g id="line_11" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 234 462 L 234 90 "/>
+</g>
+</svg>

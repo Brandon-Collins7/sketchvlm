@@ -1,0 +1,15 @@
+{
+  "index": 3,
+  "prompt": "draw a number on each leg of the cat to count them",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x10y19'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'1'</text>\n  <id>count_1</id>\n</s1>\n<s2>\n  <points>'x20y22'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'2'</text>\n  <id>count_2</id>\n</s2>\n<s3>\n  <points>'x27y22'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'3'</text>\n  <id>count_3</id>\n</s3>\n<s4>\n  <points>'x36y22'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'4'</text>\n  <id>count_4</id>\n</s4>\n</strokes>",
+  "num_strokes_total": 4,
+  "num_strokes_text": 4,
+  "raw_image": "results\\mix_eval\\20250911_095528\\item_00003_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_095528\\item_00003_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_095528\\item_00003_annotated.png",
+  "svg": "results\\mix_eval\\20250911_095528\\item_00003.svg",
+  "source_image": "datasets\\mix\\cat.png",
+  "source_prompt": "datasets\\mix\\cat.txt"
+}

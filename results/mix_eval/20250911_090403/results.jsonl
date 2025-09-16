@@ -1,0 +1,15 @@
+{"index": 0, "mode": "single_shot", "num_strokes_total": 1, "num_strokes_text": 0}
+{"index": 1, "mode": "single_shot", "num_strokes_total": 1, "num_strokes_text": 0}
+{"index": 2, "mode": "single_shot", "num_strokes_total": 17, "num_strokes_text": 17}
+{"index": 3, "mode": "single_shot", "num_strokes_total": 4, "num_strokes_text": 4}
+{"index": 4, "prompt": "finish my sketch of the cat", "mode": "single_shot", "turns": null, "error": "malformed node or string: <ast.Name object at 0x000002463287E9A0>", "raw_image": "results\\mix_eval\\20250911_090403\\item_00004_orig.jpg", "grid_image": "results\\mix_eval\\20250911_090403\\item_00004_grid.png", "annotated_image": "results\\mix_eval\\20250911_090403\\item_00004_annotated.png", "svg": "results\\mix_eval\\20250911_090403\\item_00004.svg", "source_image": "datasets\\mix\\cat_sketch.png", "source_prompt": "datasets\\mix\\cat_sketch.txt"}
+{"index": 5, "mode": "single_shot", "num_strokes_total": 2, "num_strokes_text": 2}
+{"index": 6, "prompt": "draw a cat next to the blue circle in the image", "mode": "single_shot", "turns": null, "error": "malformed node or string: <ast.Name object at 0x000002463288D790>", "raw_image": "results\\mix_eval\\20250911_090403\\item_00006_orig.jpg", "grid_image": "results\\mix_eval\\20250911_090403\\item_00006_grid.png", "annotated_image": "results\\mix_eval\\20250911_090403\\item_00006_annotated.png", "svg": "results\\mix_eval\\20250911_090403\\item_00006.svg", "source_image": "datasets\\mix\\circles.png", "source_prompt": "datasets\\mix\\circles.txt"}
+{"index": 7, "mode": "single_shot", "num_strokes_total": 7, "num_strokes_text": 7}
+{"index": 8, "mode": "single_shot", "num_strokes_total": 14, "num_strokes_text": 14}
+{"index": 9, "mode": "single_shot", "num_strokes_total": 10, "num_strokes_text": 10}
+{"index": 10, "mode": "single_shot", "num_strokes_total": 4, "num_strokes_text": 4}
+{"index": 11, "prompt": "complete my sketch of the house", "mode": "single_shot", "turns": null, "error": "malformed node or string: <ast.Name object at 0x000002463255CD00>", "raw_image": "results\\mix_eval\\20250911_090403\\item_00011_orig.jpg", "grid_image": "results\\mix_eval\\20250911_090403\\item_00011_grid.png", "annotated_image": "results\\mix_eval\\20250911_090403\\item_00011_annotated.png", "svg": "results\\mix_eval\\20250911_090403\\item_00011.svg", "source_image": "datasets\\mix\\house_sketch.png", "source_prompt": "datasets\\mix\\house_sketch.txt"}
+{"index": 12, "mode": "single_shot", "num_strokes_total": 2, "num_strokes_text": 2}
+{"index": 13, "mode": "single_shot", "num_strokes_total": 2, "num_strokes_text": 0}
+{"index": 14, "mode": "single_shot", "num_strokes_total": 3, "num_strokes_text": 3}

@@ -1,0 +1,16 @@
+{
+  "index": 141,
+  "question": "How many asian old men are there",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00141_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00141_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00141_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00141.svg",
+  "source_image": "data\\VG_100K\\2357737.jpg",
+  "question_id": 923577376578,
+  "image_id": 92357737
+}

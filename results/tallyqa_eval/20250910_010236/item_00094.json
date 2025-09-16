@@ -1,0 +1,16 @@
+{
+  "index": 94,
+  "question": "How many boys are there",
+  "ground_truth": 4,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x11y40'</points>\n            <t_values>0.00</t_values>\n            <id>marker_boys1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x19y35'</points>\n            <t_values>0.00</t_values>\n            <id>marker_boys2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x34y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_boys3</id>\n        </s3>\n        <s4>\n            <text size=\"1.6\" color=\"#ff0066\">'4'</text>\n            <points>'x35y44'</points>\n            <t_values>0.00</t_values>\n            <id>marker_boys4</id>\n        </s4>\n    </strokes>",
+  "model_answer": 4,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00094_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00094_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00094_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00094.svg",
+  "source_image": "data\\VG_100K\\2341767.jpg",
+  "question_id": 30145257,
+  "image_id": 92341767
+}

@@ -1,0 +1,16 @@
+{
+  "index": 73,
+  "question": "How many girls are shown",
+  "ground_truth": 2,
+  "model_output": "<strokes></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00073_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00073_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00073_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00073.svg",
+  "source_image": "data\\VG_100K\\2333917.jpg",
+  "question_id": 30150013,
+  "image_id": 92333917
+}

@@ -1,0 +1,12 @@
+{
+  "index": 86,
+  "prompt": "How many figurines are there in the image",
+  "ground_truth": 5,
+  "model_output": "<strokes><g id=\"marker_figurines1_s1\"><text x=\"102.0\" y=\"294.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">1</text></g><g id=\"marker_figurines2_s2\"><text x=\"234.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">2</text></g><g id=\"marker_figurines3_s3\"><text x=\"330.0\" y=\"366.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g><g id=\"marker_figurines4_s4\"><text x=\"426.0\" y=\"318.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">4</text></g><g id=\"marker_figurines5_s5\"><text x=\"522.0\" y=\"354.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">5</text></g></strokes>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00086_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00086_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00086_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00086.svg"
+}

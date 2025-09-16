@@ -1,0 +1,16 @@
+{
+  "index": 76,
+  "question": "How many skiers",
+  "ground_truth": 3,
+  "model_output": "<strokes>\n<s1>\n    <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n    <points>'x12y24'</points>\n    <t_values>0.00</t_values>\n    <id>marker_skiers1</id>\n</s1>\n<s2>\n    <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n    <points>'x17y24'</points>\n    <t_values>0.00</t_values>\n    <id>marker_skiers2</id>\n</s2>\n<s3>\n    <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n    <points>'x19y24'</points>\n    <t_values>0.00</t_values>\n    <id>marker_skiers3</id>\n</s3>\n</strokes>",
+  "model_answer": 3,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00076_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00076_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00076_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00076.svg",
+  "source_image": "data\\VG_100K\\2315744.jpg",
+  "question_id": 30160745,
+  "image_id": 92315744
+}

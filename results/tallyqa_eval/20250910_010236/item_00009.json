@@ -1,0 +1,16 @@
+{
+  "index": 9,
+  "question": "How many people are cooking in the kitchen",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n    </strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00009_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00009_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00009_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00009.svg",
+  "source_image": "data\\VG_100K\\2342911.jpg",
+  "question_id": 923429118774,
+  "image_id": 92342911
+}

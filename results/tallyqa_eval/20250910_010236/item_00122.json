@@ -1,0 +1,16 @@
+{
+  "index": 122,
+  "question": "How many windows have the blinds closed",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x18y24'</points>\n            <t_values>0.00</t_values>\n            <id>marker_windows have the blinds closed1</id>\n        </s1>\n    </strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00122_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00122_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00122_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00122.svg",
+  "source_image": "data\\VG_100K\\2365831.jpg",
+  "question_id": 923658315797,
+  "image_id": 92365831
+}

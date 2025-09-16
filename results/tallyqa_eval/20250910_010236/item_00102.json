@@ -1,0 +1,16 @@
+{
+  "index": 102,
+  "question": "How many red parachutes are there",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x18y23'</points>\n            <t_values>0.00</t_values>\n            <id>marker_red parachutes1</id>\n        </s1>\n    </strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00102_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00102_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00102_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00102.svg",
+  "source_image": "data\\VG_100K\\2359605.jpg",
+  "question_id": 923596051417,
+  "image_id": 92359605
+}

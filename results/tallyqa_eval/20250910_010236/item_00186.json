@@ -1,0 +1,16 @@
+{
+  "index": 186,
+  "question": "How many people are pictured",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00186_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00186_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00186_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00186.svg",
+  "source_image": "data\\VG_100K\\2350728.jpg",
+  "question_id": 30139892,
+  "image_id": 92350728
+}

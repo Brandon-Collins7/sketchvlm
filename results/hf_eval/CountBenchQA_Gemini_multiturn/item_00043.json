@@ -1,0 +1,12 @@
+{
+  "index": 43,
+  "prompt": "How many icons are there in the image",
+  "ground_truth": 9,
+  "model_output": "<strokes><g id=\"marker_icons1_s1\"><text x=\"102.0\" y=\"102.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">1</text></g><g id=\"marker_icons2_s2\"><text x=\"306.0\" y=\"102.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">2</text></g><g id=\"marker_icons3_s3\"><text x=\"510.0\" y=\"102.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">3</text></g><g id=\"marker_icons4_s4\"><text x=\"102.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">4</text></g><g id=\"marker_icons5_s5\"><text x=\"306.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">5</text></g><g id=\"marker_icons6_s6\"><text x=\"510.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">6</text></g><g id=\"marker_icons7_s7\"><text x=\"102.0\" y=\"510.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">7</text></g><g id=\"marker_icons8_s8\"><text x=\"306.0\" y=\"510.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">8</text></g><g id=\"marker_icons9_s9\"><text x=\"510.0\" y=\"510.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"36\" fill=\"#000000\">9</text></g></strokes>",
+  "model_answer": 9,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00043_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00043_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00043_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00043.svg"
+}

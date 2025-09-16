@@ -1,0 +1,8 @@
+{"index": 0, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}
+{"index": 1, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}
+{"index": 2, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}
+{"index": 3, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}
+{"index": 4, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}
+{"index": 5, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}
+{"index": 6, "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?", "mode": "stepwise", "turns": 2, "error": "mismatched tag: line 5, column 4", "raw_image": "results\\mix_eval\\20250911_172946\\item_00006_orig.jpg", "grid_image": "results\\mix_eval\\20250911_172946\\item_00006_grid.png", "annotated_image": "results\\mix_eval\\20250911_172946\\item_00006_annotated.png", "svg": "results\\mix_eval\\20250911_172946\\item_00006.svg", "source_image": "datasets\\mix3\\pear.png", "source_prompt": "datasets\\mix3\\pear.txt"}
+{"index": 7, "mode": "stepwise", "num_strokes_total": 0, "num_strokes_text": 0}

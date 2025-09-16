@@ -1,0 +1,62 @@
+{
+  "index": 1,
+  "filename": "datasets\\labeling\\boat.jpg",
+  "concept": "boat",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: boat</concept>\n<strokes>\n  <s1>\n    <text size=\"3.0\" color=\"#ff0000\">'hull'</text>\n    <points>'x25y6'</points>\n    <t_values>0.00</t_values>\n    <id>label_hull</id>\n  </s1>\n  <s2>\n    <text size=\"3.5\" color=\"#000000\">'mainsail'</text>\n    <points>'x28y22'</points>\n    <t_values>0.00</t_values>\n    <id>label_mainsail</id>\n  </s2>\n  <s3>\n    <text size=\"2.5\" color=\"#000000\">'mast'</text>\n    <points>'x22y30'</points>\n    <t_values>0.00</t_values>\n    <id>label_mast</id>\n  </s3>\n  <s4>\n    <text size=\"3.0\" color=\"#0000ff\">'jib'</text>\n    <points>'x19y24'</points>\n    <t_values>0.00</t_values>\n    <id>label_jib</id>\n  </s4>\n  <s5>\n    <text size=\"2.0\" color=\"#ffffff\">'boom'</text>\n    <points>'x26y10'</points>\n    <t_values>0.00</t_values>\n    <id>label_boom</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#ffff00\">'flag'</text>\n    <points>'x14y8'</points>\n    <t_values>0.00</t_values>\n    <id>label_flag</id>\n  </s6>\n  <s7>\n    <text size=\"5.0\" color=\"#ffffff\">'sea'</text>\n    <points>'x40y15'</points>\n    <t_values>0.00</t_values>\n    <id>label_sea</id>\n  </s7>\n  <s8>\n    <text size=\"5.0\" color=\"#000000\">'sky'</text>\n    <points>'x10y40'</points>\n    <t_values>0.00</t_values>\n    <id>label_sky</id>\n  </s8>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "hull",
+      "id": "label_hull",
+      "font_px": 36,
+      "color": "#ff0000"
+    },
+    {
+      "text": "mainsail",
+      "id": "label_mainsail",
+      "font_px": 42,
+      "color": "#000000"
+    },
+    {
+      "text": "mast",
+      "id": "label_mast",
+      "font_px": 30,
+      "color": "#000000"
+    },
+    {
+      "text": "jib",
+      "id": "label_jib",
+      "font_px": 36,
+      "color": "#0000ff"
+    },
+    {
+      "text": "boom",
+      "id": "label_boom",
+      "font_px": 24,
+      "color": "#ffffff"
+    },
+    {
+      "text": "flag",
+      "id": "label_flag",
+      "font_px": 24,
+      "color": "#ffff00"
+    },
+    {
+      "text": "sea",
+      "id": "label_sea",
+      "font_px": 60,
+      "color": "#ffffff"
+    },
+    {
+      "text": "sky",
+      "id": "label_sky",
+      "font_px": 60,
+      "color": "#000000"
+    }
+  ],
+  "num_labels": 8,
+  "raw_image": "results\\labeling\\20250909_203825\\item_00001_orig.jpg",
+  "grid_image": "results\\labeling\\20250909_203825\\item_00001_grid.png",
+  "annotated_image": "results\\labeling\\20250909_203825\\item_00001_annotated.png",
+  "svg": "results\\labeling\\20250909_203825\\item_00001.svg"
+}

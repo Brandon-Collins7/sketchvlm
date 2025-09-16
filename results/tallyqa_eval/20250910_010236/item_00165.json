@@ -1,0 +1,16 @@
+{
+  "index": 165,
+  "question": "How many yellow boats are on the water",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x46y23'</points>\n            <t_values>0.00</t_values>\n            <id>marker_yellow boats are on the water1</id>\n        </s1>\n    </strokes>",
+  "model_answer": 1,
+  "correct": false,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00165_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00165_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00165_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00165.svg",
+  "source_image": "data\\VG_100K\\2315697.jpg",
+  "question_id": 923156972962,
+  "image_id": 92315697
+}

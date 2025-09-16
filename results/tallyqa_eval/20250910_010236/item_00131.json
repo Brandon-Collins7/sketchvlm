@@ -1,0 +1,16 @@
+{
+  "index": 131,
+  "question": "How many kangaroos are in this photograph",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00131_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00131_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00131_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00131.svg",
+  "source_image": "data\\VG_100K\\2336125.jpg",
+  "question_id": 30148655,
+  "image_id": 92336125
+}

@@ -1,0 +1,16 @@
+{
+  "index": 98,
+  "question": "How many people are eating vegetable",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00098_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00098_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00098_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00098.svg",
+  "source_image": "data\\VG_100K\\2369101.jpg",
+  "question_id": 9236910120185,
+  "image_id": 92369101
+}

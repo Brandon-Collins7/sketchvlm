@@ -1,0 +1,14 @@
+{
+  "index": 1,
+  "prompt": "Count the legs of the chicken in the image",
+  "ground_truth": null,
+  "model_output": "<answer>\n    <concept>Numbering each Count the legs of the chicken in the image</concept>\n    <strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x18y13'</points>\n            <t_values>0.00</t_values>\n            <id>marker_Count the legs of the chicken in the image1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x26y14'</points>\n            <t_values>0.00</t_values>\n            <id>marker_Count the legs of the chicken in the image2</id>\n        </s2>\n    </strokes>\n</answer>",
+  "model_answer": 0,
+  "correct": null,
+  "raw_image": "results\\biased_eval\\20250908_203714\\item_00001_orig.jpg",
+  "grid_image": "results\\biased_eval\\20250908_203714\\item_00001_grid.png",
+  "annotated_image": "results\\biased_eval\\20250908_203714\\item_00001_annotated.png",
+  "svg": "results\\biased_eval\\20250908_203714\\item_00001.svg",
+  "source_image": "datasets\\biased\\chicken.png",
+  "source_prompt": "datasets\\biased\\chicken.txt"
+}

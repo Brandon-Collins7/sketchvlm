@@ -1,0 +1,12 @@
+{
+  "index": 6,
+  "prompt": "How many parrots are there in the image",
+  "ground_truth": 4,
+  "model_output": "<strokes><g id=\"marker_parrots1_s1\"><text x=\"126.0\" y=\"150.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">1</text></g><g id=\"marker_parrots2_s2\"><text x=\"390.0\" y=\"150.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">2</text></g><g id=\"marker_parrots3_s3\"><text x=\"126.0\" y=\"462.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">3</text></g><g id=\"marker_parrots4_s4\"><text x=\"390.0\" y=\"462.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">4</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00006_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00006_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00006_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00006.svg"
+}

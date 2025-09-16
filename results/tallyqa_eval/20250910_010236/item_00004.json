@@ -1,0 +1,16 @@
+{
+  "index": 4,
+  "question": "How many books do you see",
+  "ground_truth": 10,
+  "model_output": "<strokes>\n<s1>\n    <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n    <points>'x10y25'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see1</id>\n</s1>\n<s2>\n    <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n    <points>'x42y29'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see2</id>\n</s2>\n<s3>\n    <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n    <points>'x27y35'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see3</id>\n</s3>\n<s4>\n    <text size=\"1.6\" color=\"#ff0066\">'4'</text>\n    <points>'x27y32'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see4</id>\n</s4>\n<s5>\n    <text size=\"1.6\" color=\"#ff0066\">'5'</text>\n    <points>'x27y30'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see5</id>\n</s5>\n<s6>\n    <text size=\"1.6\" color=\"#ff0066\">'6'</text>\n    <points>'x27y28'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see6</id>\n</s6>\n<s7>\n    <text size=\"1.6\" color=\"#ff0066\">'7'</text>\n    <points>'x27y26'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see7</id>\n</s7>\n<s8>\n    <text size=\"1.6\" color=\"#ff0066\">'8'</text>\n    <points>'x28y17'</points>\n    <t_values>0.00</t_values>\n    <id>marker_books do you see8</id>\n</s8>\n</strokes>",
+  "model_answer": 8,
+  "correct": false,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00004_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00004_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00004_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00004.svg",
+  "source_image": "data\\VG_100K\\2349769.jpg",
+  "question_id": 30140480,
+  "image_id": 92349769
+}

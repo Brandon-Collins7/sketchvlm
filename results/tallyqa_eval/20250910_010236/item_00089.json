@@ -1,0 +1,16 @@
+{
+  "index": 89,
+  "question": "How many people are wearing yellow coats",
+  "ground_truth": 2,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x8y21'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing yellow coats1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x14y22'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing yellow coats2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x39y15'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing yellow coats3</id>\n        </s3>\n    </strokes>",
+  "model_answer": 3,
+  "correct": false,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00089_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00089_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00089_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00089.svg",
+  "source_image": "data\\VG_100K\\2351063.jpg",
+  "question_id": 923510635484,
+  "image_id": 92351063
+}

@@ -1,0 +1,16 @@
+{
+  "index": 127,
+  "question": "How many people are wearing a blue dress",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x12y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing a blue dress1</id>\n        </s1>\n    </strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00127_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00127_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00127_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00127.svg",
+  "source_image": "data\\VG_100K\\2356513.jpg",
+  "question_id": 9235651310401,
+  "image_id": 92356513
+}
