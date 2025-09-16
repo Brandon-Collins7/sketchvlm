@@ -314,3 +314,63 @@ Hints (optional): {labels_hint}
 
 
 DEFAULT_LABELS_HINT = "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight"
+
+
+# A small, gated library of patterns the model may use **only if relevant**.
+MIX_TOOLKIT = """
+[Capabilities — use only the ones relevant to the request]
+
+1) FREEHAND SKETCH (default for “draw X”, e.g., a house/animal/logo)
+- Emit one or more stroke blocks with points on the grid, no <text>.
+- Use multiple strokes to compose shapes; curves/lines are both fine.
+- the <id> tag should describe the part being drawn.
+
+<s1>
+  <points>'x12y20','x13y20','x14y21','x15y22'</points>
+  <t_values>0.00,0.33,0.66,1.00</t_values>
+  <id>part_1</id>
+</s1>
+<s2>
+  <points>'x20y18','x20y14','x24y14','x24y18','x20y18'</points>
+  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
+  <id>part_2</id>
+</s2>
+
+2) STRAIGHT LINE
+<sN>
+  <points>'x10y19','x40y19'</points>
+  <t_values>0.00,1.00</t_values>
+  <id>line_1</id>
+</sN>
+
+3) BOX / RECTANGLE (list the 4 corners in order)
+<sN>
+  <points>'x12y12','x20y12','x20y18','x12y18','x12y12'</points>
+  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
+  <id>box_1</id>
+</sN>
+
+4) COUNTING (place numerals near each instance; one stroke per number)
+<sN>
+  <points>'x08y22'</points>
+  <t_values>0.00</t_values>
+  <text size="3.0" color="black">'1'</text>
+  <id>count_1</id>
+</sN>
+
+5) LABELING (anchor a text label to a nearby cell)
+<sN>
+  <points>'x26y17'</points>
+  <t_values>0.00</t_values>
+  <text size="3.2" color="black">'handlebar'</text>
+  <id>label_handlebar</id>
+</sN>
+
+
+Rules:
+- Output only <answer>…</answer> with a single <strokes>…</strokes> section.
+- For counting/labeling tasks, prefer <text> with short values ('1','2',… or 'wheel','seat',…).
+- Use <points> with exactly one anchor cell for each text label/number (one per item/part).
+- Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
+- Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
+"""

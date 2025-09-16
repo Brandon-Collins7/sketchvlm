@@ -5,7 +5,7 @@ Grid Manager - Handles dynamic grid sizing and image placement for sketch annota
 from typing import Tuple, Dict, Optional
 from PIL import Image, ImageOps
 import utils
-
+import math
 
 class GridManager:
     """Manages dynamic grid creation and image placement for sketch annotations."""
@@ -56,38 +56,12 @@ class GridManager:
         
         return grid_res_x, grid_res_y, grid_width, grid_height
     
-    def update_grid_for_image(self, img: Image.Image, show_full_grid: bool = False) -> bool:
-        """
-        Update grid size based on image dimensions.
-        
-        Args:
-            img: PIL Image to fit the grid around
-            show_full_grid: Whether to show full grid lines or minimal grid
-            
-        Returns:
-            bool: True if grid size changed, False otherwise
-        """
-        img_width, img_height = img.size
-        new_res_x, new_res_y, new_grid_width, new_grid_height = self.calculate_grid_size_for_image(
-            img_width, img_height
-        )
-        
-        # Only update if the grid size would actually change
-        if new_res_x != self.res_x or new_res_y != self.res_y:
-            self.res_x = new_res_x
-            self.res_y = new_res_y
-            self.grid_size = (new_grid_width, new_grid_height)
-            
-            # Recreate grid and positions
-            self.grid_image, self.positions = utils.create_grid_image(
-                res_x=self.res_x, 
-                res_y=self.res_y, 
-                cell_size=self.cell_size, 
-                header_size=self.cell_size, 
-                full=show_full_grid
-            )
-            return True
-        return False
+    def update_grid_for_image(self, img, show_full_grid=False):
+        W, H = img.size
+        old = (self.res_x, self.res_y, self.grid_size)
+        self._recompute_grid(W, H, show_full_grid)
+        return (self.res_x, self.res_y, self.grid_size) != old
+
     
     def place_image_on_canvas(self, img: Image.Image, bgcolor=(255, 255, 255)) -> Image.Image:
         """
@@ -135,28 +109,38 @@ class GridManager:
         base.paste(grid, (0, 0), mask)
         return base.convert("RGB")
     
-    def create_annotated_image(self, img: Image.Image, show_full_grid: bool = False, bgcolor=(255, 255, 255)) -> Image.Image:
-        """
-        Complete workflow: update grid for image, place image, and overlay grid.
-        
-        Args:
-            img: PIL Image to process
-            show_full_grid: Whether to show full grid lines
-            bgcolor: Background color for the canvas
-            
-        Returns:
-            Final annotated image with grid overlay
-        """
-        # Update grid size for this image
-        self.update_grid_for_image(img, show_full_grid)
-        
-        # Place image on canvas
-        placed = self.place_image_on_canvas(img, bgcolor)
-        
-        # Overlay grid
-        composited = self.overlay_grid(placed)
-        
-        return composited
+    def create_annotated_image(self, img, show_full_grid=False, bgcolor=(255,255,255)):
+        self.update_grid_for_image(img, show_full_grid)   # ← this is the “recompute”
+        canvas = self.place_image_at_bottom_left(img, bgcolor)  # or whatever you named it
+        return self.overlay_grid(canvas)
+
+    def _recompute_grid(self, W: int, H: int, show_full_grid: bool):
+        # derive grid cell counts from raw image size
+        self.res_x = math.ceil(W / self.cell_size)
+        self.res_y = math.ceil(H / self.cell_size)
+
+        # +1 cell for the left label column, +1 cell for the bottom label row
+        self.grid_size = (
+            self.res_x * self.cell_size + self.cell_size,
+            self.res_y * self.cell_size + self.cell_size,
+        )
+
+        # (re)build the labeled grid + positions
+        self.grid_image, self.positions = utils.create_grid_image(
+            res_x=self.res_x,
+            res_y=self.res_y,
+            cell_size=self.cell_size,
+            header_size=self.cell_size,
+            full=show_full_grid,
+        )
+
+    def place_image_at_bottom_left(self, img, bgcolor=(255,255,255)):
+        canvas = Image.new("RGB", self.grid_size, bgcolor)
+        # top-aligned, left-shifted by one cell to leave the left label column,
+        # and leaves the bottom header row visible
+        canvas.paste(img.convert("RGB"), (self.cell_size, 0))
+        return canvas
+
     
     def get_grid_info(self) -> Dict:
         """
