@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 datasets/
+/data/
+/datasets/
+/TallyQA_dataset/

@@ -1,0 +1,15 @@
+{
+  "index": 10,
+  "prompt": "draw a number on each leg of the horse to count them",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x11y18'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'1'</text>\n  <id>count_1</id>\n</s1>\n<s2>\n  <points>'x20y18'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'2'</text>\n  <id>count_2</id>\n</s2>\n<s3>\n  <points>'x30y20'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'3'</text>\n  <id>count_3</id>\n</s3>\n<s4>\n  <points>'x37y20'</points>\n  <t_values>0.00</t_values>\n  <text size=\"5.0\" color=\"black\">'4'</text>\n  <id>count_4</id>\n</s4>\n</strokes>",
+  "num_strokes_total": 4,
+  "num_strokes_text": 4,
+  "raw_image": "results\\mix_eval\\20250911_095528\\item_00010_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_095528\\item_00010_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_095528\\item_00010_annotated.png",
+  "svg": "results\\mix_eval\\20250911_095528\\item_00010.svg",
+  "source_image": "datasets\\mix\\horse.png",
+  "source_prompt": "datasets\\mix\\horse.txt"
+}

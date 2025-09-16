@@ -1,0 +1,16 @@
+{
+  "index": 45,
+  "question": "How many elephants in this image are facing left",
+  "ground_truth": 2,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x23y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x27y23'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x29y23'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left3</id>\n        </s3>\n        <s4>\n            <text size=\"1.6\" color=\"#ff0066\">'4'</text>\n            <points>'x30y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left4</id>\n        </s4>\n        <s5>\n            <text size=\"1.6\" color=\"#ff0066\">'5'</text>\n            <points>'x33y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left5</id>\n        </s5>\n        <s6>\n            <text size=\"1.6\" color=\"#ff0066\">'6'</text>\n            <points>'x36y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left6</id>\n        </s6>\n        <s7>\n            <text size=\"1.6\" color=\"#ff0066\">'7'</text>\n            <points>'x38y25'</points>\n            <t_values>0.00</t_values>\n            <id>marker_elephants in this image are facing left7</id>\n        </s7>\n    </strokes>",
+  "model_answer": 7,
+  "correct": false,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00045_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00045_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00045_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00045.svg",
+  "source_image": "data\\VG_100K\\2344001.jpg",
+  "question_id": 9234400110263,
+  "image_id": 92344001
+}

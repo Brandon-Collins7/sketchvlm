@@ -18,7 +18,7 @@ python sketch_app.py --llm claude --model claude-3-5-sonnet-20240620
 python sketch_app.py --llm gpt --model o3
 
 ### Gemini 2.5 Pro
-python collab_sketch_all.py --llm gemini --model gemini-2.5-pro
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro
 
 
 ## Task Types
@@ -33,7 +33,7 @@ python collab_sketch_all.py --llm claude --model claude-3-5-sonnet-20240620 --ev
 python collab_sketch_all.py --llm gpt --model o3 --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text
 
 ####
-python collab_sketch_all.py --llm gemini --model gemini-2.5-pro --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text --api-delay 4
 
 
 ## Labeling
@@ -60,3 +60,12 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-d
 
 #one stroke per turn
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir datasets/mix --mixed-stepwise --mixed-max-turns 40 --count-only-text --api-delay 0.2
+
+
+--- TallyQA
+
+
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --max-examples 200 --count-only-text --api-delay 5
+
+#multi-turn
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --tallyqa-stepwise --tallyqa-max-turns 40 --max-examples 200 --count-only-text --api-delay 4

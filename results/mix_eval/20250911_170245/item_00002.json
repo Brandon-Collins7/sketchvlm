@@ -1,0 +1,15 @@
+{
+  "index": 2,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x13y31','x13y28','x13y23','x13y19','x14y15','x16y12','x18y10','x21y8','x25y7','x29y8'</points>\n  <t_values>0.00,0.11,0.22,0.33,0.44,0.55,0.66,0.77,0.88,1.00</t_values>\n  <id>connect_the_dots</id>\n</s1>\n</strokes>",
+  "num_strokes_total": 1,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_170245\\item_00002_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_170245\\item_00002_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_170245\\item_00002_annotated.png",
+  "svg": "results\\mix_eval\\20250911_170245\\item_00002.svg",
+  "source_image": "datasets\\mix3\\c.png",
+  "source_prompt": "datasets\\mix3\\c.txt"
+}

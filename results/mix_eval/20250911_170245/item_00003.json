@@ -1,0 +1,15 @@
+{
+  "index": 3,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x9y42','x20y43'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_1</id>\n</s1>\n<s2>\n  <points>'x20y43','x31y42'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_2</id>\n</s2>\n<s3>\n  <points>'x31y42','x40y36'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_3</id>\n</s3>\n<s4>\n  <points>'x40y36','x42y25'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_4</id>\n</s4>\n<s5>\n  <points>'x42y25','x38y17'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_5</id>\n</s5>\n<s6>\n  <points>'x38y17','x28y13'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_6</id>\n</s6>\n<s7>\n  <points>'x28y13','x19y12'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_7</id>\n</s7>\n<s8>\n  <points>'x19y12','x9y14'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_8</id>\n</s8>\n<s9>\n  <points>'x9y14','x9y23'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_9</id>\n</s9>\n<s10>\n  <points>'x9y23','x9y32'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_10</id>\n</s10>\n<s11>\n  <points>'x9y32','x9y42'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_11</id>\n</s11>\n</strokes>",
+  "num_strokes_total": 11,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_170245\\item_00003_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_170245\\item_00003_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_170245\\item_00003_annotated.png",
+  "svg": "results\\mix_eval\\20250911_170245\\item_00003.svg",
+  "source_image": "datasets\\mix3\\d.png",
+  "source_prompt": "datasets\\mix3\\d.txt"
+}

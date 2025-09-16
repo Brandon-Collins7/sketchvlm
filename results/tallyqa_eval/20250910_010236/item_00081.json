@@ -1,0 +1,16 @@
+{
+  "index": 81,
+  "question": "How many people are wearing red jersey shirt",
+  "ground_truth": 4,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x19y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing red jersey shirt1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x24y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing red jersey shirt2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x36y32'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing red jersey shirt3</id>\n        </s3>\n    </strokes>",
+  "model_answer": 3,
+  "correct": false,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00081_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00081_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00081_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00081.svg",
+  "source_image": "data\\VG_100K\\2358752.jpg",
+  "question_id": 923587526182,
+  "image_id": 92358752
+}

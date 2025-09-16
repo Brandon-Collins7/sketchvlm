@@ -1,0 +1,9 @@
+{
+  "folder": "datasets\\biased",
+  "timestamp": "20250908_204821",
+  "total_items": 3,
+  "processed": 3,
+  "out_root": "results\\biased_eval_stepwise\\20250908_204821",
+  "mode": "stepwise_one_stroke_per_turn",
+  "notes": "Multi-turn counting; no accuracy computed (no ground truth)."
+}

@@ -1,0 +1,15 @@
+{
+  "index": 4,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x15y28','x21y29'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_1_to_2</id>\n</s1>\n<s2>\n  <points>'x21y29','x27y27'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_2_to_3</id>\n</s2>\n<s3>\n  <points>'x27y27','x31y23'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_3_to_4</id>\n</s3>\n<s4>\n  <points>'x31y23','x35y16'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_4_to_5</id>\n</s4>\n<s5>\n  <points>'x35y16','x43y15'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_5_to_6</id>\n</s5>\n<s6>\n  <points>'x43y15','x38y11'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_6_to_7</id>\n</s6>\n<s7>\n  <points>'x38y11','x35y12'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_7_to_8</id>\n</s7>\n<s8>\n  <points>'x35y12','x27y19'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_8_to_9</id>\n</s8>\n<s9>\n  <points>'x27y19','x24y17'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_9_to_10</id>\n</s9>\n<s10>\n  <points>'x24y17','x27y13'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_10_to_11</id>\n</s10>\n<s11>\n  <points>'x27y13','x22y12'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_11_to_12</id>\n</s11>\n<s12>\n  <points>'x22y12','x21y18'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_12_to_13</id>\n</s12>\n<s13>\n  <points>'x21y18','x19y19'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_13_to_14</id>\n</s13>\n<s14>\n  <points>'x19y19','x18y12'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_14_to_15</id>\n</s14>\n<s15>\n  <points>'x18y12','x11y13'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_15_to_16</id>\n</s15>\n<s16>\n  <points>'x11y13','x10y21'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_16_to_17</id>\n</s16>\n<s17>\n  <points>'x10y21','x9y28'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_17_to_18</id>\n</s17>\n<s18>\n  <points>'x9y28','x11y35'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_18_to_19</id>\n</s18>\n<s19>\n  <points>'x11y35','x12y39'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>line_19_to_20</id>\n</s19>\n</strokes>",
+  "num_strokes_total": 19,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_170245\\item_00004_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_170245\\item_00004_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_170245\\item_00004_annotated.png",
+  "svg": "results\\mix_eval\\20250911_170245\\item_00004.svg",
+  "source_image": "datasets\\mix3\\dino.png",
+  "source_prompt": "datasets\\mix3\\dino.txt"
+}

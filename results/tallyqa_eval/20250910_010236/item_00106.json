@@ -1,0 +1,16 @@
+{
+  "index": 106,
+  "question": "How many people are playing football",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00106_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00106_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00106_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00106.svg",
+  "source_image": "data\\VG_100K_2\\2403003.jpg",
+  "question_id": 9240300318034,
+  "image_id": 92403003
+}

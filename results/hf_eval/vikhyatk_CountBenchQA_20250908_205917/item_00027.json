@@ -1,0 +1,12 @@
+{
+  "index": 27,
+  "prompt": "How many dice are there in the image",
+  "ground_truth": 10,
+  "model_output": "<strokes><g id=\"marker_dice1_s1\"><text x=\"90.0\" y=\"222.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">1</text></g><g id=\"marker_dice2_s2\"><text x=\"90.0\" y=\"342.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">2</text></g><g id=\"marker_dice3_s3\"><text x=\"210.0\" y=\"330.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">3</text></g><g id=\"marker_dice4_s4\"><text x=\"222.0\" y=\"186.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">4</text></g><g id=\"marker_dice5_s5\"><text x=\"222.0\" y=\"450.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">5</text></g><g id=\"marker_dice6_s6\"><text x=\"318.0\" y=\"258.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">6</text></g><g id=\"marker_dice7_s7\"><text x=\"342.0\" y=\"366.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">7</text></g><g id=\"marker_dice8_s8\"><text x=\"378.0\" y=\"198.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">8</text></g><g id=\"marker_dice9_s9\"><text x=\"462.0\" y=\"234.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">9</text></g><g id=\"marker_dice10_s10\"><text x=\"534.0\" y=\"342.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ff0066\">10</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00027_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00027_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00027_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00027.svg"
+}

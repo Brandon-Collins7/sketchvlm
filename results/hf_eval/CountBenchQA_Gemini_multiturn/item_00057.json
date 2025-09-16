@@ -1,0 +1,12 @@
+{
+  "index": 57,
+  "prompt": "How many cars are there in the image",
+  "ground_truth": 4,
+  "model_output": "<strokes><g id=\"marker_cars1_s1\"><text x=\"522.0\" y=\"390.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0066\">1</text></g><g id=\"marker_cars2_s2\"><text x=\"438.0\" y=\"366.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"22\" fill=\"#ff0066\">2</text></g><g id=\"marker_cars3_s3\"><text x=\"378.0\" y=\"354.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g><g id=\"marker_cars4_s4\"><text x=\"294.0\" y=\"342.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">4</text></g></strokes>",
+  "model_answer": 4,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00057_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00057_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00057_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00057.svg"
+}

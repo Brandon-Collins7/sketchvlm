@@ -1,0 +1,16 @@
+{
+  "index": 153,
+  "question": "How many soccer balls are being held",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n<s1>\n\t<text size=\"1.6\" color=\"#ff0066\">'1'</text>\n\t<points>'x21y26'</points>\n\t<t_values>0.00</t_values>\n\t<id>marker_soccer balls are being held1</id>\n</s1>\n</strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00153_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00153_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00153_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00153.svg",
+  "source_image": "data\\VG_100K\\2341127.jpg",
+  "question_id": 9234112714825,
+  "image_id": 92341127
+}

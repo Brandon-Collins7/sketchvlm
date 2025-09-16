@@ -1,0 +1,16 @@
+{
+  "index": 120,
+  "question": "How many cakes are in the shot",
+  "ground_truth": 3,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x10y16'</points>\n            <t_values>0.00</t_values>\n            <id>marker_cakes are in the shot1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x20y16'</points>\n            <t_values>0.00</t_values>\n            <id>marker_cakes are in the shot2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x27y16'</points>\n            <t_values>0.00</t_values>\n            <id>marker_cakes are in the shot3</id>\n        </s3>\n    </strokes>",
+  "model_answer": 3,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00120_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00120_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00120_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00120.svg",
+  "source_image": "data\\VG_100K_2\\2410322.jpg",
+  "question_id": 30095918,
+  "image_id": 92410322
+}

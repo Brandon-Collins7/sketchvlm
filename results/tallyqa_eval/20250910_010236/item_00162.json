@@ -1,0 +1,16 @@
+{
+  "index": 162,
+  "question": "How many people are eating cake",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00162_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00162_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00162_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00162.svg",
+  "source_image": "data\\VG_100K\\2364399.jpg",
+  "question_id": 923643999642,
+  "image_id": 92364399
+}

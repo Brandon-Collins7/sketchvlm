@@ -1,0 +1,15 @@
+{
+  "index": 5,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n    <s1>\n      <points>'x24y29','x22y28','x20y26','x18y24','x17y21','x17y19','x16y16','x15y14','x14y12','x15y9','x19y8','x22y9','x26y10','x28y12','x30y15','x31y11','x33y13','x34y17','x34y20','x34y23'</points>\n      <t_values>0.00,0.05,0.11,0.16,0.21,0.26,0.32,0.37,0.42,0.47,0.53,0.58,0.63,0.68,0.74,0.79,0.84,0.89,0.95,1.00</t_values>\n      <id>connect_the_dots_line</id>\n    </s1>\n  </strokes>",
+  "num_strokes_total": 1,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_172228\\item_00005_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_172228\\item_00005_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_172228\\item_00005_annotated.png",
+  "svg": "results\\mix_eval\\20250911_172228\\item_00005.svg",
+  "source_image": "datasets\\mix3\\fruit.jpg",
+  "source_prompt": "datasets\\mix3\\fruit.txt"
+}

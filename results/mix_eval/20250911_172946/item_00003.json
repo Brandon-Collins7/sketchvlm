@@ -1,0 +1,15 @@
+{
+  "index": 3,
+  "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?",
+  "mode": "stepwise",
+  "turns": 5,
+  "model_output": "<strokes><g id=\"line_1\" stroke=\"green\" stroke-width=\"7.199999999999999\" fill=\"none\" stroke-linecap=\"round\">\n    <path d=\"M 114 102 L 114 210 \"/>\n</g>\n<g id=\"line_2\" stroke=\"green\" stroke-width=\"7.199999999999999\" fill=\"none\" stroke-linecap=\"round\">\n    <path d=\"M 114 210 L 126 330 \"/>\n</g>\n<g id=\"line_3\" stroke=\"green\" stroke-width=\"7.199999999999999\" fill=\"none\" stroke-linecap=\"round\">\n    <path d=\"M 126 330 L 126 426 \"/>\n</g>\n<g id=\"line_4\" stroke=\"green\" stroke-width=\"7.199999999999999\" fill=\"none\" stroke-linecap=\"round\">\n    <path d=\"M 126 426 L 234 450 \"/>\n</g>\n</strokes>",
+  "num_strokes_total": 0,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_172946\\item_00003_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_172946\\item_00003_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_172946\\item_00003_annotated.png",
+  "svg": "results\\mix_eval\\20250911_172946\\item_00003.svg",
+  "source_image": "datasets\\mix3\\d.png",
+  "source_prompt": "datasets\\mix3\\d.txt"
+}

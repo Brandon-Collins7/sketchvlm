@@ -1,0 +1,16 @@
+{
+  "index": 185,
+  "question": "How many people are wearing glasses",
+  "ground_truth": 3,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x40y36'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing glasses1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x28y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing glasses2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x35y32'</points>\n            <t_values>0.00</t_values>\n            <id>marker_people are wearing glasses3</id>\n        </s3>\n    </strokes>",
+  "model_answer": 3,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00185_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00185_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00185_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00185.svg",
+  "source_image": "data\\VG_100K\\2366665.jpg",
+  "question_id": 9236666521306,
+  "image_id": 92366665
+}

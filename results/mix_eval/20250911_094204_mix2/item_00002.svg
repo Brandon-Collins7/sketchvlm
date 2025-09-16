@@ -1,0 +1,46 @@
+<svg width="612" height="612" xmlns="http://www.w3.org/2000/svg"><g id="cat_body" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 412.08 479.26 C 652.0158537930611 417.8330043471358 273.029822475997 232.17176180882265 411.8122630731756 485.5699843029746 "/>
+</g>
+<g id="cat_head" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 426.00 267.94 C 596.6666666666667 350.2285714285712 255.33333333333334 350.2285714285716 426.0000000000001 267.9428571428572 "/>
+</g>
+<g id="cat_left_ear" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 390.00 282.00 C 402.0 233.99999999999994 401.99999999999994 233.99999999999991 413.9999999999999 281.99999999999994 "/>
+</g>
+<g id="cat_right_ear" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 438.00 270.00 C 449.99999999999966 238.0000000000001 449.99999999999966 238.0 461.9999999999999 269.99999999999994 "/>
+</g>
+<g id="cat_left_eye" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 390.00 306.00 Q 401.9999999999999 330.00000000000017 413.99999999999983 305.9999999999999 "/>
+</g>
+<g id="cat_right_eye" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 438.00 306.00 Q 450.00000000000034 330.00000000000017 461.9999999999999 305.9999999999999 "/>
+</g>
+<g id="cat_nose" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 426.00 318.00 L 426.0001 318.0001 "/>
+</g>
+<g id="cat_mouth" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 414.00 342.00 C 425.9999999999999 325.9999999999999 425.9999999999998 325.9999999999999 437.9999999999998 341.99999999999983 "/>
+</g>
+<g id="cat_whisker_left1" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 390 330 L 354 318 "/>
+</g>
+<g id="cat_whisker_left2" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 390 342 L 342 342 "/>
+</g>
+<g id="cat_whisker_right1" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 462 330 L 498 318 "/>
+</g>
+<g id="cat_whisker_right2" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 462 342 L 510 342 "/>
+</g>
+<g id="cat_tail" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 485.66 438.00 C 600.7047619047619 531.3333333333337 574.0380952380949 336.6666666666666 533.6571428571427 366.0 "/>
+</g>
+<g id="cat_left_paw" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 390.00 474.00 Q 401.9999999999999 450.0000000000002 413.99999999999983 473.9999999999998 "/>
+</g>
+<g id="cat_right_paw" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 426.00 474.00 Q 437.9999999999999 450.0000000000002 449.9999999999998 473.9999999999998 "/>
+</g>
+</svg>

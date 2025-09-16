@@ -1,0 +1,15 @@
+{
+  "index": 12,
+  "prompt": "write a label on each part of the jellyfish in the image",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x12y29', 'x15y37', 'x25y42', 'x35y37', 'x39y29'</points>\n  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>\n  <id>Bell</id>\n</s1>\n<s2>\n  <points>'x12y29', 'x39y29'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>Bell</id>\n</s2>\n<s3>\n  <points>'x17y29', 'x16y22', 'x13y13'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>Tentacles</id>\n</s3>\n<s4>\n  <points>'x23y29', 'x23y20', 'x24y12'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>Tentacles</id>\n</s4>\n<s5>\n  <points>'x28y29', 'x28y20', 'x30y10'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>Tentacles</id>\n</s5>\n<s6>\n  <points>'x33y29', 'x35y20', 'x39y10'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>Tentacles</id>\n</s6>\n<s7>\n  <points>'x25y45'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Bell'</text>\n  <id>label_bell</id>\n</s7>\n<s8>\n  <points>'x25y5'</points>\n  <t_values>0.00</t_values>\n  <text size=\"3.2\" color=\"black\">'Tentacles'</text>\n  <id>label_tentacles</id>\n</s8>\n</strokes>",
+  "num_strokes_total": 8,
+  "num_strokes_text": 2,
+  "raw_image": "results\\mix_eval\\20250911_095528\\item_00012_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_095528\\item_00012_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_095528\\item_00012_annotated.png",
+  "svg": "results\\mix_eval\\20250911_095528\\item_00012.svg",
+  "source_image": "datasets\\mix\\jellyfish.png",
+  "source_prompt": "datasets\\mix\\jellyfish.txt"
+}

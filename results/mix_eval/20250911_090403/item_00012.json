@@ -1,0 +1,15 @@
+{
+  "index": 12,
+  "prompt": "write a label on each part of the jellyfish in the image",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n<text size=\"1.8\" color=\"#0066ff\">'Bell'</text>\n<points>'x25y36'</points>\n<t_values>0.00</t_values>\n<id>label_bell</id>\n</s1>\n<s2>\n<text size=\"1.8\" color=\"#0066ff\">'Tentacles'</text>\n<points>'x25y15'</points>\n<t_values>0.00</t_values>\n<id>label_tentacles</id>\n</s2>\n</strokes>",
+  "num_strokes_total": 2,
+  "num_strokes_text": 2,
+  "raw_image": "results\\mix_eval\\20250911_090403\\item_00012_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_090403\\item_00012_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_090403\\item_00012_annotated.png",
+  "svg": "results\\mix_eval\\20250911_090403\\item_00012.svg",
+  "source_image": "datasets\\mix\\jellyfish.png",
+  "source_prompt": "datasets\\mix\\jellyfish.txt"
+}

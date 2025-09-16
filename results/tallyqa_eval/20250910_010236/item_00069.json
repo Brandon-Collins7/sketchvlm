@@ -1,0 +1,16 @@
+{
+  "index": 69,
+  "question": "How many engines does the plane have",
+  "ground_truth": 2,
+  "model_output": "<strokes>\n<s1>\n<text size=\"1.6\" color=\"#ff0066\">'1'</text>\n<points>'x25y38'</points>\n<t_values>0.00</t_values>\n<id>marker_engines does the plane have1</id>\n</s1>\n<s2>\n<text size=\"1.6\" color=\"#ff0066\">'2'</text>\n<points>'x32y37'</points>\n<t_values>0.00</t_values>\n<id>marker_engines does the plane have2</id>\n</s2>\n</strokes>",
+  "model_answer": 2,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00069_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00069_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00069_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00069.svg",
+  "source_image": "data\\VG_100K\\2342363.jpg",
+  "question_id": 30144907,
+  "image_id": 92342363
+}

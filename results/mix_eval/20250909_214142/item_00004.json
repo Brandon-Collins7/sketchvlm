@@ -1,0 +1,15 @@
+{
+  "index": 4,
+  "prompt": "draw a number on each coloring page to count them",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n  <points>'x5y35'</points>\n  <t_values>0.00</t_values>\n  <id>marker_1</id>\n</s1>\n<s2>\n  <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n  <points>'x10y30'</points>\n  <t_values>0.00</t_values>\n  <id>marker_2</id>\n</s2>\n<s3>\n  <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n  <points>'x20y36'</points>\n  <t_values>0.00</t_values>\n  <id>marker_3</id>\n</s3>\n<s4>\n  <text size=\"1.6\" color=\"#ff0066\">'4'</text>\n  <points>'x20y26'</points>\n  <t_values>0.00</t_values>\n  <id>marker_4</id>\n</s4>\n<s5>\n  <text size=\"1.6\" color=\"#ff0066\">'5'</text>\n  <points>'x29y33'</points>\n  <t_values>0.00</t_values>\n  <id>marker_5</id>\n</s5>\n<s6>\n  <text size=\"1.6\" color=\"#ff0066\">'6'</text>\n  <points>'x38y32'</points>\n  <t_values>0.00</t_values>\n  <id>marker_6</id>\n</s6>\n<s7>\n  <text size=\"1.6\" color=\"#ff0066\">'7'</text>\n  <points>'x32y29'</points>\n  <t_values>0.00</t_values>\n  <id>marker_7</id>\n</s7>\n</strokes>",
+  "num_strokes_total": 7,
+  "num_strokes_text": 7,
+  "raw_image": "results\\mix_eval\\20250909_214142\\item_00004_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250909_214142\\item_00004_grid.png",
+  "annotated_image": "results\\mix_eval\\20250909_214142\\item_00004_annotated.png",
+  "svg": "results\\mix_eval\\20250909_214142\\item_00004.svg",
+  "source_image": "datasets\\mix\\coloring_pages.jpg",
+  "source_prompt": "datasets\\mix\\coloring_pages.txt"
+}

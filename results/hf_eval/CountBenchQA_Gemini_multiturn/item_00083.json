@@ -1,0 +1,12 @@
+{
+  "index": 83,
+  "prompt": "How many kittens are there in the image",
+  "ground_truth": 5,
+  "model_output": "<strokes><g id=\"marker_kittens1_s1\"><text x=\"138.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">1</text></g><g id=\"marker_kittens2_s2\"><text x=\"246.0\" y=\"282.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">2</text></g><g id=\"marker_kittens3_s3\"><text x=\"330.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g><g id=\"marker_kittens4_s4\"><text x=\"426.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">4</text></g><g id=\"marker_kittens5_s5\"><text x=\"510.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">5</text></g></strokes>",
+  "model_answer": 5,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00083_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00083_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00083_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00083.svg"
+}

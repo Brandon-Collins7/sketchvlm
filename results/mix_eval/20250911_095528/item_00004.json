@@ -1,0 +1,13 @@
+{
+  "index": 4,
+  "prompt": "finish my sketch of the cat",
+  "mode": "single_shot",
+  "turns": null,
+  "error": "unhashable type: 'list'",
+  "raw_image": "results\\mix_eval\\20250911_095528\\item_00004_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_095528\\item_00004_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_095528\\item_00004_annotated.png",
+  "svg": "results\\mix_eval\\20250911_095528\\item_00004.svg",
+  "source_image": "datasets\\mix\\cat_sketch.png",
+  "source_prompt": "datasets\\mix\\cat_sketch.txt"
+}

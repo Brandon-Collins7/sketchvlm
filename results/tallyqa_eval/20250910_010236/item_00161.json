@@ -1,0 +1,16 @@
+{
+  "index": 161,
+  "question": "How many urinals are hanging in the corner",
+  "ground_truth": 3,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x38y43'</points>\n            <t_values>0.00</t_values>\n            <id>marker_urinals are hanging in the corner1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x38y33'</points>\n            <t_values>0.00</t_values>\n            <id>marker_urinals are hanging in the corner2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x38y26'</points>\n            <t_values>0.00</t_values>\n            <id>marker_urinals are hanging in the corner3</id>\n        </s3>\n    </strokes>",
+  "model_answer": 3,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00161_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00161_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00161_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00161.svg",
+  "source_image": "data\\VG_100K_2\\2385318.jpg",
+  "question_id": 9238531815609,
+  "image_id": 92385318
+}

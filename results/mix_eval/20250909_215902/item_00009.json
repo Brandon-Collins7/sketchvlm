@@ -1,0 +1,15 @@
+{
+  "index": 9,
+  "prompt": "draw a number on each lightbulb to count them",
+  "mode": "stepwise",
+  "turns": 4,
+  "model_output": "<strokes><g id=\"marker_1_s1\"><text x=\"186.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">1</text></g><g id=\"marker_2_s2\"><text x=\"342.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">2</text></g><g id=\"marker_3_s3\"><text x=\"498.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">3</text></g></strokes>",
+  "num_strokes_total": 0,
+  "num_strokes_text": 3,
+  "raw_image": "results\\mix_eval\\20250909_215902\\item_00009_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250909_215902\\item_00009_grid.png",
+  "annotated_image": "results\\mix_eval\\20250909_215902\\item_00009_annotated.png",
+  "svg": "results\\mix_eval\\20250909_215902\\item_00009.svg",
+  "source_image": "datasets\\mix\\lightbulb.jpg",
+  "source_prompt": "datasets\\mix\\lightbulb.txt"
+}

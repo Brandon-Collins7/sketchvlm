@@ -1,0 +1,1 @@
+Count the legs of the chicken in the image

@@ -1,0 +1,29 @@
+<svg width="612" height="612" xmlns="http://www.w3.org/2000/svg"><g id="house_left_wall" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 222.00 270.00 Q 222.00000000000017 342.0000000000001 221.9999999999999 413.9999999999999 "/>
+</g>
+<g id="house_right_wall" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 390.00 270.00 Q 390.0000000000001 342.0000000000001 389.9999999999999 413.9999999999999 "/>
+</g>
+<g id="house_base" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 222.00 414.00 Q 306.0000000000001 438.0000000000002 389.99999999999983 413.99999999999983 "/>
+</g>
+<g id="house_roof" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 222.00 270.00 C 225.72469204778292 16.72094075079167 598.1938968260297 400.4770911283795 221.99999999999986 269.9999999999999 "/>
+</g>
+<g id="window" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 282.00 306.00 C 324.0000000000001 299.9999999999999 324.0000000000001 299.9999999999999 317.9999999999999 341.9999999999999 "/>
+    <path d="M 318.00 342.00 C 275.99999999999983 348.0 275.9999999999999 348.0 281.99999999999994 306.0 "/>
+</g>
+<g id="door_left" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 330.00 366.00 Q 330.0000000000002 390.0000000000002 329.9999999999999 413.9999999999998 "/>
+</g>
+<g id="door_top" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 330.00 366.00 Q 342.0000000000001 366.0000000000001 353.9999999999999 365.9999999999999 "/>
+</g>
+<g id="door_right" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 354.00 366.00 Q 354.0000000000002 390.0000000000002 353.99999999999994 413.9999999999998 "/>
+</g>
+<g id="doorknob" stroke="green" stroke-width="7.199999999999999" fill="none" stroke-linecap="round">
+    <path d="M 342.00 390.00 L 342.0001 390.0001 "/>
+</g>
+</svg>

@@ -1,0 +1,12 @@
+{
+  "index": 22,
+  "prompt": "How many buttons are there in the image",
+  "ground_truth": 9,
+  "model_output": "<strokes><g id=\"marker_buttons1_s1\"><text x=\"102.0\" y=\"102.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">1</text></g><g id=\"marker_buttons2_s2\"><text x=\"306.0\" y=\"102.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">2</text></g><g id=\"marker_buttons3_s3\"><text x=\"510.0\" y=\"102.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g><g id=\"marker_buttons4_s4\"><text x=\"102.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">4</text></g><g id=\"marker_buttons5_s5\"><text x=\"306.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">5</text></g><g id=\"marker_buttons6_s6\"><text x=\"510.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">6</text></g><g id=\"marker_buttons7_s7\"><text x=\"102.0\" y=\"498.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">7</text></g><g id=\"marker_buttons8_s8\"><text x=\"306.0\" y=\"498.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">8</text></g><g id=\"marker_buttons9_s9\"><text x=\"510.0\" y=\"498.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">9</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00022_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00022_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00022_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00022.svg"
+}

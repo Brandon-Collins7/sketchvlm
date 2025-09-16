@@ -1,0 +1,16 @@
+{
+  "index": 157,
+  "question": "How many calves are shown in the picture",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n<s1>\n<text size=\"1.6\" color=\"#ff0066\">'1'</text>\n<points>'x15y16'</points>\n<t_values>0.00</t_values>\n<id>marker_calves are shown in the picture1</id>\n</s1>\n</strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00157_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00157_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00157_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00157.svg",
+  "source_image": "data\\VG_100K_2\\2400572.jpg",
+  "question_id": 30109209,
+  "image_id": 92400572
+}

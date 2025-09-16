@@ -1,0 +1,14 @@
+{
+  "index": 2,
+  "prompt": "Count the legs of the horse in the image",
+  "ground_truth": null,
+  "model_output": "<answer>\n    <concept>Numbering each Count the legs of the horse in the image</concept>\n    <strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x8y21'</points>\n            <t_values>0.00</t_values>\n            <id>marker_Count the legs of the horse in the image1</id>\n        </s1>\n        <s2>\n            <text size=\"1.6\" color=\"#ff0066\">'2'</text>\n            <points>'x16y21'</points>\n            <t_values>0.00</t_values>\n            <id>marker_Count the legs of the horse in the image2</id>\n        </s2>\n        <s3>\n            <text size=\"1.6\" color=\"#ff0066\">'3'</text>\n            <points>'x28y20'</points>\n            <t_values>0.00</t_values>\n            <id>marker_Count the legs of the horse in the image3</id>\n        </s3>\n        <s4>\n            <text size=\"1.6\" color=\"#ff0066\">'4'</text>\n            <points>'x38y18'</points>\n            <t_values>0.00</t_values>\n            <id>marker_Count the legs of the horse in the image4</id>\n        </s4>\n    </strokes>\n</answer>",
+  "model_answer": 0,
+  "correct": null,
+  "raw_image": "results\\biased_eval\\20250908_203714\\item_00002_orig.jpg",
+  "grid_image": "results\\biased_eval\\20250908_203714\\item_00002_grid.png",
+  "annotated_image": "results\\biased_eval\\20250908_203714\\item_00002_annotated.png",
+  "svg": "results\\biased_eval\\20250908_203714\\item_00002.svg",
+  "source_image": "datasets\\biased\\horse.png",
+  "source_prompt": "datasets\\biased\\horse.txt"
+}

@@ -1,0 +1,12 @@
+{
+  "index": 51,
+  "prompt": "How many crochet potholders are there in the image",
+  "ground_truth": 4,
+  "model_output": "<strokes><g id=\"marker_crochet_potholders1_s1\"><text x=\"210.0\" y=\"210.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">1</text></g><g id=\"marker_crochet_potholders2_s2\"><text x=\"450.0\" y=\"210.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">2</text></g><g id=\"marker_crochet_potholders3_s3\"><text x=\"198.0\" y=\"390.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g><g id=\"marker_crochet_potholders4_s4\"><text x=\"426.0\" y=\"390.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">4</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00051_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00051_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00051_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00051.svg"
+}

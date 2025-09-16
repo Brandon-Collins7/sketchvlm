@@ -1,0 +1,12 @@
+{
+  "index": 41,
+  "prompt": "How many women are there in the image",
+  "ground_truth": 3,
+  "model_output": "<strokes><g id=\"marker_women1_s1\"><text x=\"234.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">1</text></g><g id=\"marker_women2_s2\"><text x=\"342.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">2</text></g><g id=\"marker_women3_s3\"><text x=\"426.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00041_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00041_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00041_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00041.svg"
+}

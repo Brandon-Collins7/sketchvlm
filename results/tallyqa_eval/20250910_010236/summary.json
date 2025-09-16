@@ -1,0 +1,11 @@
+{
+  "dataset": "TallyQA",
+  "json_path": "TallyQA_dataset\\test_sample_500.json",
+  "vg_root": "C:\\Users\\brave\\OneDrive\\Documents\\Visual Studio Code\\Research\\Sketch\\SketchVLM - personal\\data",
+  "timestamp": "20250910_010236",
+  "total": 200,
+  "correct": 151,
+  "accuracy": 0.755,
+  "mode": "single_shot",
+  "notes": "Counting via grid-anchored labels; pred is # of <text> strokes if count_only_text."
+}

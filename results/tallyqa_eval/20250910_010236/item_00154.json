@@ -1,0 +1,16 @@
+{
+  "index": 154,
+  "question": "How many dinosaurs are in the picture",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00154_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00154_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00154_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00154.svg",
+  "source_image": "data\\VG_100K_2\\2397447.jpg",
+  "question_id": 30111201,
+  "image_id": 92397447
+}

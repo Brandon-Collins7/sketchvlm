@@ -1,0 +1,16 @@
+{
+  "index": 164,
+  "question": "How many of the horse's hooves are on the ground",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n<s1>\n<text size=\"1.6\" color=\"#ff0066\">'1'</text>\n<points>'x29y5'</points>\n<t_values>0.00</t_values>\n<id>marker_of the horse's hooves are on the ground1</id>\n</s1>\n<s2>\n<text size=\"1.6\" color=\"#ff0066\">'2'</text>\n<points>'x33y6'</points>\n<t_values>0.00</t_values>\n<id>marker_of the horse's hooves are on the ground2</id>\n</s2>\n</strokes>",
+  "model_answer": 2,
+  "correct": false,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00164_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00164_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00164_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00164.svg",
+  "source_image": "data\\VG_100K\\2335582.jpg",
+  "question_id": 30148992,
+  "image_id": 92335582
+}

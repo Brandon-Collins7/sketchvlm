@@ -1,0 +1,56 @@
+{
+  "index": 3,
+  "filename": "datasets\\labeling\\cat_head.png",
+  "concept": "cat head",
+  "labels_hint": "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight",
+  "model_output": "<answer>\n<concept>Labeling: cat head</concept>\n<strokes>\n  <s1>\n    <text size=\"4.0\" color=\"#ff0000\">'head'</text>\n    <points>'x25y25'</points>\n    <t_values>0.00</t_values>\n    <id>label_head</id>\n  </s1>\n  <s2>\n    <text size=\"2.0\" color=\"#0057ff\">'left_ear'</text>\n    <points>'x23y38'</points>\n    <t_values>0.00</t_values>\n    <id>label_left_ear</id>\n  </s2>\n  <s3>\n    <text size=\"2.0\" color=\"#0057ff\">'right_ear'</text>\n    <points>'x34y38'</points>\n    <t_values>0.00</t_values>\n    <id>label_right_ear</id>\n  </s3>\n  <s4>\n    <text size=\"1.5\" color=\"#0057ff\">'left_eye'</text>\n    <points>'x21y27'</points>\n    <t_values>0.00</t_values>\n    <id>label_left_eye</id>\n  </s4>\n  <s5>\n    <text size=\"1.5\" color=\"#0057ff\">'right_eye'</text>\n    <points>'x35y28'</points>\n    <t_values>0.00</t_values>\n    <id>label_right_eye</id>\n  </s5>\n  <s6>\n    <text size=\"2.0\" color=\"#0057ff\">'whisker'</text>\n    <points>'x14y24'</points>\n    <t_values>0.00</t_values>\n    <id>label_whisker</id>\n  </s6>\n  <s7>\n    <text size=\"2.0\" color=\"#0057ff\">'mouth'</text>\n    <points>'x37y10'</points>\n    <t_values>0.00</t_values>\n    <id>label_mouth</id>\n  </s7>\n</strokes>\n</answer>",
+  "labels": [
+    {
+      "text": "head",
+      "id": "label_head",
+      "font_px": 48,
+      "color": "#ff0000"
+    },
+    {
+      "text": "left_ear",
+      "id": "label_left_ear",
+      "font_px": 24,
+      "color": "#0057ff"
+    },
+    {
+      "text": "right_ear",
+      "id": "label_right_ear",
+      "font_px": 24,
+      "color": "#0057ff"
+    },
+    {
+      "text": "left_eye",
+      "id": "label_left_eye",
+      "font_px": 18,
+      "color": "#0057ff"
+    },
+    {
+      "text": "right_eye",
+      "id": "label_right_eye",
+      "font_px": 18,
+      "color": "#0057ff"
+    },
+    {
+      "text": "whisker",
+      "id": "label_whisker",
+      "font_px": 24,
+      "color": "#0057ff"
+    },
+    {
+      "text": "mouth",
+      "id": "label_mouth",
+      "font_px": 24,
+      "color": "#0057ff"
+    }
+  ],
+  "num_labels": 7,
+  "raw_image": "results\\labeling\\20250909_203825\\item_00003_orig.jpg",
+  "grid_image": "results\\labeling\\20250909_203825\\item_00003_grid.png",
+  "annotated_image": "results\\labeling\\20250909_203825\\item_00003_annotated.png",
+  "svg": "results\\labeling\\20250909_203825\\item_00003.svg"
+}

@@ -1,0 +1,16 @@
+{
+  "index": 28,
+  "question": "How many kettles are on the stove",
+  "ground_truth": 1,
+  "model_output": "<strokes>\n        <s1>\n            <text size=\"1.6\" color=\"#ff0066\">'1'</text>\n            <points>'x26y24'</points>\n            <t_values>0.00</t_values>\n            <id>marker_kettles are on the stove1</id>\n        </s1>\n    </strokes>",
+  "model_answer": 1,
+  "correct": true,
+  "issimple": true,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00028_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00028_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00028_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00028.svg",
+  "source_image": "data\\VG_100K\\2331308.jpg",
+  "question_id": 30151601,
+  "image_id": 92331308
+}

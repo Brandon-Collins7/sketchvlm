@@ -1,0 +1,15 @@
+{
+  "index": 1,
+  "prompt": "finish my sketch of the cat",
+  "mode": "single_shot",
+  "turns": null,
+  "model_output": "<strokes>\n<s1>\n  <points>'x26y33', 'x27y36', 'x27y36', 'x28y32'</points>\n  <t_values>0.00,0.50,0.55,1.00</t_values>\n  <id>right_ear</id>\n</s1>\n<s2>\n  <points>'x21y28', 'x22y27', 'x23y28'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>left_eye</id>\n</s2>\n<s3>\n  <points>'x26y28', 'x27y27', 'x28y28'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>right_eye</id>\n</s3>\n<s4>\n  <points>'x24y25', 'x25y24', 'x25y24', 'x26y25'</points>\n  <t_values>0.00,0.50,0.55,1.00</t_values>\n  <id>nose_bottom</id>\n</s4>\n<s5>\n  <points>'x24y25', 'x26y25'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>nose_top</id>\n</s5>\n<s6>\n  <points>'x25y24', 'x25y22'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>mouth_line</id>\n</s6>\n<s7>\n  <points>'x25y22', 'x23y21', 'x21y22'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>mouth_left</id>\n</s7>\n<s8>\n  <points>'x25y22', 'x27y21', 'x29y22'</points>\n  <t_values>0.00,0.50,1.00</t_values>\n  <id>mouth_right</id>\n</s8>\n<s9>\n  <points>'x19y26', 'x14y27'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>whisker_L1</id>\n</s9>\n<s10>\n  <points>'x19y25', 'x14y25'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>whisker_L2</id>\n</s10>\n<s11>\n  <points>'x19y24', 'x14y23'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>whisker_L3</id>\n</s11>\n<s12>\n  <points>'x29y26', 'x34y27'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>whisker_R1</id>\n</s12>\n<s13>\n  <points>'x29y25', 'x34y25'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>whisker_R2</id>\n</s13>\n<s14>\n  <points>'x29y24', 'x34y23'</points>\n  <t_values>0.00,1.00</t_values>\n  <id>whisker_R3</id>\n</s14>\n</strokes>",
+  "num_strokes_total": 14,
+  "num_strokes_text": 0,
+  "raw_image": "results\\mix_eval\\20250911_094204\\item_00001_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250911_094204\\item_00001_grid.png",
+  "annotated_image": "results\\mix_eval\\20250911_094204\\item_00001_annotated.png",
+  "svg": "results\\mix_eval\\20250911_094204\\item_00001.svg",
+  "source_image": "datasets\\mix2\\cat_sketch.png",
+  "source_prompt": "datasets\\mix2\\cat_sketch.txt"
+}

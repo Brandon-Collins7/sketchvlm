@@ -1,0 +1,12 @@
+{
+  "index": 16,
+  "prompt": "How many outfits are there in the image",
+  "ground_truth": 4,
+  "model_output": "<strokes><g id=\"marker_outfits1_s1\"><text x=\"90.0\" y=\"342.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ffffff\">1</text></g><g id=\"marker_outfits2_s2\"><text x=\"222.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ffffff\">2</text></g><g id=\"marker_outfits3_s3\"><text x=\"378.0\" y=\"306.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ffffff\">3</text></g><g id=\"marker_outfits4_s4\"><text x=\"534.0\" y=\"270.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"30\" fill=\"#ffffff\">4</text></g></strokes>",
+  "model_answer": 4,
+  "correct": true,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00016_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00016_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00016_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250909_202620\\item_00016.svg"
+}

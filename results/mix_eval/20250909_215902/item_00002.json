@@ -1,0 +1,15 @@
+{
+  "index": 2,
+  "prompt": "draw a number on each leg of the cat to count them",
+  "mode": "stepwise",
+  "turns": 5,
+  "model_output": "<strokes><g id=\"marker_1_s1\"><text x=\"162.0\" y=\"378.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">1</text></g><g id=\"marker_2_s2\"><text x=\"306.0\" y=\"378.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">2</text></g><g id=\"marker_3_s3\"><text x=\"426.0\" y=\"378.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">3</text></g><g id=\"marker_4_s4\"><text x=\"534.0\" y=\"378.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"24\" fill=\"#ff0000\">4</text></g></strokes>",
+  "num_strokes_total": 0,
+  "num_strokes_text": 4,
+  "raw_image": "results\\mix_eval\\20250909_215902\\item_00002_orig.jpg",
+  "grid_image": "results\\mix_eval\\20250909_215902\\item_00002_grid.png",
+  "annotated_image": "results\\mix_eval\\20250909_215902\\item_00002_annotated.png",
+  "svg": "results\\mix_eval\\20250909_215902\\item_00002.svg",
+  "source_image": "datasets\\mix\\cat.png",
+  "source_prompt": "datasets\\mix\\cat.txt"
+}

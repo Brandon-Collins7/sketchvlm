@@ -1,0 +1,16 @@
+{
+  "index": 57,
+  "question": "How many happy children are in the picture",
+  "ground_truth": 0,
+  "model_output": "<strokes>\n</strokes>",
+  "model_answer": 0,
+  "correct": true,
+  "issimple": false,
+  "raw_image": "results\\tallyqa_eval\\20250910_010236\\item_00057_orig.jpg",
+  "grid_image": "results\\tallyqa_eval\\20250910_010236\\item_00057_grid.png",
+  "annotated_image": "results\\tallyqa_eval\\20250910_010236\\item_00057_annotated.png",
+  "svg": "results\\tallyqa_eval\\20250910_010236\\item_00057.svg",
+  "source_image": "data\\VG_100K\\2347497.jpg",
+  "question_id": 923474973634,
+  "image_id": 92347497
+}

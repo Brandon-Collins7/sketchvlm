@@ -25,9 +25,9 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
+from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT, MIX_TOOLKIT
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
-from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT
 
 from PIL import Image, ImageOps
 
@@ -147,14 +147,32 @@ class SketchApp:
     def _update_canvas_b64(self, path: str):
         with open(path, "rb") as f:
             self.last_canvas_b64 = base64.b64encode(f.read()).decode()
+            
+            
+    # collab_sketch_with_label.py
+    def _svg_root_open(self):
+        W, H = self.base_canvas.size
+        return (f'<svg width="{W}" height="{H}" viewBox="0 0 {W} {H}" '
+                f'xmlns="http://www.w3.org/2000/svg">')
+
+    
 
     def _composite_svg_on_base(self, svg_text: str, out_png: str):
-        png = cairosvg.svg2png(bytestring=svg_text.encode())
+        W, H = self.base_canvas.size
+        png = cairosvg.svg2png(
+            bytestring=svg_text.encode("utf-8"),
+            output_width=W, output_height=H   # <- force exact size
+        )
         over = Image.open(io.BytesIO(png)).convert("RGBA")
-        self.base_canvas = self.base_canvas.convert("RGBA")
-        self.base_canvas.alpha_composite(over)
-        self.base_canvas.convert("RGB").save(out_png)
+        if over.size != (W, H):
+            tmp = Image.new("RGBA", (W, H), (0,0,0,0))
+            tmp.paste(over, (0, 0))
+            over = tmp
+        base = self.base_canvas.convert("RGBA")
+        base.alpha_composite(over)
+        base.convert("RGB").save(out_png)
         self._update_canvas_b64(out_png)
+
 
     def _next_undrawn(self, xml, expected_s_no: Optional[int] = None) -> List[str]:
         # normalise input to a single string and strip any code fences
@@ -434,7 +452,7 @@ class SketchApp:
 
     def initialize_all(self):
         self.input_prompt = sketch_first_prompt.format(concept=self.target_concept, gt_sketches_str=gt_example)
-        self.all_strokes_svg = f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+        self.all_strokes_svg = self._svg_root_open()
         self.assitant_history = ""
         self.stroke_counter = 0
         self.setup_path2save()
@@ -467,7 +485,7 @@ class SketchApp:
         return jsonify({"new_category": "yes", "mode": "colab", "message": "Sketch saved! Continue to next concept!"})
 
     def clear_canvas(self, same_session=True):
-        self.all_strokes_svg = f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+        self.all_strokes_svg = self._svg_root_open()
         self.stroke_counter = 0
         self.assitant_history = ""
         bg = self.base_canvas.copy()
@@ -534,29 +552,7 @@ class SketchApp:
             redacted.append(m2)
         return redacted
     
-    def _start_counting_session(self, question: str):
-        """
-        Seed the assistant 'thinking header' + <strokes> for a counting task,
-        reusing the same pattern as init_thinking_tags but with COUNTING_PROMPT.
-        """
-        # derive the 'thing' like evaluate_dataset()
-        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
-        self.input_prompt = COUNTING_PROMPT.format(thing=thing)
-
-        add_args = {"stop_sequences": "<strokes>"}  # safe for Claude/OpenAI; removed for Gemini inside get_response
-        assistant_suffix = self.get_response_from_llm(
-            msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
-            msg_history=[],
-            init_canvas_str=self.last_canvas_b64,
-            seed_mode=self.seed_mode,
-            gen_mode="generation",
-            **add_args
-        )
-        # Keep the assistant header + open <strokes> tag in history (exactly like UI flow)
-        self.thinking_tags = assistant_suffix + "<strokes>"
-        self.update_history(self.thinking_tags)
-
+    
     def evaluate_counting_folder_stepwise(
         self,
         src_dir: str = "datasets/biased",
@@ -592,7 +588,7 @@ class SketchApp:
                     raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
 
                 # Reset per-sample drawing state and background
-                self.all_strokes_svg = f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+                self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
@@ -709,7 +705,6 @@ class SketchApp:
         print(f"\nSaved to: {out_root}")
         print(f"Processed: {len(results)}")
         return summary
-
 
 
     def get_user_stroke(self):
@@ -891,6 +886,8 @@ class SketchApp:
             gen_mode="generation",
             stop_sequences="</answer>"
         )
+        all_sketch = self._normalize_listish_blocks(all_sketch)
+        
         strokes_list_str, t_values_str = utils.parse_xml_string(all_sketch, res=self.res)
         strokes_list, t_values = ast.literal_eval(strokes_list_str), ast.literal_eval(t_values_str)
         all_control_points = utils.get_control_points(strokes_list, t_values, self.positions)
@@ -947,6 +944,10 @@ class SketchApp:
     import html  # top of file
 
     def parse_model_to_svg(self, stroke_model: str):
+        
+        stroke_model = self._normalize_listish_blocks(stroke_model)
+        
+        
         # normalize one-decimal t-values like "0.5" -> "0.50"
         stroke_model = re.sub(
             r'(?<=,|\>)\s*([01])\.([0-9])(?![0-9])',
@@ -1016,6 +1017,18 @@ class SketchApp:
         )
         strokes_list = ast.literal_eval(strokes_list_str)
         t_values     = ast.literal_eval(t_values_str)
+        
+        strokes_list = ast.literal_eval(strokes_list_str)
+        t_values     = ast.literal_eval(t_values_str)
+
+        if len(t_values) != len(strokes_list):
+            n = len(strokes_list)
+            if n <= 1:
+                t_values = [0.00] * n
+            else:
+                # evenly spaced fallback
+                t_values = [round(i/(n-1), 2) for i in range(n)]
+
 
         all_control_points = utils.get_control_points_single_stroke(
             strokes_list, t_values, self.positions
@@ -1144,6 +1157,49 @@ class SketchApp:
 
         # ---------- Fallback: count any <text> elements in the string ----------
         # (This handles odd outputs; safer than returning 0.)
+        """
+        Count predicted strokes.
+
+        Supports two forms:
+        (A) Raw assistant XML with <strokes><s1>...</s1>...</strokes>
+        (B) Final rendered SVG groups (<g id="..._sN"> ... <text ...> ... </text> </g>)
+
+        If count_only_text=True, count only strokes that contain a <text ...>...</text>.
+        Otherwise, count all strokes.
+        """
+        xml_str = str(answer_xml or "")
+        # strip accidental codefences
+        xml_str = re.sub(r"^```(?:xml|html)?\s*|\s*```$", "", xml_str.strip())
+
+        # ---------- Case A: assistant XML with <sN> blocks ----------
+        s_blocks = re.findall(r"(<s\d+>.*?</s\d+>)", xml_str, flags=re.S | re.I)
+        if s_blocks:
+            if not count_only_text:
+                return len(s_blocks)
+            # <text ...> 'value' | "value" | bare value </text>  (attributes tolerated)
+            text_tag = re.compile(
+                r"<text(?:\s+[^>]*)?>\s*(?:'[^']*'|\"[^\"]*\"|[0-9A-Za-z._\-]+)\s*</text>",
+                flags=re.S | re.I
+            )
+            return sum(1 for b in s_blocks if text_tag.search(b))
+
+        # ---------- Case B: rendered SVG without <sN>, but with <g id="..._sN"> ----------
+        # Count groups with stroke-like ids
+        g_blocks = re.findall(
+            r"(<g\b[^>]*\bid\s*=\s*['\"][^'\"]*_s\d+['\"][^>]*>.*?</g>)",
+            xml_str, flags=re.S | re.I
+        )
+        if g_blocks:
+            if not count_only_text:
+                return len(g_blocks)
+            text_tag = re.compile(
+                r"<text(?:\s+[^>]*)?>\s*(?:'[^']*'|\"[^\"]*\"|[0-9A-Za-z._\-]+)\s*</text>",
+                flags=re.S | re.I
+            )
+            return sum(1 for g in g_blocks if text_tag.search(g))
+
+        # ---------- Fallback: count any <text> elements in the string ----------
+        # (This handles odd outputs; safer than returning 0.)
         if count_only_text:
             return len(re.findall(
                 r"<text(?:\s+[^>]*)?>\s*(?:'[^']*'|\"[^\"]*\"|[0-9A-Za-z._\-]+)\s*</text>",
@@ -1159,10 +1215,7 @@ class SketchApp:
         Take a full <strokes>...</strokes> answer and render *all* strokes to SVG+PNG.
         """
         # reset per-sample drawing state
-        self.all_strokes_svg = (
-            f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" '
-            f'xmlns="http://www.w3.org/2000/svg">'
-        )
+        self.all_strokes_svg = self._svg_root_open()
         self.stroke_counter = 0
         self.cur_svg_to_render = "None"
 
@@ -1404,6 +1457,56 @@ class SketchApp:
         # Otherwise, collect all <sN>…</sN> blocks if any; else return empty strokes
         blocks = re.findall(r"(<s\d+>.*?</s\d+>)", s, re.S)
         return "<strokes>" + "".join(blocks) + "</strokes>"
+    
+    def _normalize_listish_blocks(self, xml: str) -> str:
+        """
+        Make <points> and <t_values> blocks canonical:
+        <points>'x1y2','x3y4'</points>
+        <t_values>0.00,0.33,1.00</t_values>
+        Accepts variants like:
+        <points>['x1y2', "x3y4"]</points>
+        <t_values>[0, 0.5, 1]</t_values>
+        Also strips code fences/JSON noise if any slipped in.
+        """
+        if not isinstance(xml, str):
+            return xml
+
+        s = xml
+
+        # strip code fences or accidental JSON blobs around the XML
+        s = re.sub(r"^```.*?```", "", s, flags=re.S)
+        s = re.sub(r"^<\?xml[^>]*\?>", "", s)
+
+        # normalize curly or backtick quotes to straight quotes
+        s = s.replace("“", '"').replace("”", '"').replace("’", "'").replace("`", "'")
+
+        def norm_points(m):
+            body = m.group(1).strip()
+            # drop outer []/() if present
+            body = re.sub(r"^[\[\(]\s*|\s*[\]\)]$", "", body)
+            # pick tokens like x12y34 (ignore quotes/commas)
+            pts = re.findall(r"x\d+y\d+", body)
+            return "<points>" + ",".join(f"'{p}'" for p in pts) + "</points>"
+
+        def norm_tvals(m):
+            body = m.group(1).strip()
+            body = re.sub(r"^[\[\(]\s*|\s*[\]\)]$", "", body)
+            nums = re.findall(r"-?\d+(?:\.\d+)?", body)
+            # format to 2dp; clamp to [0,1] but don't crash if outside
+            vals = []
+            for x in nums:
+                try:
+                    v = float(x)
+                except Exception:
+                    continue
+                v = max(min(v, 1.0), 0.0)
+                vals.append(f"{v:.2f}")
+            return "<t_values>" + ",".join(vals) + "</t_values>"
+
+        s = re.sub(r"<points>(.*?)</points>", norm_points, s, flags=re.S|re.I)
+        s = re.sub(r"<t_values>(.*?)</t_values>", norm_tvals, s, flags=re.S|re.I)
+        return s
+
 
     
     
@@ -1446,7 +1549,7 @@ class SketchApp:
             img = row["image"].convert("RGB")
 
             # reset per-sample state & background
-            self.all_strokes_svg = f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
+            self.all_strokes_svg = self._svg_root_open()
             self.stroke_counter = 0
             self.assitant_history = ""
             self.cur_svg_to_render = "None"
@@ -1850,9 +1953,7 @@ class SketchApp:
                     raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
 
                 # reset per-sample state & background
-                self.all_strokes_svg = (
-                    f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" xmlns="http://www.w3.org/2000/svg">'
-                )
+                self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
@@ -1983,6 +2084,187 @@ class SketchApp:
         print(f"Processed: {len(results)}")
         return summary
 
+    def evaluate_tallyqa(
+        self,
+        json_path: str = "TallyQA_dataset/test_sample_500.json",
+        vg_root: str = "data",
+        outdir: str = "results/tallyqa_eval",
+        stepwise: bool = False,
+        max_examples: int = None,
+        max_turns: int = 40,
+        count_only_text: bool = True,
+    ):
+        """
+        Evaluate TallyQA with local VG images.
+        - json_path points to something like TallyQA_dataset/test_sample_500.json
+        - Images are relative to vg_root (e.g., data/VG_100K/... or data/VG_100K_2/...)
+        Artifacts per item: *_orig.jpg, *.svg, *_annotated.png, *.json + results.jsonl, summary.json
+        """
+        src_json = Path(json_path)
+        assert src_json.exists(), f"File not found: {json_path}"
+
+        with open(src_json, "r", encoding="utf-8") as f:
+            items = json.load(f)
+
+        if max_examples is not None:
+            items = items[:max_examples]
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = Path(outdir) / ts
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        results = []
+        correct = 0
+        total = 0
+
+        use_postfix = hasattr(tqdm, "set_postfix")
+        pbar = tqdm(range(len(items)), desc=f"TallyQA ({'stepwise' if stepwise else 'single-shot'})", unit="item") \
+            if hasattr(tqdm, "__call__") else range(len(items))
+
+        for i in pbar:
+            row = items[i]
+            question = str(row.get("question", "")).rstrip(" ?").strip()
+            gold = int(row.get("answer"))
+            rel_img = Path(row.get("image", ""))  # e.g., VG_100K/2332135.jpg or VG_100K_2/2408542.jpg
+            img_path = Path(vg_root) / rel_img
+
+            # Predeclare artifact paths so except can log them safely
+            raw_path = out_root / f"item_{i:05d}_orig.jpg"
+            svg_path = out_root / f"item_{i:05d}.svg"
+            png_path = out_root / f"item_{i:05d}_annotated.png"
+
+            turns = 0
+            try:
+                if not img_path.exists():
+                    raise FileNotFoundError(f"Image not found: {img_path}")
+
+                # --- reset state + background
+                self.all_strokes_svg = self._svg_root_open()
+                self.stroke_counter = 0
+                self.assitant_history = ""
+                self.cur_svg_to_render = "None"
+
+                img = Image.open(img_path).convert("RGB")
+                self.set_background_from_pil(img, mode="fit")
+                img.save(str(raw_path), quality=95)
+
+                if stepwise:
+                    # seed counting session (derives "thing" from the question)
+                    self._start_counting_session(question)
+                    self.multi_stroke = False
+
+                    while turns < max_turns:
+                        turns += 1
+                        chunk = self.predict_next_stroke()
+                        if not chunk:
+                            break
+                        self.all_strokes_svg += chunk
+                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+                        # save step frame so model can see updated canvas next turn
+                        step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
+                        self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
+
+                    # wrap for counting
+                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
+                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+
+                else:
+                    # single-shot: one call using COUNTING_PROMPT (same as your HF eval)
+                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
+                    prompt = COUNTING_PROMPT.format(thing=thing)
+                    use_stop = not isinstance(self.llm, GeminiAdapter)
+                    answer = self.get_response_from_llm(
+                        msg=prompt,
+                        system_message=system_prompt.format(res=self.res),
+                        msg_history=[],
+                        init_canvas_str=self.last_canvas_b64,
+                        seed_mode=self.seed_mode,
+                        gen_mode="generation",
+                        stop_sequences="</answer>" if use_stop else None,
+                    )
+                    # canonicalize
+                    answer_xml = self._canon_strokes(answer)
+
+                # render canonical artifacts
+                self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                # count + score
+                pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
+                is_correct = int(pred == gold)
+                correct += is_correct
+                total += 1
+
+                # per-item json
+                row_json = {
+                    "index": i,
+                    "question": question,
+                    "ground_truth": gold,
+                    "model_output": answer_xml,
+                    "model_answer": pred,
+                    "correct": bool(is_correct),
+                    "issimple": bool(row.get("issimple", False)),
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "question_id": int(row.get("question_id", -1)),
+                    "image_id": int(row.get("image_id", -1)),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(row_json, jf, indent=2)
+
+                results.append({
+                    "index": i,
+                    "gold_number": gold,
+                    "pred_number": pred,
+                    "correct": bool(is_correct)
+                })
+
+                if use_postfix:
+                    pbar.set_postfix(acc=f"{(correct/max(total,1)):.3%}", correct=f"{correct}/{total}")
+
+            except Exception as e:
+                total += 1
+                err = {
+                    "index": i,
+                    "question": question,
+                    "ground_truth": gold,
+                    "error": str(e),
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(err, jf, indent=2)
+                results.append(err)
+
+        # tail: results + summary
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results:
+                f.write(json.dumps(r) + "\n")
+
+        accuracy = (correct / total) if total else 0.0
+        summary = {
+            "dataset": "TallyQA",
+            "json_path": str(src_json),
+            "vg_root": str(Path(vg_root).resolve()),
+            "timestamp": ts,
+            "total": total,
+            "correct": correct,
+            "accuracy": accuracy,
+            "mode": "stepwise" if stepwise else "single_shot",
+            "notes": "Counting via grid-anchored labels; pred is # of <text> strokes if count_only_text."
+        }
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"\nSaved to: {out_root}")
+        print(f"Final accuracy: {accuracy:.3%}  ({correct}/{total})")
+        return accuracy
+
 
 
 
@@ -2052,6 +2334,16 @@ if __name__ == '__main__':
                         help="Run one stroke per turn (stepwise). Otherwise single-shot.")
     parser.add_argument("--mixed-max-turns", type=int, default=40,
                         help="Max turns (strokes) per image in stepwise mode")
+    parser.add_argument("--tallyqa-json", type=str,
+        help="Path to TallyQA json (e.g., TallyQA_dataset/test_sample_500.json)")
+    parser.add_argument("--vg-root", type=str, default="data",
+        help="Root folder containing VG_100K/ and VG_100K_2/ (default: data)")
+    parser.add_argument("--tallyqa-outdir", type=str, default="results/tallyqa_eval",
+        help="Output root for TallyQA evaluation")
+    parser.add_argument("--tallyqa-stepwise", action="store_true",
+        help="Run TallyQA one stroke per turn (stepwise)")
+    parser.add_argument("--tallyqa-max-turns", type=int, default=40,
+        help="Max turns in stepwise TallyQA")
 
 
 
@@ -2101,6 +2393,18 @@ if __name__ == '__main__':
     if args.deterministic:
         app.seed_mode = "deterministic"
     
+    if args.tallyqa_json:
+        app.evaluate_tallyqa(
+            json_path=args.tallyqa_json,
+            vg_root=args.vg_root,
+            outdir=args.tallyqa_outdir,
+            stepwise=args.tallyqa_stepwise,
+            max_examples=args.max_examples,
+            max_turns=args.tallyqa_max_turns,
+            count_only_text=args.count_only_text
+        )
+        raise SystemExit(0)
+
     
     # If --mixed-dir is provided, run mixed folder eval and exit
     if args.mixed_dir:
@@ -2173,8 +2477,5 @@ if __name__ == '__main__':
         )
         raise SystemExit(0)
     
-    
-
-
 
     app.run(hostname, ip_address)

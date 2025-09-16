@@ -1,0 +1,12 @@
+{
+  "index": 3,
+  "prompt": "How many arrows are there in the image",
+  "ground_truth": 8,
+  "model_output": "<strokes><g id=\"marker_arrows1_s1\"><text x=\"306.0\" y=\"126.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">1</text></g><g id=\"marker_arrows2_s2\"><text x=\"498.0\" y=\"126.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">2</text></g><g id=\"marker_arrows3_s3\"><text x=\"102.0\" y=\"318.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">3</text></g><g id=\"marker_arrows4_s4\"><text x=\"306.0\" y=\"318.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">4</text></g><g id=\"marker_arrows5_s5\"><text x=\"498.0\" y=\"318.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">5</text></g><g id=\"marker_arrows6_s6\"><text x=\"102.0\" y=\"498.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">6</text></g><g id=\"marker_arrows7_s7\"><text x=\"306.0\" y=\"498.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">7</text></g><g id=\"marker_arrows8_s8\"><text x=\"498.0\" y=\"498.0\" text-anchor=\"middle\" dominant-baseline=\"central\" font-family=\"Arial\" font-size=\"19\" fill=\"#ff0066\">8</text></g></strokes>",
+  "model_answer": 0,
+  "correct": false,
+  "raw_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00003_orig.jpg",
+  "grid_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00003_grid.png",
+  "annotated_image": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00003_annotated.png",
+  "svg": "results\\hf_eval\\vikhyatk_CountBenchQA_20250908_205917\\item_00003.svg"
+}
