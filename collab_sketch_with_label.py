@@ -158,20 +158,16 @@ class SketchApp:
     
 
     def _composite_svg_on_base(self, svg_text: str, out_png: str):
-        W, H = self.base_canvas.size
-        png = cairosvg.svg2png(
-            bytestring=svg_text.encode("utf-8"),
-            output_width=W, output_height=H   # <- force exact size
-        )
-        over = Image.open(io.BytesIO(png)).convert("RGBA")
-        if over.size != (W, H):
-            tmp = Image.new("RGBA", (W, H), (0,0,0,0))
-            tmp.paste(over, (0, 0))
-            over = tmp
-        base = self.base_canvas.convert("RGBA")
-        base.alpha_composite(over)
-        base.convert("RGB").save(out_png)
+        over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg_text.encode()))).convert("RGBA")
+        base = getattr(self, "base_canvas_clean", self.base_canvas).convert("RGBA")
+        if over.size != base.size:
+            inner = re.sub(r'^.*?<svg[^>]*>|</svg>\s*$', '', svg_text, flags=re.S)
+            svg_text = (f'<svg width="{base.size[0]}" height="{base.size[1]}" '
+                        f'xmlns="http://www.w3.org/2000/svg">{inner}</svg>')
+            over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg_text.encode()))).convert("RGBA")
+        Image.alpha_composite(base, over).convert("RGB").save(out_png)
         self._update_canvas_b64(out_png)
+
 
 
     def _next_undrawn(self, xml, expected_s_no: Optional[int] = None) -> List[str]:
@@ -561,10 +557,6 @@ class SketchApp:
         max_turns: int = 40,
         count_only_text: bool = True,
     ):
-        """
-        Folder eval that runs one stroke per LLM turn (multi-turn), feeding the updated
-        canvas back each time. Produces same artifact set as evaluate_dataset, but built stepwise.
-        """
         src = Path(src_dir)
         assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
 
@@ -587,52 +579,45 @@ class SketchApp:
                 if not txt_path.exists():
                     raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
 
-                # Reset per-sample drawing state and background
+                img = Image.open(img_path).convert("RGB")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    question = f.read().strip()
+
+                # 1) Put background/grid first (this sets dynamic grid_size/positions)
+                self.set_background_from_pil(img, mode="fit")  # sets last_canvas_b64
+
+                # 2) NOW start a fresh SVG header that matches the new grid
                 self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
 
-                img = Image.open(img_path).convert("RGB")
-                with open(txt_path, "r", encoding="utf-8") as f:
-                    question = f.read().strip()
-
-                self.set_background_from_pil(img, mode="fit")  # sets last_canvas_b64
-
-                # Seed the session and switch to one-by-one mode
+                # 3) Seed counting + stepwise loop
                 self._start_counting_session(question)
                 self.multi_stroke = False
 
                 turns = 0
                 while turns < max_turns:
                     turns += 1
-
-                    # Ask for the next single stroke
-                    new_svg = self.predict_next_stroke()  # returns empty string if model produced none
+                    new_svg = self.predict_next_stroke()
                     if not new_svg:
-                        break  # model stopped
-
-                    # Accumulate, close tag for rendering, and composite so the LLM sees updates
+                        break
                     self.all_strokes_svg += new_svg
                     self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
 
-                    # Persist incremental canvas to PNG and refresh last_canvas_b64
                     step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
                     self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
 
-                    # (Optional) tiny delay can help some providers avoid empty replies
                     delay = getattr(self, "api_delay_sec", 0.0) or 0.0
                     if delay > 0:
                         time.sleep(delay)
 
-                # Count the strokes from the final accumulated XML
-                final_xml = self.cur_svg_to_render  # already has </svg>
-                # Build a <strokes>...</strokes> wrapper so _count_strokes sees <s*> blocks:
+                # Count & save artifacts
+                final_xml = self.cur_svg_to_render
                 answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', final_xml, flags=re.S)
                 answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
                 pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
 
-                # Save artifacts (mirror evaluate_dataset names)
                 raw_path = out_root / f"item_{i:05d}_orig.jpg"
                 img.save(str(raw_path), quality=95)
 
@@ -641,70 +626,52 @@ class SketchApp:
                     f.write(self.cur_svg_to_render)
 
                 png_path = out_root / f"item_{i:05d}_annotated.png"
-                # Re-composite final (the last step png already reflects it, but ensure canonical name)
                 self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
 
                 row = {
-                    "index": i,
-                    "prompt": question,
-                    "ground_truth": None,
-                    "model_output": answer_xml,       # the <strokes>... form
-                    "model_answer": pred,
-                    "correct": None,
+                    "index": i, "prompt": question, "ground_truth": None,
+                    "model_output": answer_xml, "model_answer": pred, "correct": None,
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
-                    "source_image": str(img_path),
-                    "source_prompt": str(txt_path),
+                    "annotated_image": str(png_path), "svg": str(svg_path),
+                    "source_image": str(img_path), "source_prompt": str(txt_path),
                     "turns": turns,
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(row, jf, indent=2)
 
                 results.append({
-                    "index": i,
-                    "question": question,
-                    "pred_number": pred,
-                    "turns": turns,
+                    "index": i, "question": question, "pred_number": pred, "turns": turns,
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
+                    "annotated_image": str(png_path), "svg": str(svg_path),
                 })
 
             except Exception as e:
                 err = {
-                    "index": i,
-                    "prompt": question,
-                    "error": str(e),
-                    "source_image": str(img_path),
-                    "source_prompt": str(txt_path),
+                    "index": i, "prompt": question, "error": str(e),
+                    "source_image": str(img_path), "source_prompt": str(txt_path),
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(err, jf, indent=2)
                 results.append(err)
 
-        # results.jsonl + summary (no accuracy without gold)
         with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
             for r in results:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
         summary = {
-            "folder": str(src),
-            "timestamp": ts,
-            "total_items": len(images),
-            "processed": len(results),
-            "out_root": str(out_root),
+            "folder": str(src), "timestamp": ts, "total_items": len(images),
+            "processed": len(results), "out_root": str(out_root),
             "mode": "stepwise_one_stroke_per_turn",
             "notes": "Multi-turn counting; no accuracy computed (no ground truth)."
         }
         with open(out_root / "summary.json", "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
-
         print(f"\nSaved to: {out_root}")
         print(f"Processed: {len(results)}")
         return summary
+
 
 
     def get_user_stroke(self):
@@ -1225,7 +1192,8 @@ class SketchApp:
         # ── save the (grid + photo) background *before* compositing strokes
         png_out.parent.mkdir(parents=True, exist_ok=True)
         orig_with_grid = png_out.with_name(png_out.stem.replace("_annotated", "_grid") + png_out.suffix)
-        self.base_canvas.save(str(orig_with_grid))
+        (getattr(self, "base_canvas_clean", self.base_canvas)).save(str(orig_with_grid))
+
 
         for blk in blocks:
             self.stroke_counter += 1
@@ -1312,6 +1280,7 @@ class SketchApp:
             composited = self._overlay_grid(placed)
             
         self._set_base_canvas(composited)
+        self.base_canvas_clean = self.base_canvas.copy()  # pristine background for stepwise + final render
         
         
     def _extract_label_legend(self, answer_xml: str):
@@ -1507,6 +1476,12 @@ class SketchApp:
         s = re.sub(r"<t_values>(.*?)</t_values>", norm_tvals, s, flags=re.S|re.I)
         return s
 
+   
+    def _reset_svg_header(self):
+        self.all_strokes_svg = (
+            f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" '
+            f'xmlns="http://www.w3.org/2000/svg">'
+        )
 
     
     
@@ -1544,69 +1519,68 @@ class SketchApp:
         pbar = tqdm(ds, desc="Evaluating (stepwise)", unit="item")
 
         for i, row in enumerate(pbar):
-            if max_examples is not None and i >= max_examples: break
+            if max_examples is not None and i >= max_examples:
+                break
             question = str(row["question"]).rstrip(" ?").strip()
             img = row["image"].convert("RGB")
 
-            # reset per-sample state & background
+            # 1) Background first (sets dynamic grid)
+            self.set_background_from_pil(img, mode="fit")
+
+            # 2) Header AFTER grid is known
             self.all_strokes_svg = self._svg_root_open()
             self.stroke_counter = 0
             self.assitant_history = ""
             self.cur_svg_to_render = "None"
-            self.set_background_from_pil(img, mode="fit")
 
-            # seed the counting session and force single-stroke turns
+            # 3) Stepwise loop
             self._start_counting_session(question)
             self.multi_stroke = False
 
             turns = 0
             while turns < max_turns:
                 turns += 1
-                svg_chunk = self.predict_next_stroke()  # yields one <sN>…</sN> when multi_stroke=False
+                svg_chunk = self.predict_next_stroke()
                 if not svg_chunk:
                     break
                 self.all_strokes_svg += svg_chunk
                 self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-                # composite so updated canvas is visible to the next LLM turn
                 self._composite_svg_on_base(self.cur_svg_to_render, str(out_root / f"item_{i:05d}_step_{turns:03d}.png"))
 
-            # wrap to <strokes>…</strokes> for counting
             answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
             answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
             pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
 
-            # save artifacts (same naming pattern)
-            raw_path = out_root / f"item_{i:05d}_orig.jpg"; img.save(str(raw_path), quality=95)
+            raw_path = out_root / f"item_{i:05d}_orig.jpg"
+            img.save(str(raw_path), quality=95)
             svg_path = out_root / f"item_{i:05d}.svg"
-            with open(svg_path, "w", encoding="utf-8") as f: f.write(self.cur_svg_to_render)
+            with open(svg_path, "w", encoding="utf-8") as f:
+                f.write(self.cur_svg_to_render)
             png_path = out_root / f"item_{i:05d}_annotated.png"
             self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
 
             gold = int(row["number"])
             row_json = {
-                "index": i,
-                "prompt": question,
-                "ground_truth": gold,
-                "model_output": answer_xml,
-                "model_answer": pred,
-                "correct": (pred == gold),
+                "index": i, "prompt": question, "ground_truth": gold,
+                "model_output": answer_xml, "model_answer": pred, "correct": (pred == gold),
                 "raw_image": str(raw_path),
                 "grid_image": str(png_path).replace("_annotated", "_grid"),
-                "annotated_image": str(png_path),
-                "svg": str(svg_path),
+                "annotated_image": str(png_path), "svg": str(svg_path),
             }
             with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                 json.dump(row_json, jf, indent=2)
             results.append({"index": i, "gold_number": gold, "pred_number": pred, "correct": bool(pred == gold)})
 
         with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results: f.write(json.dumps(r) + "\n")
+            for r in results:
+                f.write(json.dumps(r) + "\n")
         acc = sum(r["correct"] for r in results)/len(results) if results else 0.0
         with open(out_root / "summary.json", "w", encoding="utf-8") as f:
             json.dump({"dataset": dataset_id, "split": split, "total": len(results),
                     "correct": sum(r["correct"] for r in results), "accuracy": acc}, f, indent=2)
         print(f"\nFinal accuracy: {acc:.3%} ({sum(r['correct'] for r in results)}/{len(results)})")
         return acc
+
 
     
     def evaluate_labeling_folder(
@@ -1913,14 +1887,6 @@ class SketchApp:
         max_turns: int = 40,
         count_only_text: bool = True,
     ):
-        """
-        Batch process a folder of paired images + prompts:
-        datasets/mix/
-            cat.jpg
-            cat.txt      # prompt text for that image (your prompt should instruct drawing)
-        If stepwise=False: single-shot (one LLM call). If True: one stroke per turn.
-        Saves per-item JSON, SVG, annotated PNG (+ step frames), results.jsonl, summary.json.
-        """
         src = Path(src_dir)
         assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
 
@@ -1928,7 +1894,6 @@ class SketchApp:
         out_root = Path(outdir) / ts
         out_root.mkdir(parents=True, exist_ok=True)
 
-        # collect images
         exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
         images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
         if max_images is not None:
@@ -1941,9 +1906,7 @@ class SketchApp:
         for i, img_path in enumerate(pbar):
             txt_path = img_path.with_suffix(".txt")
             prompt_from_txt = None
-            turns = 0  # predefine so we can safely log it on errors
-
-            # Predefine artifact paths so 'except' can reference them safely
+            turns = 0
             raw_path = out_root / f"item_{i:05d}_orig.jpg"
             svg_path = out_root / f"item_{i:05d}.svg"
             png_path = out_root / f"item_{i:05d}_annotated.png"
@@ -1952,77 +1915,61 @@ class SketchApp:
                 if not txt_path.exists():
                     raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
 
-                # reset per-sample state & background
+                img = Image.open(img_path).convert("RGB")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    prompt_from_txt = f.read().strip()
+
+                # Background first
+                self.set_background_from_pil(img, mode="fit")
+                img.save(str(raw_path), quality=95)
+
+                # Header AFTER grid
                 self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
 
-                img = Image.open(img_path).convert("RGB")
-                with open(txt_path, "r", encoding="utf-8") as f:
-                    prompt_from_txt = f.read().strip()
-
-                # Place background (letterbox + grid) and save the raw image early
-                self.set_background_from_pil(img, mode="fit")  # sets last_canvas_b64
-                img.save(str(raw_path), quality=95)
-
                 if stepwise:
-                    # Seed a generic “toolkit” + <strokes> header (the UI-style starter)
-                    # This assumes you added _start_generic_session from earlier instructions.
                     self._start_generic_session(prompt_from_txt)
-                    self.multi_stroke = False  # one stroke per call
+                    self.multi_stroke = False
 
                     while turns < max_turns:
                         turns += 1
-                        svg_chunk = self.predict_next_stroke()  # one <sN>...</sN> or ""
+                        svg_chunk = self.predict_next_stroke()
                         if not svg_chunk:
                             break
                         self.all_strokes_svg += svg_chunk
                         self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-                        # Composite so Gemini sees the updated canvas next turn
                         self._composite_svg_on_base(
                             self.cur_svg_to_render,
                             str(out_root / f"item_{i:05d}_step_{turns:03d}.png")
                         )
 
-                    # Wrap final SVG to <strokes>…</strokes> for counters/consistency
                     answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
                     answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
-
-                    # Also produce the canonical final artifacts under standard names
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
 
                 else:
-                    # SINGLE-SHOT:
-                    # Recommended: seed a generic header like the UI then complete.
-                    # Falls back automatically for Gemini (stop seq removed upstream).
                     self._start_generic_session(prompt_from_txt)
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
-                        msg=self.input_prompt,                             # same text used to seed
+                        msg=self.input_prompt,
                         system_message=system_prompt.format(res=self.res),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
                         gen_mode="completion",
-                        prefill_msg=self.assitant_history.strip(),         # continue from header
+                        prefill_msg=self.assitant_history.strip(),
                         stop_sequences="</answer>" if use_stop else None
                     )
-
-                    # Canonicalize whatever came back to <strokes>…</strokes>
                     answer_xml = self._canon_strokes(answer)
-
-                    # Render even if empty
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
 
-                # At this point, self.cur_svg_to_render contains the final SVG
-                # Compose counters
                 total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
                 text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
 
                 row = {
-                    "index": i,
-                    "prompt": prompt_from_txt,
+                    "index": i, "prompt": prompt_from_txt,
                     "mode": "stepwise" if stepwise else "single_shot",
                     "turns": (turns if stepwise else None),
                     "model_output": answer_xml,
@@ -2039,41 +1986,32 @@ class SketchApp:
                     json.dump(row, jf, indent=2)
 
                 results.append({
-                    "index": i,
-                    "mode": row["mode"],
-                    "num_strokes_total": total_strokes,
-                    "num_strokes_text": text_strokes,
+                    "index": i, "mode": row["mode"],
+                    "num_strokes_total": total_strokes, "num_strokes_text": text_strokes,
                 })
 
             except Exception as e:
                 err = {
-                    "index": i,
-                    "prompt": prompt_from_txt,
+                    "index": i, "prompt": prompt_from_txt,
                     "mode": "stepwise" if stepwise else "single_shot",
                     "turns": (turns if stepwise else None),
                     "error": str(e),
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
-                    "source_image": str(img_path),
-                    "source_prompt": str(txt_path),
+                    "annotated_image": str(png_path), "svg": str(svg_path),
+                    "source_image": str(img_path), "source_prompt": str(txt_path),
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(err, jf, indent=2)
                 results.append(err)
 
-        # results.jsonl + summary
         with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
             for r in results:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
         summary = {
-            "folder": str(src),
-            "timestamp": ts,
-            "total_items": len(images),
-            "processed": len(results),
-            "out_root": str(out_root),
+            "folder": str(src), "timestamp": ts, "total_items": len(images),
+            "processed": len(results), "out_root": str(out_root),
             "mode": "stepwise" if stepwise else "single_shot",
             "notes": "Prompts are taken verbatim from paired .txt files.",
         }
@@ -2083,6 +2021,7 @@ class SketchApp:
         print(f"\nSaved to: {out_root}")
         print(f"Processed: {len(results)}")
         return summary
+
 
     def evaluate_tallyqa(
         self,
@@ -2094,12 +2033,6 @@ class SketchApp:
         max_turns: int = 40,
         count_only_text: bool = True,
     ):
-        """
-        Evaluate TallyQA with local VG images.
-        - json_path points to something like TallyQA_dataset/test_sample_500.json
-        - Images are relative to vg_root (e.g., data/VG_100K/... or data/VG_100K_2/...)
-        Artifacts per item: *_orig.jpg, *.svg, *_annotated.png, *.json + results.jsonl, summary.json
-        """
         src_json = Path(json_path)
         assert src_json.exists(), f"File not found: {json_path}"
 
@@ -2113,10 +2046,7 @@ class SketchApp:
         out_root = Path(outdir) / ts
         out_root.mkdir(parents=True, exist_ok=True)
 
-        results = []
-        correct = 0
-        total = 0
-
+        results, correct, total = [], 0, 0
         use_postfix = hasattr(tqdm, "set_postfix")
         pbar = tqdm(range(len(items)), desc=f"TallyQA ({'stepwise' if stepwise else 'single-shot'})", unit="item") \
             if hasattr(tqdm, "__call__") else range(len(items))
@@ -2125,10 +2055,9 @@ class SketchApp:
             row = items[i]
             question = str(row.get("question", "")).rstrip(" ?").strip()
             gold = int(row.get("answer"))
-            rel_img = Path(row.get("image", ""))  # e.g., VG_100K/2332135.jpg or VG_100K_2/2408542.jpg
+            rel_img = Path(row.get("image", ""))
             img_path = Path(vg_root) / rel_img
 
-            # Predeclare artifact paths so except can log them safely
             raw_path = out_root / f"item_{i:05d}_orig.jpg"
             svg_path = out_root / f"item_{i:05d}.svg"
             png_path = out_root / f"item_{i:05d}_annotated.png"
@@ -2138,18 +2067,19 @@ class SketchApp:
                 if not img_path.exists():
                     raise FileNotFoundError(f"Image not found: {img_path}")
 
-                # --- reset state + background
+                img = Image.open(img_path).convert("RGB")
+
+                # Background first (sets dynamic grid)
+                self.set_background_from_pil(img, mode="fit")
+                img.save(str(raw_path), quality=95)
+
+                # Header AFTER grid
                 self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
 
-                img = Image.open(img_path).convert("RGB")
-                self.set_background_from_pil(img, mode="fit")
-                img.save(str(raw_path), quality=95)
-
                 if stepwise:
-                    # seed counting session (derives "thing" from the question)
                     self._start_counting_session(question)
                     self.multi_stroke = False
 
@@ -2160,16 +2090,13 @@ class SketchApp:
                             break
                         self.all_strokes_svg += chunk
                         self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-                        # save step frame so model can see updated canvas next turn
                         step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
                         self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
 
-                    # wrap for counting
                     answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
                     answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
 
                 else:
-                    # single-shot: one call using COUNTING_PROMPT (same as your HF eval)
                     thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
                     prompt = COUNTING_PROMPT.format(thing=thing)
                     use_stop = not isinstance(self.llm, GeminiAdapter)
@@ -2182,66 +2109,45 @@ class SketchApp:
                         gen_mode="generation",
                         stop_sequences="</answer>" if use_stop else None,
                     )
-                    # canonicalize
                     answer_xml = self._canon_strokes(answer)
 
-                # render canonical artifacts
                 self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
 
-                # count + score
                 pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
                 is_correct = int(pred == gold)
                 correct += is_correct
                 total += 1
 
-                # per-item json
                 row_json = {
-                    "index": i,
-                    "question": question,
-                    "ground_truth": gold,
-                    "model_output": answer_xml,
-                    "model_answer": pred,
-                    "correct": bool(is_correct),
-                    "issimple": bool(row.get("issimple", False)),
+                    "index": i, "question": question, "ground_truth": gold,
+                    "model_output": answer_xml, "model_answer": pred,
+                    "correct": bool(is_correct), "issimple": bool(row.get("issimple", False)),
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
+                    "annotated_image": str(png_path), "svg": str(svg_path),
                     "source_image": str(img_path),
-                    "question_id": int(row.get("question_id", -1)),
-                    "image_id": int(row.get("image_id", -1)),
+                    "question_id": int(row.get("question_id", -1)), "image_id": int(row.get("image_id", -1)),
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(row_json, jf, indent=2)
 
-                results.append({
-                    "index": i,
-                    "gold_number": gold,
-                    "pred_number": pred,
-                    "correct": bool(is_correct)
-                })
-
+                results.append({"index": i, "gold_number": gold, "pred_number": pred, "correct": bool(is_correct)})
                 if use_postfix:
                     pbar.set_postfix(acc=f"{(correct/max(total,1)):.3%}", correct=f"{correct}/{total}")
 
             except Exception as e:
                 total += 1
                 err = {
-                    "index": i,
-                    "question": question,
-                    "ground_truth": gold,
-                    "error": str(e),
+                    "index": i, "question": question, "ground_truth": gold, "error": str(e),
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
+                    "annotated_image": str(png_path), "svg": str(svg_path),
                     "source_image": str(img_path),
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(err, jf, indent=2)
                 results.append(err)
 
-        # tail: results + summary
         with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
             for r in results:
                 f.write(json.dumps(r) + "\n")
@@ -2252,9 +2158,7 @@ class SketchApp:
             "json_path": str(src_json),
             "vg_root": str(Path(vg_root).resolve()),
             "timestamp": ts,
-            "total": total,
-            "correct": correct,
-            "accuracy": accuracy,
+            "total": total, "correct": correct, "accuracy": accuracy,
             "mode": "stepwise" if stepwise else "single_shot",
             "notes": "Counting via grid-anchored labels; pred is # of <text> strokes if count_only_text."
         }
@@ -2264,6 +2168,7 @@ class SketchApp:
         print(f"\nSaved to: {out_root}")
         print(f"Final accuracy: {accuracy:.3%}  ({correct}/{total})")
         return accuracy
+
 
 
 
