@@ -1,19 +1,16 @@
-sketch_first_prompt = """I provide you with a blank grid. Your goal is to produce a visually appealing sketch that completes the request: {concept}.
-Here are a few examples:
-<examples>
-{gt_sketches_str}
-</examples>
+GENERAL_TOOL_OVERVIEW = """You are given an image accompanied with a grid. The grid allows you to reference specific locations within the image. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
 
-You need to provide x-y coordinates that construct a recognizable sketch to complete the following request: {concept}.
-You will receive feedback on your sketch and you will be able to adjust and fix it. 
-Note that you will not have access to any additional resources. Do not copy previous sketches.
+You are given the ability to draw on the image with several different methods. Each method has its own specific use case and output format. 
 
-Think before you provide the x-y coordinates in <thinking> tags. 
-First, think through what parts of the {concept} you want to sketch and the sketching order.
-Then, think about where the parts should be located on the grid.
-Finally, provide your response in <answer> tags, using your analysis.
+# Output Format
 
-Provide the sketch in the following format with the following fields:
+To draw a stroke on the grid, you need to specify the following:
+Starting Point: Specify the starting point by giving the grid location (e.g., 'x1y1' for column 1, row 1).
+Ending Point: Specify the ending point in the same way (e.g., 'x{res}y{res}' for column {res}, row {res}).
+Intermediate Points: Specify at least two intermediate points that the stroke should pass through. List these in the order the stroke should follow, using the same grid location format (e.g., 'x6y5', 'x13y10' for points at column 6 row 5 and column 13 row 10).
+Parameter Values (t): For each point (including the start and end points), specify a t value between 0 and 1 that defines the position along the stroke's path. t=0 for the starting point. t=1 for the ending point.
+Intermediate points should have t values between 0 and 1 (e.g., "0.3 for x6y5, 0.7 for x13y10").
+
 <formatting>
 <concept>The concept depicted in the sketch.</concept>
 <strokes>This element holds a collection of individual stroke elements that define the sketch. 
@@ -25,7 +22,6 @@ Within each stroke element, there are three key pieces of information:
 </strokes>
 </formatting>
 
-
 Text strokes (for numbers/labels): If a stroke is a numeral/letter/word you must NOT approximate it with points/curves. Instead, emit a text stroke:
 <sN>
   <text>'YOUR_TEXT'</text>
@@ -35,19 +31,8 @@ Text strokes (for numbers/labels): If a stroke is a numeral/letter/word you must
 </sN>
 Use a single point and a single t_value (0.00). Do not include other points for text strokes.
 
-"""
+# Examples
 
-system_prompt="""You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
-You will be provided with a blank grid. Your task is to specify where to place strokes on the grid to create a visually appealing sketch to complete the request.
-The grid uses numbers (1 to {res}) along the bottom (x axis) and numbers (1 to {res}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
-You can draw on this grid by specifying where to draw strokes. You can draw multiple strokes to depict the whole object, where different strokes compose different parts of the object. 
-To draw a stroke on the grid, you need to specify the following:
-Starting Point: Specify the starting point by giving the grid location (e.g., 'x1y1' for column 1, row 1).
-Ending Point: Specify the ending point in the same way (e.g., 'x{res}y{res}' for column {res}, row {res}).
-Intermediate Points: Specify at least two intermediate points that the stroke should pass through. List these in the order the stroke should follow, using the same grid location format (e.g., 'x6y5', 'x13y10' for points at column 6 row 5 and column 13 row 10).
-Parameter Values (t): For each point (including the start and end points), specify a t value between 0 and 1 that defines the position along the stroke's path. t=0 for the starting point. t=1 for the ending point.
-Intermediate points should have t values between 0 and 1 (e.g., "0.3 for x6y5, 0.7 for x13y10").
-Examples:
 To draw a smooth curve that starts at x8y6, passes through x6y7 and x6y10, ending at x8y11:
 Points = ['x8y6', 'x6y7', 'x6y10', 'x8y11']
 t_values = [0.00,0.30,0.80,1.00]
@@ -81,205 +66,105 @@ To draw a straight linear line that starts at x18y31 and ends at x35y14 use:
 Points = ['x18y31', 'x35y14']
 t_values = [0.00, 1.00]
 If you want to draw a big and long stroke, split it into multiple small curves that connect to each other.
-These instructions will define a smooth stroke that follows a Bezier curve from the starting point to the ending point, passing through the specified intermediate points.
-To draw a visually appealing sketch of the given object or concept, break down complex drawings into manageable steps. Begin with the most important part of the object, then observe your progress and add additional elements as needed. Continuously refine your sketch by starting with a basic structure and gradually adding complexity. Think step-by-step."""
 
 
-gt_example = """
-<example>
-To draw a house, start by drawing the front of the house:
-<concept>Draw a house</concept>
-<strokes>
-    <s1>
-        <points>'x13y27', 'x24y27', 'x24y27', 'x24y11', 'x24y11', 'x13y11', 'x13y11', 'x13y27'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base front rectangle</id>
-    </s1>
-    <s2>
-        <points>'x13y27', 'x18y37','x18y37', 'x24y27'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof front triangle</id>
-    </s2>
-</strokes>
+# Sketch Methods
 
-Next we add the house's right section:
-<concept>Draw a house</concept>
-<strokes>
-    <s1>
-        <points>'x13y27', 'x24y27', 'x24y27', 'x24y11', 'x24y11', 'x13y11', 'x13y11', 'x13y27'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base front rectangle</id>
-    </s1>
-    <s2>
-        <points>'x13y27', 'x18y37','x18y37', 'x24y27'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof front triangle</id>
-    </s2>
-    <s3>
-        <points>'x24y27', 'x36y28', 'x36y28', 'x36y21', 'x36y21', 'x36y12', 'x36y12', 'x24y11'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base right section</id>
-    </s3>
-    <s4>
-        <points>'x18y37', 'x30y38', 'x30y38', 'x36y28'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof right section</id>
-    </s4>
-</strokes>
+Below are the different sketching methods you can use for your task.
 
-Now that we have the general structure of the house, we can add details to it, like windows and a door:
-<concept>Draw a house</concept>
-<strokes>
-    <s1>
-        <points>'x13y27', 'x24y27', 'x24y27', 'x24y11', 'x24y11', 'x13y11', 'x13y11', 'x13y27'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base front rectangle</id>
-    </s1>
-    <s2>
-        <points>'x13y27', 'x18y37','x18y37', 'x24y27'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof front triangle</id>
-    </s2>
-    <s3>
-        <points>'x24y27', 'x36y28', 'x36y28', 'x36y21', 'x36y21', 'x36y12', 'x36y12', 'x24y11'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base right section</id>
-    </s3>
-    <s4>
-        <points>'x18y37', 'x30y38', 'x30y38', 'x36y28'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof right section</id>
-    </s4>
-    <s5>
-        <points>'x26y25', 'x29y25', 'x29y25', 'x29y21', 'x29y21', 'x26y21', 'x26y21', 'x26y25'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>left window square</id>
-    </s5>
-    <s6>
-        <points>'x31y25', 'x34y25', 'x34y25', 'x34y21', 'x34y21', 'x31y21', 'x31y21','x31y25'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>right window square</id>
-    </s6>
-    <s7>
-        <points>'x17y11', 'x17y18', 'x17y18', 'x21y18', 'x21y18', 'x21y11', 'x21y11', 'x17y11'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>front door</id>
-    </s7>
-</strokes>
+## FREEHAND SKETCH
+- Emit one or more stroke blocks with points on the grid, no <text>.
+- Use multiple strokes to compose shapes; curves/lines are both fine.
+- the <id> tag should describe the part being drawn.
 
-and here is the complete example:
-<concept>Draw a house</concept>
-<strokes>
-    <s1>
-        <points>'x13y27', 'x24y27', 'x24y27', 'x24y11', 'x24y11', 'x13y11', 'x13y11', 'x13y27'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base front rectangle</id>
-    </s1>
-    <s2>
-        <points>'x24y27', 'x36y28', 'x36y28', 'x36y21', 'x36y21', 'x36y12', 'x36y12', 'x24y11'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>house base right section</id>
-    </s2>
-    <s3>
-        <points>'x13y27', 'x18y37','x18y37', 'x24y27'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof front triangle</id>
-    </s3>
-    <s4>
-        <points>'x18y37', 'x30y38', 'x30y38', 'x36y28'</points>
-        <t_values>0.00,0.55,0.5,1.00</t_values>
-        <id>roof right section</id>
-    </s4>
-    <s5>
-        <points>'x26y25', 'x29y25', 'x29y25', 'x29y21', 'x29y21', 'x26y21', 'x26y21', 'x26y25'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>left window square</id>
-    </s5>
-    <s6>
-        <points>'x31y25', 'x34y25', 'x34y25', 'x34y21', 'x34y21', 'x31y21', 'x31y21','x31y25'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>right window square</id>
-    </s6>
-    <s7>
-        <points>'x17y11', 'x17y18', 'x17y18', 'x21y18', 'x21y18', 'x21y11', 'x21y11', 'x17y11'</points>
-        <t_values>0.00,0.3,0.25,0.5,0.5,0.75,0.75,1.00</t_values>
-        <id>front door</id>
-    </s7>
-</strokes>
-</example>
+<s1>
+  <points>'x12y20','x13y20','x14y21','x15y22'</points>
+  <t_values>0.00,0.33,0.66,1.00</t_values>
+  <id>part_1</id>
+</s1>
+<s2>
+  <points>'x20y18','x20y14','x24y14','x24y18','x20y18'</points>
+  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
+  <id>part_2</id>
+</s2>
+
+## STRAIGHT LINE
+<sN>
+  <points>'x10y19','x40y19'</points>
+  <t_values>0.00,1.00</t_values>
+  <id>line_1</id>
+</sN>
+
+## BOX / RECTANGLE (list the 4 corners in order)
+<sN>
+  <points>'x12y12','x20y12','x20y18','x12y18','x12y12'</points>
+  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
+  <id>box_1</id>
+</sN>
+
+## COUNTING (place numerals near each instance; one stroke per number)
+<sN>
+  <points>'x08y22'</points>
+  <t_values>0.00</t_values>
+  <text size="3.0" color="black">'1'</text>
+  <id>count_1</id>
+</sN>
+
+## LABELING (anchor a text label to a nearby cell)
+<sN>
+  <points>'x26y17'</points>
+  <t_values>0.00</t_values>
+  <text size="3.2" color="black">'handlebar'</text>
+  <id>label_handlebar</id>
+</sN>
 
 
-
-<example>
-To place dots on an object:
-<concept>Tree marker</concept>
-<strokes>
-    <s1>
-        <points>'x18y33'</points>
-        <t_values>0.00</t_values>
-        <id>marker_tree1</id>
-    </s1>
-</strokes>
-
-Don't count the same object twice, and once you have counted all objects, do not do anything.
-</example>
-
-
-<example>
-To count an object by numbering each object:
-<concept>Numbering each tree</concept>
-<strokes>
-  <s1>
-    <text>'1'</text>
-    <points>'x18y33'</points>
-    <t_values>0.00</t_values>
-    <id>marker_tree1</id>
-  </s1>
-</strokes>
-
-When counting, you should make of text as shown and should not draw anything else.
-If you are asked a question like "How many objects are there in this image?" you should still number each object.
-</example>
+# Rules
+- Output only <answer>…</answer> with a single <strokes>…</strokes> section.
+- For counting/labeling tasks, prefer <text> with short values ('1','2',… or 'wheel','seat',…).
+- Use <points> with exactly one anchor cell for each text label/number (one per item/part).
+- Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
+- Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
 
 
 """
 
 
-COUNTING_PROMPT = """You are given an image on a numbered grid.
-        Task: COUNT the requested objects by placing numbered SVG text strokes (no curves).
+#################################### Task Specific Prompts ####################################
 
-        Output MUST be:
-        <answer>
-        <concept>Numbering each {thing}</concept>
-        <strokes>
-        <s1>
-            <text size="1.6" color="#ff0066">'1'</text>
-            <points>'xAyB'</points>
-            <t_values>0.00</t_values>
-            <id>marker_{thing}1</id>
-        </s1>
-        <!-- s2, s3, ... one per object -->
-        </strokes>
+COUNTING_PROMPT = """
+Task: 
+- COUNT all the {object} by placing numbered SVG text strokes on them (no curves).
 
-        Rules:
-        - Use ONLY text strokes (no curves).
-        - Exactly one point per stroke ('xAyB') at the object’s center-ish cell.
-        - You MAY style numbers: <text size="1.8" color="#0057ff"> or <style><font_size>…</font_size><color>…</color></style>.
-        • size is cells (multiplier) unless you suffix 'px'
-        • choose bigger numbers for larger/closer objects if helpful
-        • choose readable, high-contrast colors
-        - If 0 objects, still return the full wrapper with an empty <strokes> block.
-        - Do not write anything outside <answer>...</strokes>.
-        """
+Output MUST be:
+<answer>
+<concept>Numbering each {object}</concept>
+<strokes>
+<s1>
+    <text size="1.6" color="#ff0066">'1'</text>
+    <points>'xAyB'</points>
+    <t_values>0.00</t_values>
+    <id>marker_{object}1</id>
+</s1>
+<!-- s2, s3, ... one per object -->
+</strokes>
+
+Rules:
+- Use ONLY text strokes (no curves).
+- Exactly one point per stroke ('xAyB') at the object’s center-ish cell.
+- You MAY style numbers: <text size="1.8" color="#0057ff"> or <style><font_size>…</font_size><color>…</color></style>.
+• size is cells (multiplier) unless you suffix 'px'
+• choose bigger numbers for larger/closer objects if helpful
+• choose readable, high-contrast colors
+- If 0 objects, still return the full wrapper with an empty <strokes> block.
+- Do not write anything outside <answer>...</strokes>.
+"""
 
 
 
-
-# new to labeling file
-GENERIC_LABEL_PROMPT = """
-You are given an image on a numbered grid.
-
-Task: LABEL the visible parts with SVG text strokes (no curves).
+LABEL_PROMPT = """
+Task: 
+- LABEL the visible parts with SVG text strokes (no curves).
 
 Output EXACTLY this XML shape:
 <answer>
@@ -306,71 +191,13 @@ Rules:
 - Prefer larger fonts for larger parts and smaller fonts for tiny parts.
 - Choose high-contrast colors against the background.
 - Do not write anything outside <answer>...</strokes>.
-
-Hints (optional): {labels_hint}
 """
 
-#.strip()
+# TODO finish this prompt out
+DRAW_PROMPT = """
+Task:
+- Draw the requested concept with SVG strokes (curves/lines, no text).
 
-
-DEFAULT_LABELS_HINT = "wheel, tire, handlebar, pedal, seat, frame, screen, keyboard, trackpad, port, camera, head, torso, left_arm, right_arm, left_leg, right_leg, wing, tail, door, window, handle, headlight, taillight"
-
-
-# A small, gated library of patterns the model may use **only if relevant**.
-MIX_TOOLKIT = """
-[Capabilities — use only the ones relevant to the request]
-
-1) FREEHAND SKETCH (default for “draw X”, e.g., a house/animal/logo)
-- Emit one or more stroke blocks with points on the grid, no <text>.
-- Use multiple strokes to compose shapes; curves/lines are both fine.
-- the <id> tag should describe the part being drawn.
-
-<s1>
-  <points>'x12y20','x13y20','x14y21','x15y22'</points>
-  <t_values>0.00,0.33,0.66,1.00</t_values>
-  <id>part_1</id>
-</s1>
-<s2>
-  <points>'x20y18','x20y14','x24y14','x24y18','x20y18'</points>
-  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
-  <id>part_2</id>
-</s2>
-
-2) STRAIGHT LINE
-<sN>
-  <points>'x10y19','x40y19'</points>
-  <t_values>0.00,1.00</t_values>
-  <id>line_1</id>
-</sN>
-
-3) BOX / RECTANGLE (list the 4 corners in order)
-<sN>
-  <points>'x12y12','x20y12','x20y18','x12y18','x12y12'</points>
-  <t_values>0.00,0.25,0.50,0.75,1.00</t_values>
-  <id>box_1</id>
-</sN>
-
-4) COUNTING (place numerals near each instance; one stroke per number)
-<sN>
-  <points>'x08y22'</points>
-  <t_values>0.00</t_values>
-  <text size="3.0" color="black">'1'</text>
-  <id>count_1</id>
-</sN>
-
-5) LABELING (anchor a text label to a nearby cell)
-<sN>
-  <points>'x26y17'</points>
-  <t_values>0.00</t_values>
-  <text size="3.2" color="black">'handlebar'</text>
-  <id>label_handlebar</id>
-</sN>
-
-
-Rules:
-- Output only <answer>…</answer> with a single <strokes>…</strokes> section.
-- For counting/labeling tasks, prefer <text> with short values ('1','2',… or 'wheel','seat',…).
-- Use <points> with exactly one anchor cell for each text label/number (one per item/part).
-- Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
-- Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
+Output EXACTLY this XML shape:
+<answer>
 """
