@@ -373,4 +373,5 @@ Rules:
 - Use <points> with exactly one anchor cell for each text label/number (one per item/part).
 - Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
 - Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
+- If the question requires an answer (e.g., "How many?"), include it at the end of your response, after the </strokes> tag, in a new <final_answer> tag.
 """

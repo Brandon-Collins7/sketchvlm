@@ -342,6 +342,10 @@ class OpenAIAdapter(BaseLLMAdapter):
         load_dotenv()
         openai.api_key = os.getenv("OPENAI_API_KEY")
         self._client = openai.OpenAI()
+        
+        # Use Responses API for reasoning models (GPT-5, o3, o4-mini etc.)
+        m = (model or "").lower()
+        self._use_responses_api = m.startswith(("gpt-5", "o3", "o4"))
 
     def build_user_content(self, init_canvas_b64: Optional[str], text: str):
         content: List[Dict] = []
@@ -353,6 +357,48 @@ class OpenAIAdapter(BaseLLMAdapter):
             })
         content.append({"type": "text", "text": text})
         return content
+    
+    @staticmethod
+    def get_text_from_response(resp):
+        """
+        Supports:
+        - Chat Completions: resp.choices[0].message.content
+        - Responses API:    resp.output_text  (or iterate blocks)
+        - dicts:            best-effort extraction
+        """
+        # Responses API (SDK object)
+        if hasattr(resp, "output_text") and resp.output_text:
+            return resp.output_text.strip()
+
+        # Chat Completions (SDK object)
+        if hasattr(resp, "choices") and resp.choices:
+            ch0 = resp.choices[0]
+            if hasattr(ch0, "message") and getattr(ch0.message, "content", None):
+                return ch0.message.content.strip()
+            if getattr(ch0, "text", None):
+                return ch0.text.strip()
+
+        # Plain dicts
+        if isinstance(resp, dict):
+            if "choices" in resp and resp["choices"]:
+                ch0 = resp["choices"][0]
+                if isinstance(ch0, dict):
+                    if "message" in ch0 and "content" in ch0["message"]:
+                        return (ch0["message"]["content"] or "").strip()
+                    if "text" in ch0:
+                        return (ch0["text"] or "").strip()
+            if "output_text" in resp and resp["output_text"]:
+                return str(resp["output_text"]).strip()
+            if "output" in resp and isinstance(resp["output"], list):
+                for item in resp["output"]:
+                    for block in item.get("content", []):
+                        if block.get("type") in ("output_text", "text"):
+                            t = block.get("text") or block.get("content")
+                            if t:
+                                return t.strip()
+        return ""
+
+
 
     def call(self, system_message, messages, additional_args):
         args = dict(
@@ -365,10 +411,108 @@ class OpenAIAdapter(BaseLLMAdapter):
         if "stop_sequences" in additional_args and not self.request_has_image(messages):
             ss = additional_args["stop_sequences"]
             args["stop"] = ss if isinstance(ss, list) else [ss]
-        return self._client.chat.completions.create(**args)
+
+        # reasoning effort for GPT-5 (and other reasoning-capable models)
+        if additional_args.get("reasoning_effort"):
+            args["reasoning"] = {"effort": str(additional_args["reasoning_effort"])}
+
+        if self._use_responses_api:
+            # Map chat-style messages -> Responses API input
+            def _messages_to_responses_input(msgs):
+                def _norm_image_part(part: dict):
+                    if "image_data" in part and isinstance(part["image_data"], dict):
+                        return {
+                            "type": "input_image",
+                            "image_data": {
+                                "mime_type": part["image_data"].get("mime_type", "image/png"),
+                                "data": part["image_data"].get("data", "")
+                            }
+                        }
+                    u = part.get("image_url")
+                    if isinstance(u, dict):
+                        u = u.get("url")
+                    if not u:
+                        u = part.get("url")
+                    if isinstance(u, str) and u.strip():
+                        return {"type": "input_image", "image_url": u.strip()}
+                    return None
+
+                user_chunks = []
+                for m in msgs:
+                    if m.get("role") != "user":
+                        continue
+                    c = m.get("content")
+                    if isinstance(c, str):
+                        if c.strip():
+                            user_chunks.append({"type": "input_text", "text": c})
+                    elif isinstance(c, list):
+                        for part in c:
+                            if isinstance(part, str):
+                                if part.strip():
+                                    user_chunks.append({"type": "input_text", "text": part})
+                                continue
+                            if not isinstance(part, dict):
+                                continue
+                            ptype = part.get("type")
+                            if ptype in ("text", "input_text"):
+                                txt = part.get("text", "")
+                                if isinstance(txt, str) and txt.strip():
+                                    user_chunks.append({"type": "input_text", "text": txt})
+                            elif ptype in ("image_url", "input_image"):
+                                norm = _norm_image_part(part)
+                                if norm:
+                                    user_chunks.append(norm)
+                    if user_chunks:
+                        break
+
+                if not user_chunks:
+                    fused = "\n\n".join(
+                        (m.get("content") if isinstance(m.get("content"), str) else "")
+                        for m in msgs if m.get("role") == "user"
+                    ).strip()
+                    user_chunks = [{"type": "input_text", "text": fused or ""}]
+
+                return [{"role": "user", "content": user_chunks}]
+
+            rargs = {
+                "model": self.model,
+                "input": _messages_to_responses_input(args["messages"]),
+            }
+            # Responses API uses max_output_tokens
+            rargs["max_output_tokens"] = self.max_tokens
+
+            eff = (additional_args or {}).get("reasoning_effort")
+            if eff:
+                rargs["reasoning"] = {"effort": str(eff)}
+
+            raw = self._client.responses.create(**rargs)
+            # Return the raw object; let extract_text() handle parsing uniformly
+            return raw
+
+        # Chat Completions branch
+        raw = self._client.chat.completions.create(**args)
+        return raw
+
 
     def extract_text(self, raw_response) -> str:
-        return raw_response.choices[0].message.content
+        """
+        Robustly extract text from either:
+        - Responses API objects (preferred for GPT-5 / o3 / o4)
+        - Chat Completions objects (classic .choices[0].message.content)
+        - A dict wrapper (defensive)
+        """
+        # If we were handed our old dict wrapper by some caller, unwrap it
+        if isinstance(raw_response, dict):
+            if "text" in raw_response and isinstance(raw_response["text"], str):
+                return raw_response["text"]
+            raw = raw_response.get("raw")
+            if raw is not None:
+                return OpenAIAdapter.get_text_from_response(raw)
+            return ""
+
+        # Normal path: use the helper that understands both schemas
+        return OpenAIAdapter.get_text_from_response(raw_response)
+
 
 
 # =========================
