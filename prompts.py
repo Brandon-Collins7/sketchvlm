@@ -184,3 +184,6 @@ Output EXACTLY this XML shape:
 MIX_TOOLKIT = """
 
 """
+
+sketch_first_prompt = """ """
+gt_example = """ """
