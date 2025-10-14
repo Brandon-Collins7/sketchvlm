@@ -79,7 +79,12 @@ class SketchApp:
     def __init__(
         self, res, cell_size, grid_size, stroke_width, target_concept,
         user_always_first, llm_adapter: BaseLLMAdapter, show_full_grid: bool = False,
-        dynamic_grid: bool = True, min_grid: int = 10, max_grid: int = 100
+        dynamic_grid: bool = True, min_grid: int = 10, max_grid: int = 100,
+        adaptive_grid: bool = False,
+        target_cols: int = 50,
+        target_rows: int = 50,
+        min_cell_px: int = 18,
+        max_cell_px: int = 64,
     ):
         self.app = Flask(__name__)
         self.session_id = str(uuid.uuid4())
@@ -91,10 +96,16 @@ class SketchApp:
         self.llm = llm_adapter
 
         # Grid setup
-        self.grid_manager = GridManager(cell_size=cell_size, min_grid=min_grid, max_grid=max_grid)
+        self.grid_manager = GridManager(
+        cell_size=cell_size, min_grid=min_grid, max_grid=max_grid,
+        adaptive_grid=adaptive_grid, target_cols=target_cols, target_rows=target_rows,
+        min_cell_px=min_cell_px, max_cell_px=max_cell_px,
+        )
         self.show_full_grid = show_full_grid
         self.multi_stroke = True
         self.dynamic_grid = dynamic_grid
+        
+        self.cell_size = self.grid_manager.cell_size
         
         # Backward compatibility properties
         self.res = res
@@ -105,9 +116,9 @@ class SketchApp:
         self.grid_size = grid_size
         
         # Initialize default grid
-        self.init_canvas_grid, self.positions = utils.create_grid_image(
-            res=res, cell_size=cell_size, header_size=cell_size, full=self.show_full_grid
-        )
+        self.init_canvas_grid = self.grid_manager.grid_image
+        self.positions = self.grid_manager.positions
+        
         self.init_canvas = Image.new('RGB', self.grid_size, 'white')
         self.init_canvas.save("static/init_canvas.png")
 
@@ -314,7 +325,7 @@ class SketchApp:
                 # 4) Single LLM call → full <strokes>...</strokes> XML with numbered <text> labels
                 answer = self.get_response_from_llm(
                     msg=prompt,
-                    system_message=system_prompt.format(res=self.res),
+                    system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                     msg_history=[],
                     init_canvas_str=self.last_canvas_b64,
                     seed_mode=self.seed_mode,
@@ -878,7 +889,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -893,7 +904,7 @@ class SketchApp:
     def draw_entire_sketch(self):
         all_sketch = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1106,7 +1117,7 @@ class SketchApp:
     def call_model_stroke_completion(self):
         answer = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1414,7 +1425,7 @@ class SketchApp:
 
         answer = self.get_response_from_llm(
             msg=prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1595,7 +1606,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1752,7 +1763,7 @@ class SketchApp:
                     # ---------- SINGLE-SHOT ----------
                     answer = self.get_response_from_llm(
                         msg=base_prompt,
-                        system_message=system_prompt.format(res=self.res),
+                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -1941,7 +1952,7 @@ class SketchApp:
                 # 3) single LLM call
                 answer = self.get_response_from_llm(
                     msg=prompt,
-                    system_message=system_prompt.format(res=self.res),
+                    system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                     msg_history=[],
                     init_canvas_str=self.last_canvas_b64,
                     seed_mode=self.seed_mode,
@@ -2048,7 +2059,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}  # dropped automatically for Gemini in get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -2154,7 +2165,7 @@ class SketchApp:
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
                         msg=self.input_prompt,
-                        system_message=system_prompt.format(res=self.res),
+                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -2191,6 +2202,15 @@ class SketchApp:
                     "provider_debug": getattr(self, "_last_provider_debug", None),
                     "request_preview": getattr(self, "_last_redacted_request", None),
                     
+                    "grid_config": {
+                        "adaptive_grid": self.grid_manager.adaptive_grid,
+                        "cell_size": self.grid_manager.cell_size,
+                        "res_x": self.grid_manager.res_x,
+                        "res_y": self.grid_manager.res_y,
+                        "grid_size_px": self.grid_manager.grid_size,  # (width, height)
+                    },
+                    "cell_pixel_map": self.grid_manager.positions,  # already a dict: {'x1y1': (px, py), ...}
+
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(row, jf, indent=2)
@@ -2312,7 +2332,7 @@ class SketchApp:
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
                         msg=prompt,
-                        system_message=system_prompt.format(res=self.res),
+                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -2497,13 +2517,21 @@ if __name__ == '__main__':
         help="Comma-separated list of indices and/or ranges to process (e.g. '7,12,42-45'). Overrides --skip.",
     )
 
-
+    # --- NEW adaptive grid controls ---
+    parser.add_argument("--adaptive-grid", action="store_true",
+                   help="Auto-scale grid cell size based on image resolution.")
+    parser.add_argument("--target-cols", type=int, default=50,
+                   help="Desired max columns when --adaptive-grid is on.")
+    parser.add_argument("--target-rows", type=int, default=50,
+                   help="Desired max rows when --adaptive-grid is on.")
+    parser.add_argument("--min-cell-px", type=int, default=18,
+                   help="Minimum pixel size per cell for readability.")
+    parser.add_argument("--max-cell-px", type=int, default=64,
+                   help="Upper bound for pixel size per cell.")
 
 
     args = parser.parse_args()
     
-    
-
     # default model per provider if none given
     if not args.model:
         if args.llm == "claude":
@@ -2537,7 +2565,13 @@ if __name__ == '__main__':
         llm_adapter=adapter,
         dynamic_grid=True,
         min_grid=10,
-        max_grid=100
+        max_grid=100,
+        # NEW: adaptive grid params
+        adaptive_grid=args.adaptive_grid,
+        target_cols=args.target_cols,
+        target_rows=args.target_rows,
+        min_cell_px=args.min_cell_px,
+        max_cell_px=args.max_cell_px,
     )
 
     app.api_delay_sec = args.api_delay

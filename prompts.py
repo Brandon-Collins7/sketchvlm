@@ -39,11 +39,11 @@ Use a single point and a single t_value (0.00). Do not include other points for 
 
 system_prompt="""You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
 You will be provided with a blank grid. Your task is to specify where to place strokes on the grid to create a visually appealing sketch to complete the request.
-The grid uses numbers (1 to {res}) along the bottom (x axis) and numbers (1 to {res}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
+The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
 You can draw on this grid by specifying where to draw strokes. You can draw multiple strokes to depict the whole object, where different strokes compose different parts of the object. 
 To draw a stroke on the grid, you need to specify the following:
 Starting Point: Specify the starting point by giving the grid location (e.g., 'x1y1' for column 1, row 1).
-Ending Point: Specify the ending point in the same way (e.g., 'x{res}y{res}' for column {res}, row {res}).
+Ending Point: Specify the ending point in the same way (e.g., 'x{res_x}y{res_y}' for column {res_x}, row {res_y}).
 Intermediate Points: Specify at least two intermediate points that the stroke should pass through. List these in the order the stroke should follow, using the same grid location format (e.g., 'x6y5', 'x13y10' for points at column 6 row 5 and column 13 row 10).
 Parameter Values (t): For each point (including the start and end points), specify a t value between 0 and 1 that defines the position along the stroke's path. t=0 for the starting point. t=1 for the ending point.
 Intermediate points should have t values between 0 and 1 (e.g., "0.3 for x6y5, 0.7 for x13y10").
