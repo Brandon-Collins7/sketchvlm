@@ -25,7 +25,7 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
-from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT, MIX_TOOLKIT
+from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, COUNTING_PROMPT, MIX_TOOLKIT
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
 # for raw baselines (no grid)
