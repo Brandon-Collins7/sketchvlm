@@ -370,49 +370,98 @@ def format_svg_single_stroke(
 
 # Note that this parse only the *first* part in the text in which you have the <strokes> </strokes> tags.
 def parse_xml_string(llm_output, res):
+    """
+    Robustly parse stroke XML from LLM output.
 
+    Accepts either numbered stroke tags  <s1>...</s1>, <s2>...</s2>, ...
+    or unnumbered tags               <s>...</s>, <s>...</s>, ...
+
+    Returns:
+        (strokes_list_str, t_values_list_str)
+        where each is a Python-list-ish string that your caller can ast.literal_eval.
+    """
+    import re
+
+    # 1) Locate the <strokes> ... </strokes> scope
     strokes_start_marker = "<strokes>"
-    strokes_end_marker = "</strokes>"
-
-    # Find the start and end indices of the JSON string
+    strokes_end_marker   = "</strokes>"
     start_index = llm_output.find(strokes_start_marker)
-    if start_index != -1:
-        # start_index += len(strokes_start_marker)  # Move past the marker
-        end_index = llm_output.find(strokes_end_marker, start_index)
-    else:
-        return None  # XML markers not found
-
+    if start_index == -1:
+        return None
+    end_index = llm_output.find(strokes_end_marker, start_index)
     if end_index == -1:
-        return None  # End marker not found
+        return None
+    scope = llm_output[start_index + len(strokes_start_marker): end_index]
 
-    # Extract the JSON string
-    strokes_str = llm_output[start_index:end_index + len(strokes_end_marker)].strip()#[:-1]
-    xml_str = f"<wrap>{strokes_str}</wrap>"
-    # Parse the XML string
-    root = ET.fromstring(xml_str)
-    
-    # Initialize lists to hold strokes and t_values
-    strokes_list = "[\n"
-    t_values_list = "[\n"
-    
-    # Iterate over all the strokes
-    for stroke in root.find('strokes'):
-        # Extract points and clean them up
-        points_text = stroke.find('points').text
-    
-        # Extract t_values and convert them to float
-        t_values_text = stroke.find('t_values').text
-    
-        # Append to the lists
-        strokes_list += f"[{points_text}],\n"
-        t_values_list += f"[{t_values_text}],\n"
-    
-    strokes_list = re.sub(r'\d+', lambda x: str(min(int(x.group()), res)), strokes_list)
-    strokes_list = re.sub(r'\d+', lambda x: str(max(int(x.group()), 1)), strokes_list)
-    
-    strokes_list += "]"
-    t_values_list += "]"
-    return strokes_list, t_values_list
+    # 2) Find all stroke blocks: <s>...</s> OR <s123>...</s123>
+    # Backref (\1) ensures closing tag matches numbering (or empty)
+    stroke_re = re.compile(r"<s(\d*)>\s*(.*?)\s*</s\1>", re.I | re.S)
+    blocks = stroke_re.findall(scope)  # list of tuples: (digits, inner_xml)
+
+    if not blocks:
+        # Fallback: if model omitted closing numbers on close tags (rare), be lenient:
+        stroke_relax = re.compile(r"<s(?:\d*)>\s*(.*?)\s*</s>", re.I | re.S)
+        blocks = [("", b) for b in stroke_relax.findall(scope)]
+
+    # 3) Helpers to pull <points> and <t_values> from each block
+    points_re   = re.compile(r"<points>\s*(.*?)\s*</points>", re.I | re.S)
+    tvals_re    = re.compile(r"<t_values>\s*(.*?)\s*</t_values>", re.I | re.S)
+    token_re    = re.compile(r"x(\d+)y(\d+)", re.I)
+
+    strokes_py = []   # e.g., [["x9y46","x9y5"], ...]
+    tvals_py   = []   # e.g., [[0.00, 1.00], ...]
+
+    for _, inner in blocks:
+        # ---- points ----
+        m_points = points_re.search(inner)
+        pts_text = m_points.group(1).strip() if m_points else ""
+        # Extract tokens robustly, ignore quotes/brackets in the text block:
+        tokens = token_re.findall(pts_text)  # list of ("9","46"), ...
+        if not tokens:
+            # skip empty strokes
+            continue
+
+        # clamp to [1, res], and rebuild tokens in canonical "'xNyM'" form
+        tokens_norm = []
+        for gx_str, gy_str in tokens:
+            gx = max(1, min(int(gx_str), int(res)))
+            gy = max(1, min(int(gy_str), int(res)))
+            tokens_norm.append(f"'x{gx}y{gy}'")
+        strokes_py.append(f"[{','.join(tokens_norm)}]")
+
+        # ---- t_values ----
+        m_t = tvals_re.search(inner)
+        if m_t:
+            raw = m_t.group(1).strip()
+            # Accept either "0.00,1.00" or "[0.00, 1.00]"
+            raw = raw.strip("[]")
+            parts = [p for p in (x.strip() for x in raw.split(",")) if p]
+            # keep numeric-ish strings
+            tvals_py.append(f"[{','.join(parts)}]" if parts else "[0.00,1.00]")
+        else:
+            # If missing, create linear t values across N points
+            n = len(tokens_norm)
+            if n <= 1:
+                tvals_py.append("[0.00,1.00]")
+            else:
+                if n == 2:
+                    sched = ["0.00", "1.00"]
+                else:
+                    sched = [f"{i/(n-1):.2f}" for i in range(n)]
+                tvals_py.append(f"[{','.join(sched)}]")
+
+    if not strokes_py:
+        return None
+
+    # 4) Build string forms identical to the previous function’s returns
+    strokes_list_str = "[" + ",".join(strokes_py) + "]"
+    t_values_list_str = "[" + ",".join(tvals_py) + "]"
+
+    # Keep the original clamping behavior (already clamped above; these are harmless safeguards)
+    strokes_list_str = re.sub(r'x(\d+)y(\d+)', lambda m: f"x{max(1,min(int(m.group(1)),res))}y{max(1,min(int(m.group(2)),res))}", strokes_list_str)
+
+    return strokes_list_str, t_values_list_str
+
 
 
 
@@ -477,6 +526,106 @@ def parse_xml_string_single_stroke(xml_text: str, res: int, stroke_no: int, res_
 
     return f"[{pts_text}]", f"[{t_text}]"
 
+
+# --- final answer parser (boxed) --------------------------------------------
+_final_tag_re   = re.compile(r"<final_answer>(.*?)</final_answer>", re.I | re.S)
+_boxed_val_re   = re.compile(r"\$+\\?boxed\{\s*(none|0|[0-9]+)\s*\}\$+", re.I)
+_bare_val_re    = re.compile(r"\b(none|0|[0-9]+)\b", re.I)
+
+def parse_final_answer_boxed(text: Optional[str]) -> Optional[int]:
+    """
+    Look for <final_answer> ... </final_answer> and extract a value from a $\\boxed{…}$.
+    Accepts '1'..'9' or 'none'/'0' (mapped to 0). Returns int or None.
+    Also tolerates missing $\\boxed{…}$ by falling back to bare tokens.
+    """
+    if not text:
+        return None
+    s = str(text)
+
+    # Prefer the content inside <final_answer>…</final_answer>
+    m = _final_tag_re.search(s)
+    scope = m.group(1) if m else s
+
+    # First, strict: $\\boxed{…}$
+    m2 = _boxed_val_re.search(scope)
+    if m2:
+        val = m2.group(1).lower()
+    else:
+        # Fallback: accept a bare number / 'none' within the scope
+        m3 = _bare_val_re.search(scope)
+        if not m3:
+            return None
+        val = m3.group(1).lower()
+
+    if val in ("0", "none"):
+        return 0
+    try:
+        return int(val)
+    except Exception:
+        return None
+
+# Accept <s>…</s> (unnumbered) and <s123>…</s123> (numbered)
+import re
+_STROKE_BLOCKS_STRICT = re.compile(r"<s(\d*)>\s*(.*?)\s*</s\1>", re.I | re.S)
+_STROKE_BLOCKS_LOOSE  = re.compile(r"<s(?:\d*)>\s*(.*?)\s*</s(?:\d*)>", re.I | re.S)
+_POINTS_RE            = re.compile(r"<points>\s*(.*?)\s*</points>", re.I | re.S)
+_TVALS_RE             = re.compile(r"<t_values>\s*(.*?)\s*</t_values>", re.I | re.S)
+_TOKEN_RE             = re.compile(r"x(\d+)y(\d+)", re.I)
+
+def iter_stroke_blocks(xml: str):
+    """Yield inner-XML for each stroke from <s…>…</s…> blocks (numbered or not)."""
+    if not xml:
+        return
+    # Prefer strict backref (open/close match); fall back to loose if none found
+    found = _STROKE_BLOCKS_STRICT.findall(xml)
+    if found:
+        for _digits, inner in found:
+            yield inner
+        return
+    for m in _STROKE_BLOCKS_LOOSE.finditer(xml):
+        yield m.group(1)
+
+def parse_points_and_tvals(inner_xml: str, res: int):
+    """
+    From one stroke's inner XML, extract [ 'xNyM', ... ] and [t0..tK].
+    - tolerates quotes/no-brackets for <points> ('x..','x..') or [ 'x..', ... ]
+    - tolerates comma-only or bracketed <t_values>
+    - clamps grid coords 1..res
+    Returns: (tokens: List[str], tvals: List[float]) or ([], []) if empty.
+    """
+    m_pts = _POINTS_RE.search(inner_xml)
+    if not m_pts:
+        return [], []
+    pts_text = m_pts.group(1)
+    tokens = []
+    for gx, gy in _TOKEN_RE.findall(pts_text):
+        x = max(1, min(int(gx), int(res)))
+        y = max(1, min(int(gy), int(res)))
+        tokens.append(f"x{x}y{y}")
+
+    # T-values
+    m_tv = _TVALS_RE.search(inner_xml)
+    if m_tv:
+        raw = m_tv.group(1).strip().strip("[]")
+        parts = [p.strip() for p in raw.split(",") if p.strip()]
+        try:
+            tvals = [float(p) for p in parts] if parts else []
+        except Exception:
+            tvals = []
+    else:
+        tvals = []
+
+    # If missing/empty, generate a linear schedule
+    n = len(tokens)
+    if not tvals or len(tvals) != n:
+        if n <= 1:
+            tvals = [0.0, 1.0]
+        else:
+            if n == 2:
+                tvals = [0.0, 1.0]
+            else:
+                tvals = [i/(n-1) for i in range(n)]
+    return tokens, tvals
 
 
 # =====================================

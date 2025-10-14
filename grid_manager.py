@@ -7,28 +7,41 @@ from PIL import Image, ImageOps
 import utils
 import math
 
+# grid_manager.py  (add/modify)
+
 class GridManager:
     """Manages dynamic grid creation and image placement for sketch annotations."""
     
-    def __init__(self, cell_size: int = 15, min_grid: int = 10, max_grid: int = 100):
-        """
-        Initialize the GridManager.
-        
-        Args:
-            cell_size: Size of each grid cell in pixels
-            min_grid: Minimum grid size
-            max_grid: Maximum grid size
-        """
+    def __init__(
+        self,
+        cell_size: int = 15,
+        min_grid: int = 10,
+        max_grid: int = 100,
+        *,
+        adaptive_grid: bool = False,
+        target_cols: int = 50,
+        target_rows: int = 50,
+        min_cell_px: int = 15,
+        max_cell_px: int = 60,
+    ):
         self.cell_size = cell_size
         self.min_grid = min_grid
         self.max_grid = max_grid
-        
+
+        # NEW — adaptive config
+        self.adaptive_grid = adaptive_grid
+        self.target_cols = max(1, int(target_cols))
+        self.target_rows = max(1, int(target_rows))
+        self.min_cell_px = max(4, int(min_cell_px))
+        self.max_cell_px = max(self.min_cell_px, int(max_cell_px))
+
         # Current grid state
-        self.res_x = 50  # Default grid columns
-        self.res_y = 50  # Default grid rows
-        self.grid_size = (765, 765)  # Default canvas size
+        self.res_x = 50
+        self.res_y = 50
+        self.grid_size = (765, 765)
         self.grid_image = None
         self.positions = {}
+
         
     def calculate_grid_size_for_image(self, image_width: int, image_height: int) -> Tuple[int, int, int, int]:
         """
@@ -115,9 +128,19 @@ class GridManager:
         return self.overlay_grid(canvas)
 
     def _recompute_grid(self, W: int, H: int, show_full_grid: bool):
-        # derive grid cell counts from raw image size
-        self.res_x = math.ceil(W / self.cell_size)
-        self.res_y = math.ceil(H / self.cell_size)
+        # ----- choose cell size -----
+        if self.adaptive_grid:
+            # Pick the largest cell size that keeps cols/rows <= targets
+            cs_w = math.ceil(W / self.target_cols)
+            cs_h = math.ceil(H / self.target_rows)
+            dyn_cell = max(cs_w, cs_h)  # ensure both dims meet targets
+            # clamp for readability
+            dyn_cell = max(self.min_cell_px, min(self.max_cell_px, dyn_cell))
+            self.cell_size = int(dyn_cell)
+
+        # ----- derive grid cell counts from raw image size -----
+        self.res_x = max(self.min_grid, min(self.max_grid, math.ceil(W / self.cell_size)))
+        self.res_y = max(self.min_grid, min(self.max_grid, math.ceil(H / self.cell_size)))
 
         # +1 cell for the left label column, +1 cell for the bottom label row
         self.grid_size = (
@@ -125,7 +148,7 @@ class GridManager:
             self.res_y * self.cell_size + self.cell_size,
         )
 
-        # (re)build the labeled grid + positions
+        # (re)build the labeled grid + positions (header scales with cell_size)
         self.grid_image, self.positions = utils.create_grid_image(
             res_x=self.res_x,
             res_y=self.res_y,
@@ -133,6 +156,7 @@ class GridManager:
             header_size=self.cell_size,
             full=show_full_grid,
         )
+
 
     def place_image_at_bottom_left(self, img, bgcolor=(255,255,255)):
         canvas = Image.new("RGB", self.grid_size, bgcolor)

@@ -28,6 +28,13 @@ import utils
 from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT, COUNTING_PROMPT, MIX_TOOLKIT
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
+# for raw baselines (no grid)
+from raw_baselines import (
+    evaluate_tallyqa_raw,
+    evaluate_countbench_raw,
+    evaluate_mixed_raw,
+)
+
 
 from PIL import Image, ImageOps
 
@@ -41,6 +48,29 @@ except Exception:
 
 
 
+# --- axis-aligned rectangle detection (grid -> px) ---
+
+def _parse_grid_points(raw_points: str):
+    # e.g. "'x6y6','x63y6','x63y43','x6y43','x6y6'" -> [(6,6),(63,6),(63,43),(6,43),(6,6)]
+    return [(int(x), int(y)) for x, y in re.findall(r"x(\d+)y(\d+)", raw_points)]
+
+def _is_closed(points):
+    return len(points) >= 2 and points[0] == points[-1]
+
+def _is_axis_aligned_rect(points):
+    # 4 unique corners or 5 with explicit closure (first==last), axis-aligned
+    if not _is_closed(points):
+        return False
+    uniq = points[:-1] if len(points) >= 5 else points  # ignore duplicate last if present
+    if len(uniq) != 4:
+        return False
+    xs = sorted({p[0] for p in uniq})
+    ys = sorted({p[1] for p in uniq})
+    if len(xs) != 2 or len(ys) != 2:
+        return False
+    return True
+
+
 
 # =========================
 # Flask App
@@ -49,7 +79,12 @@ class SketchApp:
     def __init__(
         self, res, cell_size, grid_size, stroke_width, target_concept,
         user_always_first, llm_adapter: BaseLLMAdapter, show_full_grid: bool = False,
-        dynamic_grid: bool = True, min_grid: int = 10, max_grid: int = 100
+        dynamic_grid: bool = True, min_grid: int = 10, max_grid: int = 100,
+        adaptive_grid: bool = False,
+        target_cols: int = 50,
+        target_rows: int = 50,
+        min_cell_px: int = 18,
+        max_cell_px: int = 64,
     ):
         self.app = Flask(__name__)
         self.session_id = str(uuid.uuid4())
@@ -61,10 +96,16 @@ class SketchApp:
         self.llm = llm_adapter
 
         # Grid setup
-        self.grid_manager = GridManager(cell_size=cell_size, min_grid=min_grid, max_grid=max_grid)
+        self.grid_manager = GridManager(
+        cell_size=cell_size, min_grid=min_grid, max_grid=max_grid,
+        adaptive_grid=adaptive_grid, target_cols=target_cols, target_rows=target_rows,
+        min_cell_px=min_cell_px, max_cell_px=max_cell_px,
+        )
         self.show_full_grid = show_full_grid
         self.multi_stroke = True
         self.dynamic_grid = dynamic_grid
+        
+        self.cell_size = self.grid_manager.cell_size
         
         # Backward compatibility properties
         self.res = res
@@ -75,9 +116,9 @@ class SketchApp:
         self.grid_size = grid_size
         
         # Initialize default grid
-        self.init_canvas_grid, self.positions = utils.create_grid_image(
-            res=res, cell_size=cell_size, header_size=cell_size, full=self.show_full_grid
-        )
+        self.init_canvas_grid = self.grid_manager.grid_image
+        self.positions = self.grid_manager.positions
+        
         self.init_canvas = Image.new('RGB', self.grid_size, 'white')
         self.init_canvas.save("static/init_canvas.png")
 
@@ -284,7 +325,7 @@ class SketchApp:
                 # 4) Single LLM call → full <strokes>...</strokes> XML with numbered <text> labels
                 answer = self.get_response_from_llm(
                     msg=prompt,
-                    system_message=system_prompt.format(res=self.res),
+                    system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                     msg_history=[],
                     init_canvas_str=self.last_canvas_b64,
                     seed_mode=self.seed_mode,
@@ -750,6 +791,9 @@ class SketchApp:
         if seed_mode == "deterministic":
             additional_args["temperature"] = 0.0
             additional_args["top_k"] = 1  # ignored by OpenAI adapter
+            
+        if getattr(self, "reasoning_effort", None):
+            additional_args["reasoning_effort"] = self.reasoning_effort
 
         other_msg = self.define_input_to_llm(msg_history, init_canvas_str, msg)
 
@@ -795,6 +839,20 @@ class SketchApp:
                 provider_debug = self.llm.debug_dump(response)
             except Exception as _e:
                 provider_debug = {"error": str(_e)}
+                
+            # ----- NEW: cache for per-item JSONs -----
+            self._last_provider_debug = provider_debug
+            self._last_assistant_text = content
+
+            try:
+                redacted_msgs = self._redact_b64_in_messages(other_msg)
+            except Exception:
+                redacted_msgs = None
+            self._last_redacted_request = {
+                "system": system_message,
+                "messages": redacted_msgs,
+            }
+
 
             row = {
                 "ts": datetime.now().isoformat(timespec="seconds"),
@@ -831,7 +889,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -846,7 +904,7 @@ class SketchApp:
     def draw_entire_sketch(self):
         all_sketch = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -940,6 +998,9 @@ class SketchApp:
             else:
                 if stroke_no % 2 == 1:
                     stroke_color = "pink"
+                    
+        
+
 
         # ----- NEW: TEXT STROKE SUPPORT (with size/color) -----
         m_text = re.search(r"<text([^>]*)>\s*'([^']+)'\s*</text>", stroke_model, re.S)
@@ -978,6 +1039,49 @@ class SketchApp:
             )
 
 
+        # Bounding Box Support
+        # Try to detect an axis-aligned rectangle from a <points> block
+        # Bounding Box Support
+                
+        m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S)
+        if m_ptblk:
+            # Parse grid points like: 'x6y6','x63y6','x63y43','x6y43','x6y6'
+            grid_pts = [(int(gx), int(gy)) for gx, gy in re.findall(r"x(\d+)y(\d+)", m_ptblk.group(1))]
+            if len(grid_pts) >= 4:
+                # Map grid tokens → pixel coords using the SAME mapping as everything else
+                px_pts = []
+                for gx, gy in grid_pts:
+                    key = f"x{gx}y{gy}"
+                    if key in self.positions:
+                        px_pts.append(self.positions[key])
+
+                # Require 4 unique corners (or 5 with explicit closure first==last)
+                if len(px_pts) >= 4:
+                    closed = (px_pts[0] == px_pts[-1])
+                    uniq = px_pts[:-1] if closed else px_pts
+                    # Unique corners
+                    uniq_corners = list(dict.fromkeys(uniq))  # preserve order, de-dup
+                    if len(uniq_corners) == 4:
+                        xs = sorted({x for x, _ in uniq_corners})
+                        ys = sorted({y for _, y in uniq_corners})
+                        # Axis aligned if there are exactly two unique x’s and two unique y’s
+                        if len(xs) == 2 and len(ys) == 2:
+                            x0, x1 = xs[0], xs[1]
+                            y0, y1 = ys[0], ys[1]
+                            x, y = min(x0, x1), min(y0, y1)
+                            w, h = abs(x1 - x0), abs(y1 - y0)
+
+                            rect_svg = (
+                                f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
+                                f'stroke="{stroke_color}" stroke-width="{stroke_width}" fill="none" '
+                                f'shape-rendering="crispEdges" vector-effect="non-scaling-stroke"/>'
+                            )
+                            return f'<g id="{stroke_label}_s{stroke_no}">{rect_svg}</g>'
+
+
+        # (no rectangle) → fall through to your EXISTING Bezier/path code unchanged
+
+
         # ----- default: curve/path stroke (unchanged) -----
         strokes_list_str, t_values_str = utils.parse_xml_string_single_stroke(
             stroke_model, self.res, stroke_no, self.res_x, self.res_y
@@ -1013,7 +1117,7 @@ class SketchApp:
     def call_model_stroke_completion(self):
         answer = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1176,6 +1280,16 @@ class SketchApp:
             # As a last resort, count text nodes as strokes
             return len(re.findall(r"<text\b", xml_str, flags=re.I))
 
+    def _extract_final_answer_any(self, *candidates: Optional[str]) -> Optional[int]:
+        """
+        Try several text sources in order and return the first parsed final answer.
+        """
+        for s in candidates:
+            ans = utils.parse_final_answer_boxed(s)
+            if ans is not None:
+                return ans
+        return None
+
 
     def _render_answer_xml(self, answer_xml: str, svg_out: Path, png_out: Path):
         """
@@ -1311,7 +1425,7 @@ class SketchApp:
 
         answer = self.get_response_from_llm(
             msg=prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1492,7 +1606,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1591,9 +1705,15 @@ class SketchApp:
         constant_concept: str = "object",   # used if concept_mode="constant"
         labels_hint: str = None,
         max_images: int = None,
+        # NEW:
+        stepwise: bool = False,
+        max_turns: int = 40,
     ):
         """
         Batch-label all images under `src_dir` (non-recursive).
+        If stepwise=False: single-shot (one LLM call).
+        If stepwise=True: one stroke per turn, compositing canvas each turn.
+
         Saves per-item: *_orig.jpg, *_grid.png, *_annotated.png, *.svg, *.json
         Also writes results.jsonl and summary.json in out root.
         """
@@ -1614,68 +1734,131 @@ class SketchApp:
         total = 0
         total_labels = 0
 
-        pbar = tqdm(items, desc="Labeling images", unit="img") if hasattr(tqdm, "__call__") else items
+        pbar = tqdm(items, desc=f"Labeling images ({'stepwise' if stepwise else 'single-shot'})", unit="img") \
+            if hasattr(tqdm, "__call__") else items
 
         for idx, path in enumerate(pbar):
+            raw_path = out_root / f"item_{idx:05d}_orig.jpg"
+            svg_path = out_root / f"item_{idx:05d}.svg"
+            png_path = out_root / f"item_{idx:05d}_annotated.png"
+
             try:
-                # 1) load + set background (keeps aspect with letterbox padding and handles dynamic grid sizing)
+                # 1) load + set background (letterbox + dynamic grid)
                 img = Image.open(path).convert("RGB")
                 self.set_background_from_pil(img, mode="fit")
+                img.save(str(raw_path), quality=95)
 
-                # 2) decide concept (for the <concept> line in the prompt/output)
+                # 2) decide concept
                 if concept_mode == "constant":
                     concept = constant_concept.strip()
                 else:
-                    # derive from filename: strip extension, swap _/- for spaces
                     stem = path.stem
                     concept = re.sub(r"[_\-]+", " ", stem).strip() or "object"
 
-                # 3) build prompt (grid-only text labels)
+                # 3) build prompt (text labels anchored on the grid)
                 hint = labels_hint or DEFAULT_LABELS_HINT
-                prompt = GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=hint)
+                base_prompt = GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=hint)
 
-                # 4) call the model (no stop_sequences for Gemini)
-                answer = self.get_response_from_llm(
-                    msg=prompt,
-                    system_message=system_prompt.format(res=self.res),
-                    msg_history=[],
-                    init_canvas_str=self.last_canvas_b64,
-                    seed_mode=self.seed_mode,
-                    gen_mode="generation",
-                    stop_sequences=None,
-                )
+                if not stepwise:
+                    # ---------- SINGLE-SHOT ----------
+                    answer = self.get_response_from_llm(
+                        msg=base_prompt,
+                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+                        msg_history=[],
+                        init_canvas_str=self.last_canvas_b64,
+                        seed_mode=self.seed_mode,
+                        gen_mode="generation",
+                        stop_sequences=None,  # leave off for Gemini stability
+                    )
 
-                # 5) render SVG + annotated PNG
-                raw_path = out_root / f"item_{idx:05d}_orig.jpg"
-                img.save(str(raw_path), quality=95)
+                    # render SVG + annotated PNG
+                    self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
 
-                svg_path = out_root / f"item_{idx:05d}.svg"
-                png_path = out_root / f"item_{idx:05d}_annotated.png"
-                self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
+                    # extract labels and stats
+                    legend = self._extract_label_legend(answer)
+                    n_labels = len(legend)
+                    total_labels += n_labels
 
-                # 6) extract labels + counts
-                legend = self._extract_label_legend(answer)
-                n_labels = len(legend)
-                total_labels += n_labels
+                    row = {
+                        "index": idx,
+                        "filename": str(path),
+                        "concept": concept,
+                        "labels_hint": hint,
+                        "mode": "single_shot",
+                        "turns": None,
+                        "model_output": answer,
+                        "labels": legend,
+                        "num_labels": n_labels,
+                        "raw_image": str(raw_path),
+                        "grid_image": str(png_path).replace("_annotated", "_grid"),
+                        "annotated_image": str(png_path),
+                        "svg": str(svg_path),
+                    }
+                    with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
+                        json.dump(row, jf, indent=2)
+                    results.append(row)
+                    total += 1
 
-                # 7) per-item JSON
-                row = {
-                    "index": idx,
-                    "filename": str(path),
-                    "concept": concept,
-                    "labels_hint": hint,
-                    "model_output": answer,
-                    "labels": legend,                     # [{"text": "...", "id": "..."}]
-                    "num_labels": n_labels,
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
-                }
-                with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(row, jf, indent=2)
-                results.append(row)
-                total += 1
+                else:
+                    # ---------- STEPWISE (one stroke per turn) ----------
+                    # reset per-sample drawing state
+                    self.all_strokes_svg = self._svg_root_open()
+                    self.stroke_counter = 0
+                    self.assitant_history = ""
+                    self.cur_svg_to_render = "None"
+
+                    # seed a generic session that yields a header and stops before <strokes>
+                    # (keeps the protocol consistent with the UI)
+                    self._start_generic_session(base_prompt)
+                    self.multi_stroke = False  # enforce one <sN> ... </sN> per turn
+
+                    turns = 0
+                    while turns < max_turns:
+                        turns += 1
+                        svg_chunk = self.predict_next_stroke()  # "" if model stopped
+                        if not svg_chunk:
+                            break
+                        self.all_strokes_svg += svg_chunk
+                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+
+                        # composite so the next turn sees updated canvas
+                        step_png = out_root / f"item_{idx:05d}_step_{turns:03d}.png"
+                        self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
+
+                        delay = getattr(self, "api_delay_sec", 0.0) or 0.0
+                        if delay > 0:
+                            time.sleep(delay)
+
+                    # Make a canonical <strokes>…</strokes> string for extraction
+                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
+                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+
+                    # render final artifacts under standard names
+                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                    legend = self._extract_label_legend(answer_xml)
+                    n_labels = len(legend)
+                    total_labels += n_labels
+
+                    row = {
+                        "index": idx,
+                        "filename": str(path),
+                        "concept": concept,
+                        "labels_hint": hint,
+                        "mode": "stepwise",
+                        "turns": turns,
+                        "model_output": answer_xml,
+                        "labels": legend,
+                        "num_labels": n_labels,
+                        "raw_image": str(raw_path),
+                        "grid_image": str(png_path).replace("_annotated", "_grid"),
+                        "annotated_image": str(png_path),
+                        "svg": str(svg_path),
+                    }
+                    with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
+                        json.dump(row, jf, indent=2)
+                    results.append(row)
+                    total += 1
 
                 # live progress bar info
                 if hasattr(pbar, "set_postfix"):
@@ -1683,7 +1866,15 @@ class SketchApp:
 
             except Exception as e:
                 total += 1
-                err = {"index": idx, "filename": str(path), "error": str(e)}
+                err = {
+                    "index": idx,
+                    "filename": str(path),
+                    "error": str(e),
+                    "raw_image": str(raw_path),
+                    "grid_image": str(png_path).replace("_annotated", "_grid"),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                }
                 with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(err, jf, indent=2)
                 results.append(err)
@@ -1700,6 +1891,7 @@ class SketchApp:
             "processed": total,
             "total_labels": total_labels,
             "out_root": str(out_root),
+            "mode": "stepwise" if stepwise else "single_shot",
         }
         with open(out_root / "summary.json", "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
@@ -1707,6 +1899,7 @@ class SketchApp:
         print(f"\nSaved to: {out_root}")
         print(f"Processed: {total}   Total labels: {total_labels}")
         return summary
+
 
 
     def evaluate_dataset(
@@ -1759,7 +1952,7 @@ class SketchApp:
                 # 3) single LLM call
                 answer = self.get_response_from_llm(
                     msg=prompt,
-                    system_message=system_prompt.format(res=self.res),
+                    system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                     msg_history=[],
                     init_canvas_str=self.last_canvas_b64,
                     seed_mode=self.seed_mode,
@@ -1866,7 +2059,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}  # dropped automatically for Gemini in get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res=self.res),
+            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1886,6 +2079,8 @@ class SketchApp:
         max_images: int = None,
         max_turns: int = 40,
         count_only_text: bool = True,
+        skip: int = 0,
+        only: str = None
     ):
         src = Path(src_dir)
         assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
@@ -1902,8 +2097,21 @@ class SketchApp:
         results = []
         pbar = tqdm(images, desc=f"Mixed folder ({'stepwise' if stepwise else 'single-shot'})", unit="img") \
             if hasattr(tqdm, "__call__") else images
+            
+            
+        # Simple comma-separated list -> set of ints (e.g., "5, 12, 42")
+        only_set = None
+        if only:
+            tokens = re.split(r"[,\s]+", only.strip())
+            only_set = {int(t) for t in tokens if t.isdigit()}
 
         for i, img_path in enumerate(pbar):
+            
+            if only_set is not None and i not in only_set:
+                continue
+            if only_set is None and i < skip:
+                continue
+    
             txt_path = img_path.with_suffix(".txt")
             prompt_from_txt = None
             turns = 0
@@ -1948,13 +2156,16 @@ class SketchApp:
                     answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
                     answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+                    
+                    final_ans = self._extract_final_answer_any(self.assitant_history, self.cur_svg_to_render, answer_xml)
+
 
                 else:
                     self._start_generic_session(prompt_from_txt)
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
                         msg=self.input_prompt,
-                        system_message=system_prompt.format(res=self.res),
+                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -1964,15 +2175,20 @@ class SketchApp:
                     )
                     answer_xml = self._canon_strokes(answer)
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+                    
+                    final_ans = self._extract_final_answer_any(answer, answer_xml, self.assitant_history)
 
                 total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
                 text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
+                
+                
 
                 row = {
                     "index": i, "prompt": prompt_from_txt,
                     "mode": "stepwise" if stepwise else "single_shot",
                     "turns": (turns if stepwise else None),
                     "model_output": answer_xml,
+                    "answer": final_ans,
                     "num_strokes_total": total_strokes,
                     "num_strokes_text": text_strokes,
                     "raw_image": str(raw_path),
@@ -1981,6 +2197,20 @@ class SketchApp:
                     "svg": str(svg_path),
                     "source_image": str(img_path),
                     "source_prompt": str(txt_path),
+                    
+                    "model_output_full": getattr(self, "_last_assistant_text", None),
+                    "provider_debug": getattr(self, "_last_provider_debug", None),
+                    "request_preview": getattr(self, "_last_redacted_request", None),
+                    
+                    "grid_config": {
+                        "adaptive_grid": self.grid_manager.adaptive_grid,
+                        "cell_size": self.grid_manager.cell_size,
+                        "res_x": self.grid_manager.res_x,
+                        "res_y": self.grid_manager.res_y,
+                        "grid_size_px": self.grid_manager.grid_size,  # (width, height)
+                    },
+                    "cell_pixel_map": self.grid_manager.positions,  # already a dict: {'x1y1': (px, py), ...}
+
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(row, jf, indent=2)
@@ -2102,7 +2332,7 @@ class SketchApp:
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
                         msg=prompt,
-                        system_message=system_prompt.format(res=self.res),
+                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -2249,14 +2479,59 @@ if __name__ == '__main__':
         help="Run TallyQA one stroke per turn (stepwise)")
     parser.add_argument("--tallyqa-max-turns", type=int, default=40,
         help="Max turns in stepwise TallyQA")
+    # --- RAW (grid-free) baselines ---
+    parser.add_argument("--raw-tallyqa-json", type=str,
+        help="Path to TallyQA json for raw eval (no grid/toolkit).")
+    parser.add_argument("--raw-vg-root", type=str, default="data",
+        help="Root for VG_100K / VG_100K_2 for raw TallyQA.")
+    parser.add_argument("--raw-hf-dataset", type=str,
+        help="HF dataset id for raw CountBench eval (e.g., vikhyatk/CountBenchQA).")
+    parser.add_argument("--raw-hf-split", type=str, default="test",
+        help="Split for raw CountBench eval.")
+    parser.add_argument("--raw-mix-dir", type=str,
+        help="Folder with paired image+.txt prompts for raw mixed eval.")
+    parser.add_argument("--raw-outdir", type=str, default="results/raw_eval",
+        help="Output root for raw baselines.")
+    parser.add_argument("--raw-max-examples", type=int, default=None,
+        help="Limit examples for raw baselines.")
+    parser.add_argument("--label-stepwise", action="store_true",
+                    help="Run labeling one stroke per turn (stepwise)")
+    parser.add_argument("--label-max-turns", type=int, default=40,
+                    help="Max turns for stepwise labeling")
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["minimal", "low", "medium", "high"],
+        default=None,
+        help="OpenAI GPT-5 reasoning effort (optional)."
+    )
+    parser.add_argument(
+        "--skip",
+        type=int,
+        default=0,
+        help="Skip the first N items (numbering preserved in output filenames).",
+    )
+    parser.add_argument(
+        "--only",
+        type=str,
+        default=None,
+        help="Comma-separated list of indices and/or ranges to process (e.g. '7,12,42-45'). Overrides --skip.",
+    )
 
-
+    # --- NEW adaptive grid controls ---
+    parser.add_argument("--adaptive-grid", action="store_true",
+                   help="Auto-scale grid cell size based on image resolution.")
+    parser.add_argument("--target-cols", type=int, default=50,
+                   help="Desired max columns when --adaptive-grid is on.")
+    parser.add_argument("--target-rows", type=int, default=50,
+                   help="Desired max rows when --adaptive-grid is on.")
+    parser.add_argument("--min-cell-px", type=int, default=18,
+                   help="Minimum pixel size per cell for readability.")
+    parser.add_argument("--max-cell-px", type=int, default=64,
+                   help="Upper bound for pixel size per cell.")
 
 
     args = parser.parse_args()
     
-    
-
     # default model per provider if none given
     if not args.model:
         if args.llm == "claude":
@@ -2290,13 +2565,51 @@ if __name__ == '__main__':
         llm_adapter=adapter,
         dynamic_grid=True,
         min_grid=10,
-        max_grid=100
+        max_grid=100,
+        # NEW: adaptive grid params
+        adaptive_grid=args.adaptive_grid,
+        target_cols=args.target_cols,
+        target_rows=args.target_rows,
+        min_cell_px=args.min_cell_px,
+        max_cell_px=args.max_cell_px,
     )
 
     app.api_delay_sec = args.api_delay
+    app.reasoning_effort = args.reasoning_effort
 
     if args.deterministic:
         app.seed_mode = "deterministic"
+        
+    # ----- RAW baseline fast-paths (no grid, no SketchApp) -----
+    if args.raw_tallyqa_json:
+        evaluate_tallyqa_raw(
+            adapter,
+            json_path=args.raw_tallyqa_json,
+            vg_root=args.raw_vg_root,
+            outdir=args.raw_outdir,
+            max_examples=args.raw_max_examples,
+        )
+        raise SystemExit(0)
+
+    if args.raw_hf_dataset:
+        evaluate_countbench_raw(
+            adapter,
+            dataset_id=args.raw_hf_dataset,
+            split=args.raw_hf_split,
+            outdir=args.raw_outdir,
+            max_examples=args.raw_max_examples,
+        )
+        raise SystemExit(0)
+
+    if args.raw_mix_dir:
+        evaluate_mixed_raw(
+            adapter,
+            src_dir=args.raw_mix_dir,
+            outdir=args.raw_outdir,
+            max_images=args.raw_max_examples,
+        )
+        raise SystemExit(0)
+
     
     if args.tallyqa_json:
         app.evaluate_tallyqa(
@@ -2319,8 +2632,11 @@ if __name__ == '__main__':
             stepwise=args.mixed_stepwise,
             max_images=args.max_examples,
             max_turns=args.mixed_max_turns,
-            count_only_text=args.count_only_text
+            count_only_text=args.count_only_text,
+            only=args.only,
+            skip=args.skip
         )
+        
         raise SystemExit(0)
 
     
@@ -2379,8 +2695,11 @@ if __name__ == '__main__':
             constant_concept=args.concept,
             labels_hint=args.labels_hint,
             max_images=args.max_images,
+            stepwise=args.label_stepwise,          # NEW
+            max_turns=args.label_max_turns,        # NEW
         )
         raise SystemExit(0)
+
     
 
     app.run(hostname, ip_address)

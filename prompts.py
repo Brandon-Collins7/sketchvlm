@@ -1,37 +1,15 @@
-GENERAL_TOOL_OVERVIEW = """You are given an image accompanied with a grid. The grid allows you to reference specific locations within the image. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
-
-You are given the ability to draw on the image with several different methods. Each method has its own specific use case and output format. 
-
-# Output Format
-
+system_prompt="""You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
+You will be provided with a blank grid. Your task is to specify where to place strokes on the grid to create a visually appealing sketch to complete the request.
+The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
+You can draw on this grid by specifying where to draw strokes. You can draw multiple strokes to depict the whole object, where different strokes compose different parts of the object. 
 To draw a stroke on the grid, you need to specify the following:
 Starting Point: Specify the starting point by giving the grid location (e.g., 'x1y1' for column 1, row 1).
-Ending Point: Specify the ending point in the same way (e.g., 'x{res}y{res}' for column {res}, row {res}).
+Ending Point: Specify the ending point in the same way (e.g., 'x{res_x}y{res_y}' for column {res_x}, row {res_y}).
 Intermediate Points: Specify at least two intermediate points that the stroke should pass through. List these in the order the stroke should follow, using the same grid location format (e.g., 'x6y5', 'x13y10' for points at column 6 row 5 and column 13 row 10).
 Parameter Values (t): For each point (including the start and end points), specify a t value between 0 and 1 that defines the position along the stroke's path. t=0 for the starting point. t=1 for the ending point.
 Intermediate points should have t values between 0 and 1 (e.g., "0.3 for x6y5, 0.7 for x13y10").
 
-<formatting>
-<concept>The concept depicted in the sketch.</concept>
-<strokes>This element holds a collection of individual stroke elements that define the sketch. 
-Each stroke is uniquely identified by its own tag (e.g., <s1>, <s2>, etc.).
-Within each stroke element, there are three key pieces of information: 
-<points>A list of x-y coordinates defining the curve. These points define the path the stroke follows.</points>
-<t_values>A series of numerical timing values that correspond to the points. These values define the progression of the stroke over time, ranging from 0 to 1, indicating the order or speed at which the stroke is drawn.</t_values>
-<id>A short descriptive identifier for the stroke, explaining which part of the sketch it corresponds to.</id>
-</strokes>
-</formatting>
-
-Text strokes (for numbers/labels): If a stroke is a numeral/letter/word you must NOT approximate it with points/curves. Instead, emit a text stroke:
-<sN>
-  <text>'YOUR_TEXT'</text>
-  <points>'xAyB'</points>        <!-- exactly one grid cell (anchor at the cell center) -->
-  <t_values>0.00</t_values>
-  <id>short_label_for_this_text</id>
-</sN>
-Use a single point and a single t_value (0.00). Do not include other points for text strokes.
-
-# Examples
+Examples:
 
 To draw a smooth curve that starts at x8y6, passes through x6y7 and x6y10, ending at x8y11:
 Points = ['x8y6', 'x6y7', 'x6y10', 'x8y11']
@@ -125,7 +103,7 @@ Below are the different sketching methods you can use for your task.
 - Use <points> with exactly one anchor cell for each text label/number (one per item/part).
 - Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
 - Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
-
+- If the question requires an answer (e.g., "How many?"), include it at the end of your response, after the </strokes> tag, in a new <final_answer> tag.
 
 """
 
@@ -200,4 +178,9 @@ Task:
 
 Output EXACTLY this XML shape:
 <answer>
+"""
+
+
+MIX_TOOLKIT = """
+
 """
