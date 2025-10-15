@@ -21,6 +21,13 @@ python sketch_app.py --llm gpt --model o3
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro
 
 
+## New Grid Fix (for higher res images)
+
+example:
+
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir datasets/ball_path --count-only-text --max-tokens 10000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20        
+
+
 ## Task Types
 sketch_app.py is now collab_sketch_all.py
 
