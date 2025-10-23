@@ -140,7 +140,7 @@ Rules:
 
 
 
-LABEL_PROMPT = """
+GENERIC_LABEL_PROMPT = """
 Task: 
 - LABEL the visible parts with SVG text strokes (no curves).
 
@@ -180,6 +180,7 @@ Output EXACTLY this XML shape:
 <answer>
 """
 
+DEFAULT_LABELS_HINT = """ """
 
 MIX_TOOLKIT = """
 
