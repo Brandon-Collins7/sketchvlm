@@ -25,17 +25,9 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
-from prompts import sketch_first_prompt, system_prompt, gt_example, GENERIC_LABEL_PROMPT, COUNTING_PROMPT, MIX_TOOLKIT
+from prompts import sketch_first_prompt, system_prompt, gt_example, COUNTING_PROMPT, MIX_TOOLKIT, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
-# for raw baselines (no grid)
-from raw_baselines import (
-    evaluate_tallyqa_raw,
-    evaluate_countbench_raw,
-    evaluate_mixed_raw,
-)
-
-
 from PIL import Image, ImageOps
 
 # batch eval / datasets
@@ -2580,36 +2572,6 @@ if __name__ == '__main__':
     if args.deterministic:
         app.seed_mode = "deterministic"
         
-    # ----- RAW baseline fast-paths (no grid, no SketchApp) -----
-    if args.raw_tallyqa_json:
-        evaluate_tallyqa_raw(
-            adapter,
-            json_path=args.raw_tallyqa_json,
-            vg_root=args.raw_vg_root,
-            outdir=args.raw_outdir,
-            max_examples=args.raw_max_examples,
-        )
-        raise SystemExit(0)
-
-    if args.raw_hf_dataset:
-        evaluate_countbench_raw(
-            adapter,
-            dataset_id=args.raw_hf_dataset,
-            split=args.raw_hf_split,
-            outdir=args.raw_outdir,
-            max_examples=args.raw_max_examples,
-        )
-        raise SystemExit(0)
-
-    if args.raw_mix_dir:
-        evaluate_mixed_raw(
-            adapter,
-            src_dir=args.raw_mix_dir,
-            outdir=args.raw_outdir,
-            max_images=args.raw_max_examples,
-        )
-        raise SystemExit(0)
-
     
     if args.tallyqa_json:
         app.evaluate_tallyqa(
