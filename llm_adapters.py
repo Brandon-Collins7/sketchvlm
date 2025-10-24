@@ -401,97 +401,90 @@ class OpenAIAdapter(BaseLLMAdapter):
 
 
     def call(self, system_message, messages, additional_args):
-        args = dict(
-            model=self.model,
-            messages=messages,
-            max_completion_tokens=self.max_tokens,
-        )
-        if "temperature" in additional_args:
-            args["temperature"] = additional_args["temperature"]
-        if "stop_sequences" in additional_args and not self.request_has_image(messages):
-            ss = additional_args["stop_sequences"]
-            args["stop"] = ss if isinstance(ss, list) else [ss]
+        add_args = additional_args or {}
+        temperature = add_args.get("temperature")
+        stop_sequences = add_args.get("stop_sequences")
+        has_image = self.request_has_image(messages)
 
-        # reasoning effort for GPT-5 (and other reasoning-capable models)
-        if additional_args.get("reasoning_effort"):
-            args["reasoning"] = {"effort": str(additional_args["reasoning_effort"])}
-
+        # ---------------- Responses API (minimal + correct types) ----------------
         if self._use_responses_api:
-            # Map chat-style messages -> Responses API input
-            def _messages_to_responses_input(msgs):
-                def _norm_image_part(part: dict):
-                    if "image_data" in part and isinstance(part["image_data"], dict):
-                        return {
-                            "type": "input_image",
-                            "image_data": {
-                                "mime_type": part["image_data"].get("mime_type", "image/png"),
-                                "data": part["image_data"].get("data", "")
-                            }
+            # Flatten all incoming chat turns into ONE user turn of input parts.
+            # Only 'input_text' and 'input_image' are used (per your SDK error).
+            def _norm_image(part: dict):
+                if "image_data" in part and isinstance(part["image_data"], dict):
+                    return {
+                        "type": "input_image",
+                        "image_data": {
+                            "mime_type": part["image_data"].get("mime_type", "image/png"),
+                            "data": part["image_data"].get("data", "")
                         }
-                    u = part.get("image_url")
-                    if isinstance(u, dict):
-                        u = u.get("url")
-                    if not u:
-                        u = part.get("url")
-                    if isinstance(u, str) and u.strip():
-                        return {"type": "input_image", "image_url": u.strip()}
-                    return None
+                    }
+                u = part.get("image_url")
+                if isinstance(u, dict):
+                    u = u.get("url")
+                if not u:
+                    u = part.get("url")
+                if isinstance(u, str) and u.strip():
+                    return {"type": "input_image", "image_url": u.strip()}
+                return None
 
-                user_chunks = []
-                for m in msgs:
-                    if m.get("role") != "user":
-                        continue
-                    c = m.get("content")
-                    if isinstance(c, str):
-                        if c.strip():
-                            user_chunks.append({"type": "input_text", "text": c})
-                    elif isinstance(c, list):
-                        for part in c:
-                            if isinstance(part, str):
-                                if part.strip():
-                                    user_chunks.append({"type": "input_text", "text": part})
-                                continue
-                            if not isinstance(part, dict):
-                                continue
-                            ptype = part.get("type")
-                            if ptype in ("text", "input_text"):
-                                txt = part.get("text", "")
-                                if isinstance(txt, str) and txt.strip():
-                                    user_chunks.append({"type": "input_text", "text": txt})
-                            elif ptype in ("image_url", "input_image"):
-                                norm = _norm_image_part(part)
-                                if norm:
-                                    user_chunks.append(norm)
-                    if user_chunks:
-                        break
+            parts = []
+            for m in messages or []:
+                c = m.get("content")
+                if isinstance(c, str):
+                    if c.strip():
+                        parts.append({"type": "input_text", "text": c})
+                elif isinstance(c, list):
+                    for p in c:
+                        if isinstance(p, str):
+                            if p.strip():
+                                parts.append({"type": "input_text", "text": p})
+                            continue
+                        if isinstance(p, dict):
+                            pt = p.get("type")
+                            if pt in ("text", "input_text"):
+                                t = p.get("text", "")
+                                if isinstance(t, str) and t.strip():
+                                    parts.append({"type": "input_text", "text": t})
+                            elif pt in ("image_url", "input_image"):
+                                img = _norm_image(p)
+                                if img:
+                                    parts.append(img)
 
-                if not user_chunks:
-                    fused = "\n\n".join(
-                        (m.get("content") if isinstance(m.get("content"), str) else "")
-                        for m in msgs if m.get("role") == "user"
-                    ).strip()
-                    user_chunks = [{"type": "input_text", "text": fused or ""}]
-
-                return [{"role": "user", "content": user_chunks}]
+            if not parts:
+                parts = [{"type": "input_text", "text": ""}]
 
             rargs = {
                 "model": self.model,
-                "input": _messages_to_responses_input(args["messages"]),
+                "input": [{"role": "user", "content": parts}],
+                "max_output_tokens": self.max_tokens,
             }
-            # Responses API uses max_output_tokens
-            rargs["max_output_tokens"] = self.max_tokens
+            # <- minimal: attach your system prompt here
+            if isinstance(system_message, str) and system_message.strip():
+                rargs["instructions"] = system_message
+            if temperature is not None:
+                rargs["temperature"] = float(temperature)
 
-            eff = (additional_args or {}).get("reasoning_effort")
-            if eff:
-                rargs["reasoning"] = {"effort": str(eff)}
+            return self._client.responses.create(**rargs)
 
-            raw = self._client.responses.create(**rargs)
-            # Return the raw object; let extract_text() handle parsing uniformly
-            return raw
+        # ---------------- Chat Completions (minimal fallback) ----------------
+        chat_messages = messages or []
+        if isinstance(system_message, str) and system_message.strip():
+            chat_messages = [{"role": "system", "content": system_message}] + chat_messages
 
-        # Chat Completions branch
-        raw = self._client.chat.completions.create(**args)
-        return raw
+        args = dict(
+            model=self.model,
+            messages=chat_messages,
+            max_completion_tokens=self.max_tokens,
+        )
+        if temperature is not None:
+            args["temperature"] = float(temperature)
+        if stop_sequences and not has_image:
+            args["stop"] = stop_sequences if isinstance(stop_sequences, list) else [stop_sequences]
+
+        return self._client.chat.completions.create(**args)
+
+
 
 
     def extract_text(self, raw_response) -> str:
