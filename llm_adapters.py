@@ -459,6 +459,9 @@ class OpenAIAdapter(BaseLLMAdapter):
                 "input": [{"role": "user", "content": parts}],
                 "max_output_tokens": self.max_tokens,
             }
+            if "reasoning_effort" in additional_args:
+                rargs["reasoning"] = {"effort": additional_args["reasoning_effort"]}
+            
             # <- minimal: attach your system prompt here
             if isinstance(system_message, str) and system_message.strip():
                 rargs["instructions"] = system_message
