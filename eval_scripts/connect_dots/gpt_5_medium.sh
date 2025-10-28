@@ -1,0 +1,1 @@
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/connect_dots_dataset/worksheets_source --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --reasoning-effort medium
