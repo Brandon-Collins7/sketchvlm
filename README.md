@@ -29,7 +29,7 @@ Ex:
 
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/ball_path --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20  
 
-To get the ball_path dataset (so it's formatted in same way as other datasets) from the large_run_split, run gather_ball_prompts.py
+To get the ball_path dataset (so it's formatted in same way as other datasets) from the large_run_split, run gather_ball_prompts.py. This will create almost two equivalent folders, where one just adds a small bit to the prompt that requires the model to sketch the path.
 
 
 **Gemini-2.5-Pro - Connect Dots (just changed model)**
@@ -45,7 +45,7 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-d
 
 **Comparisons / Accuracy:**
 
-(sometimes will take a minute for html to finish generating)
+Sometimes will take a minute for html to finish generating. Htmls include accuracy
 
 \***Html compare + accuracy - Physics ball drop; VQA (no sketch) vs Sketch**
 
