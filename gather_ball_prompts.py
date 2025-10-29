@@ -52,7 +52,7 @@ def copy_with_prompt(run_name: str, src_img: Path, dest_dir: Path, prompt: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Collect run_* images and create paired prompt files.")
-    parser.add_argument("--src", default="large_run_split", help="Source root folder containing run_* subfolders")
+    parser.add_argument("--src", default="datasets/large_run_split", help="Source root folder containing run_* subfolders")
     parser.add_argument("--image-name", default="random_scene_start.png", help="Image file name inside each run folder")
     parser.add_argument("--out-draw", default="datasets/ball_path", help="Output folder for 'draw the path' prompt")
     parser.add_argument("--out-number", default="datasets/ball_number", help="Output folder for 'number only' prompt")
