@@ -5,6 +5,50 @@ import json
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
+def perturb_degenerate_segment(segment, epsilon=0.1):
+    """
+    Add tiny perturbations to bezier segments to avoid numerical issues.
+
+    Always applies small perturbation to prevent degenerate cases that cause
+    arc-length computation to fail.
+
+    Parameters:
+    -----------
+    segment : bezier curve segment
+        A segment from svgpathtools
+    epsilon : float
+        Small value to add (in pixels, scaled to SVG space)
+
+    Returns:
+    --------
+    segment : slightly perturbed segment
+    """
+    from svgpathtools import Line, QuadraticBezier, CubicBezier, Arc
+    import numpy as np
+
+    # Always perturb to avoid edge cases
+    if isinstance(segment, Line):
+        start, end = segment.start, segment.end
+        # Add small perturbation to avoid perfectly vertical/horizontal lines
+        end = end + complex(epsilon * 0.1, epsilon * 0.1)
+        return Line(start, end)
+
+    elif isinstance(segment, QuadraticBezier):
+        start, control, end = segment.start, segment.control, segment.end
+        # Perturb control point to ensure non-degeneracy
+        control = control + complex(epsilon, -epsilon * 0.5)
+        return QuadraticBezier(start, control, end)
+
+    elif isinstance(segment, CubicBezier):
+        start, c1, c2, end = segment.start, segment.control1, segment.control2, segment.end
+        # Perturb both control points
+        c1 = c1 + complex(epsilon * 0.7, -epsilon * 0.3)
+        c2 = c2 + complex(-epsilon * 0.3, epsilon * 0.7)
+        return CubicBezier(start, c1, c2, end)
+
+    # Return Arc and other types unmodified
+    return segment
+
 def extract_points_from_svg(svg_path, n_points=500, target_size=512):
     """
     Extract n_points uniformly sampled along the entire SVG path.
@@ -55,7 +99,10 @@ def extract_points_from_svg(svg_path, n_points=500, target_size=512):
         d = path_elem.get('d')
         if d:
             path = parse_path(d)
-            all_segments.extend(path)  # Add all segments from this path
+            # Perturb degenerate segments (use larger epsilon to avoid numerical issues)
+            for seg in path:
+                perturbed_seg = perturb_degenerate_segment(seg, epsilon=0.1)
+                all_segments.append(perturbed_seg)
 
     if not all_segments:
         raise ValueError("No valid path data found")
@@ -63,27 +110,54 @@ def extract_points_from_svg(svg_path, n_points=500, target_size=512):
     # Create one continuous path from all segments
     continuous_path = Path(*all_segments)
 
-    # Get total length
-    total_length = continuous_path.length()
+    # Try arc-length sampling first, fall back to parameter sampling if it fails
+    try:
+        # Get total length
+        total_length = continuous_path.length()
 
-    # Sample uniformly by arc length
-    points = []
-    for i in range(n_points):
-        # Distance along the path
-        distance = (i / (n_points - 1)) * total_length if n_points > 1 else 0
+        # Check for NaN or inf length
+        if not np.isfinite(total_length) or total_length == 0:
+            raise ValueError("Invalid path length")
 
-        # Convert distance to parameter t
-        t = continuous_path.ilength(distance)
+        # Sample uniformly by arc length
+        points = []
+        for i in range(n_points):
+            # Distance along the path
+            distance = (i / (n_points - 1)) * total_length if n_points > 1 else 0
 
-        # Get point at parameter t
-        pt = continuous_path.point(t)
+            # Convert distance to parameter t
+            t = continuous_path.ilength(distance)
 
-        # Scale to target coordinate space
-        scaled_x = pt.real * scale_x
-        scaled_y = pt.imag * scale_y
-        points.append([scaled_x, scaled_y])
+            # Get point at parameter t
+            pt = continuous_path.point(t)
 
-    return np.array(points)
+            # Scale to target coordinate space
+            scaled_x = pt.real * scale_x
+            scaled_y = pt.imag * scale_y
+            points.append([scaled_x, scaled_y])
+
+        return np.array(points)
+
+    except Exception as e:
+        # Fallback: sample uniformly by parameter t (not arc length)
+        # This is less accurate but works for degenerate paths
+        import warnings
+        warnings.warn(f"Arc-length sampling failed ({str(e)[:50]}), using parameter-based sampling")
+
+        points = []
+        for i in range(n_points):
+            # Sample parameter t uniformly from 0 to 1
+            t = i / (n_points - 1) if n_points > 1 else 0
+
+            # Get point at parameter t
+            pt = continuous_path.point(t)
+
+            # Scale to target coordinate space
+            scaled_x = pt.real * scale_x
+            scaled_y = pt.imag * scale_y
+            points.append([scaled_x, scaled_y])
+
+        return np.array(points)
 
 def extract_points_from_gt_json(json_path, n_points=100, ball_body_index=None):
     """
@@ -373,7 +447,10 @@ def process_all_svg_files(svg_dir, output_dir, n_points=100):
                 continue
 
             # Extract GT identifier (e.g., "run_001_1" from "datasets/ball_path/run_001_1.png")
-            gt_identifier = os.path.splitext(os.path.basename(source_image))[0]
+            # Normalize path separators (handle both / and \)
+            source_image_normalized = source_image.replace('\\', '/')
+            # Get just the filename without path or extension
+            gt_identifier = os.path.splitext(os.path.basename(source_image_normalized))[0]
 
             # Find GT JSON file in datasets/large_run_split/
             gt_json_path = os.path.join("/Users/log/Github/sketchvlm/datasets/large_run_split",
@@ -397,8 +474,8 @@ def process_all_svg_files(svg_dir, output_dir, n_points=100):
             print(f"  Average min distance: {avg_min_dist:.2f} pixels")
             print(f"  MSE min distance: {mse_min_dist:.2f} pixels²")
 
-            # Build path to source image
-            source_image_path = os.path.join("/Users/log/Github/sketchvlm", source_image)
+            # Build path to source image (use normalized path)
+            source_image_path = os.path.join("/Users/log/Github/sketchvlm", source_image_normalized)
             if not os.path.exists(source_image_path):
                 print(f"  Warning: Source image not found at {source_image_path}")
                 source_image_path = None

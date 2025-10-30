@@ -380,8 +380,8 @@ def evaluate(
             n_total += 1
             fname = img_path.name
 
-            # if fname not in ("run_065.png", "run_050_1.png"):
-            #     continue
+            if fname not in ("run_085.png"):
+                continue
 
             if only_indices is not None and i not in only_indices:
                 continue
@@ -536,8 +536,8 @@ python gpt_baseline_ball_drop.py \
     --use-openrouter \
     --openrouter-provider alibaba \
     --openai-model "qwen/qwen3-vl-8b-thinking" \
-    --out results/qwen8b_results.jsonl \
-    --csv results/qwen8b_results.csv \
+    --out results/qwen8b_results2.jsonl \
+    --csv results/qwen8b_results2.csv \
     --progress --verbose
 
 
