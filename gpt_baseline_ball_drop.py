@@ -541,4 +541,13 @@ python gpt_baseline_ball_drop.py \
     --progress --verbose
 
 
+python gpt_baseline_ball_drop.py \
+    --images datasets/ball_number \
+    --use-openrouter \
+    --openrouter-provider alibaba \
+    --openai-model "qwen/qwen3-vl-235b-a22b-thinking" \
+    --out results/qwen235b_results.jsonl \
+    --csv results/qwen235b_results.csv \
+    --progress --verbose
+
   '''
