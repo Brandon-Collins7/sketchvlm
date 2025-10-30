@@ -87,7 +87,10 @@ def extract_points_from_svg(svg_path, n_points=500, target_size=512):
 
 def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
     """
-    Extract n_points uniformly sampled from ground truth trajectory JSON.
+    Extract n_points uniformly sampled by arc-length from ground truth trajectory JSON.
+
+    Samples uniformly along the physical path distance (arc length), not by time/index.
+    This matches the SVG sampling method for fair comparison.
 
     Transforms coordinates from physics coordinate system (origin bottom-left, Y up)
     to SVG coordinate system (origin top-left, Y down).
@@ -97,7 +100,7 @@ def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
     json_path : str
         Path to the JSON file containing trajectories
     n_points : int
-        Number of points to sample uniformly from the trajectory
+        Number of points to sample uniformly along arc length
     ball_body_index : str
         The key in the trajectories dict for the ball (default "10")
 
@@ -125,14 +128,41 @@ def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
     # Total number of points in ground truth
     total_points = len(all_points)
 
-    # Uniformly sample n_points
     if n_points >= total_points:
         # If requesting more points than available, return all points
         return all_points
 
-    # Calculate indices for uniform sampling
-    indices = np.linspace(0, total_points - 1, n_points, dtype=int)
-    sampled_points = all_points[indices]
+    # Calculate cumulative arc length along the trajectory
+    # distances[i] = distance between point i and point i+1
+    distances = np.linalg.norm(np.diff(all_points, axis=0), axis=1)
+    cumulative_distances = np.concatenate([[0], np.cumsum(distances)])
+    total_length = cumulative_distances[-1]
+
+    # Sample uniformly along arc length
+    target_distances = np.linspace(0, total_length, n_points)
+
+    # Interpolate to find points at target distances
+    sampled_points = np.zeros((n_points, 2))
+    for i, target_dist in enumerate(target_distances):
+        # Find the segment containing this target distance
+        idx = np.searchsorted(cumulative_distances, target_dist)
+
+        if idx == 0:
+            sampled_points[i] = all_points[0]
+        elif idx >= len(all_points):
+            sampled_points[i] = all_points[-1]
+        else:
+            # Linear interpolation between points idx-1 and idx
+            seg_start_dist = cumulative_distances[idx - 1]
+            seg_end_dist = cumulative_distances[idx]
+            seg_length = seg_end_dist - seg_start_dist
+
+            if seg_length > 0:
+                # How far along this segment?
+                t = (target_dist - seg_start_dist) / seg_length
+                sampled_points[i] = (1 - t) * all_points[idx - 1] + t * all_points[idx]
+            else:
+                sampled_points[i] = all_points[idx - 1]
 
     return sampled_points
 
