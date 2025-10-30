@@ -5,37 +5,50 @@ import json
 import matplotlib
 matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
-def extract_points_from_svg(svg_path, n_points=500):
+def extract_points_from_svg(svg_path, n_points=500, target_size=512):
     """
     Extract n_points uniformly sampled along the entire SVG path.
-    
+
+    Scales coordinates from SVG canvas space to target_size x target_size space
+    to match ground truth coordinate system.
+
     Parameters:
     -----------
     svg_path : str
         Path to the SVG file
     n_points : int
         Total number of points to sample uniformly along entire trajectory
-    
+    target_size : int
+        Target canvas size (e.g., 512 for 512x512 ground truth space)
+
     Returns:
     --------
     np.ndarray
-        Array of shape (n_points, 2) containing [x, y] coordinates
+        Array of shape (n_points, 2) containing [x, y] coordinates scaled to target space
     """
     import xml.etree.ElementTree as ET
     from svgpathtools import parse_path, Path
     import numpy as np
-    
+
     # Parse the SVG file
     tree = ET.parse(svg_path)
     root = tree.getroot()
-    
+
+    # Get SVG canvas dimensions for scaling
+    svg_width = float(root.get('width', 2091))
+    svg_height = float(root.get('height', 2091))
+
+    # Calculate scale factors to convert to target space (e.g., 512x512)
+    scale_x = target_size / svg_width
+    scale_y = target_size / svg_height
+
     # Handle XML namespaces
     namespaces = {'svg': 'http://www.w3.org/2000/svg'}
     paths = root.findall('.//path') + root.findall('.//svg:path', namespaces)
-    
+
     if not paths:
         raise ValueError("No path elements found in SVG")
-    
+
     # Parse and concatenate all paths into one continuous path
     all_segments = []
     for path_elem in paths:
@@ -43,29 +56,33 @@ def extract_points_from_svg(svg_path, n_points=500):
         if d:
             path = parse_path(d)
             all_segments.extend(path)  # Add all segments from this path
-    
+
     if not all_segments:
         raise ValueError("No valid path data found")
-    
+
     # Create one continuous path from all segments
     continuous_path = Path(*all_segments)
-    
+
     # Get total length
     total_length = continuous_path.length()
-    
+
     # Sample uniformly by arc length
     points = []
     for i in range(n_points):
         # Distance along the path
         distance = (i / (n_points - 1)) * total_length if n_points > 1 else 0
-        
+
         # Convert distance to parameter t
         t = continuous_path.ilength(distance)
-        
+
         # Get point at parameter t
         pt = continuous_path.point(t)
-        points.append([pt.real, pt.imag])
-    
+
+        # Scale to target coordinate space
+        scaled_x = pt.real * scale_x
+        scaled_y = pt.imag * scale_y
+        points.append([scaled_x, scaled_y])
+
     return np.array(points)
 
 def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
@@ -212,17 +229,21 @@ if __name__ == "__main__":
     svg_file = "/Users/log/Github/sketchvlm/results/mix_eval/ball_paths/gpt5/gpt5_low_ball_paths/item_00000.svg"
     gt_json_file = "/Users/log/Github/sketchvlm/datasets/large_run_split/run_001_1/random_scene_metadata.json"
 
-    # Extract 100 points from SVG
-    svg_points = extract_points_from_svg(svg_file, n_points=100)
-    print(f"SVG: Extracted {len(svg_points)} points")
+    # Extract 100 points from SVG (scaled to 512x512)
+    svg_points = extract_points_from_svg(svg_file, n_points=100, target_size=512)
+    print(f"SVG: Extracted {len(svg_points)} points (scaled to 512x512)")
     print(f"  First point: {svg_points[0]}")
     print(f"  Last point: {svg_points[-1]}")
+    print(f"  X range: [{svg_points[:, 0].min():.2f}, {svg_points[:, 0].max():.2f}]")
+    print(f"  Y range: [{svg_points[:, 1].min():.2f}, {svg_points[:, 1].max():.2f}]")
 
     # Extract 100 points from ground truth JSON
     gt_points = extract_points_from_gt_json(gt_json_file, n_points=100)
-    print(f"\nGround Truth: Extracted {len(gt_points)} points")
+    print(f"\nGround Truth: Extracted {len(gt_points)} points (512x512 space)")
     print(f"  First point: {gt_points[0]}")
     print(f"  Last point: {gt_points[-1]}")
+    print(f"  X range: [{gt_points[:, 0].min():.2f}, {gt_points[:, 0].max():.2f}]")
+    print(f"  Y range: [{gt_points[:, 1].min():.2f}, {gt_points[:, 1].max():.2f}]")
 
     # Verify uniform spacing for SVG
     svg_distances = np.linalg.norm(np.diff(svg_points, axis=0), axis=1)
@@ -247,5 +268,5 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     save_path = os.path.join(script_dir, "trajectory_comparison.png")
     visualize_comparison(svg_points, gt_points,
-                        title="SVG Model Output vs Ground Truth Trajectory (100 points each)",
+                        title="SVG Model Output vs Ground Truth (512x512 space, 100 points each)",
                         save_path=save_path)
