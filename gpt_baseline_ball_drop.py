@@ -197,13 +197,12 @@ class OpenAIAdapter:
                 if self.temperature is not None:
                     req_payload["temperature"] = float(self.temperature)
 
-                # Add OpenRouter-specific configuration
-                if self.openrouter_provider:
-                    req_payload["extra_body"] = {
-                        "provider": {
-                            "order": [self.openrouter_provider]
-                        }
+                req_payload["extra_body"] = {
+                    "provider": {
+                        "only": ["alibaba"],        # allow ONLY Alibaba
+                        "allow_fallbacks": False,   # never route elsewhere
                     }
+                }
 
                 if self.debug_dir:
                     try:
@@ -529,6 +528,17 @@ if __name__ == "__main__":
 python gpt_baseline_ball_drop.py --images datasets/ball_number --openai-model gpt-5 --reasoning-effort medium --max-output-tokens 10000 --out results/mix_eval/ball_number_gpt5_medium.jsonl --csv results/mix_eval/ball_number_gpt5_medium.csv --debug-dir results/mix_eval/raw_responses --progress --verbose
 
 python gpt_baseline_ball_drop.py --images datasets/vpct_ball_drop --openai-model gpt-5 --reasoning-effort high --max-output-tokens 20000 --out results/mix_eval/vpct_ball_gpt5_high_2.jsonl --csv results/mix_eval/vpct_ball_gpt5_high_2.csv --debug-dir results/mix_eval/raw_responses_2 --progress --verbose 
+
+
+
+python gpt_baseline_ball_drop.py \
+    --images datasets/ball_number \
+    --use-openrouter \
+    --openrouter-provider alibaba \
+    --openai-model "qwen/qwen3-vl-8b-thinking" \
+    --out results/qwen8b_results.jsonl \
+    --csv results/qwen8b_results.csv \
+    --progress --verbose
 
 
   '''

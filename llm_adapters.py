@@ -556,7 +556,8 @@ class OpenRouterAdapter(BaseLLMAdapter):
             max_tokens=self.max_tokens,
             extra_body={
                 "provider": {
-                    "order": ["Alibaba"]
+                    "only": ["alibaba"],      # enforce single provider
+                    "allow_fallbacks": False  # never fall back       
                 }
             }
         )
