@@ -198,6 +198,45 @@ def visualize_trajectory(points, title="Sampled Trajectory", save_path=None):
     
     plt.show()
 
+def compute_average_min_distance(svg_points, gt_points):
+    """
+    Compute average minimum distance and MSE from SVG points to GT points.
+
+    For each SVG point, finds the closest GT point and computes the distance.
+    Then calculates both the average and MSE (Mean Squared Error) of these minimum distances.
+
+    Parameters:
+    -----------
+    svg_points : np.ndarray
+        Array of shape (n, 2) containing SVG trajectory points
+    gt_points : np.ndarray
+        Array of shape (m, 2) containing ground truth trajectory points
+
+    Returns:
+    --------
+    tuple of (float, float)
+        (average_min_distance, mse_min_distance)
+    """
+    min_distances = []
+
+    for svg_pt in svg_points:
+        # Compute distances from this SVG point to all GT points
+        distances = np.linalg.norm(gt_points - svg_pt, axis=1)
+        # Find the minimum distance
+        min_dist = np.min(distances)
+        min_distances.append(min_dist)
+
+    # Convert to numpy array for easier computation
+    min_distances = np.array(min_distances)
+
+    # Average all minimum distances
+    avg_min_distance = np.mean(min_distances)
+
+    # MSE of minimum distances
+    mse_min_distance = np.mean(min_distances ** 2)
+
+    return avg_min_distance, mse_min_distance
+
 def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Comparison", save_path=None):
     """
     Visualize both SVG trajectory and ground truth trajectory for comparison
@@ -292,6 +331,14 @@ if __name__ == "__main__":
     print(f"  Min spacing: {np.min(gt_distances):.2f} pixels")
     print(f"  Max spacing: {np.max(gt_distances):.2f} pixels")
     print(f"  Coefficient of variation: {(np.std(gt_distances)/np.mean(gt_distances)*100):.1f}%")
+
+    # Compute trajectory similarity metrics
+    avg_min_dist, mse_min_dist = compute_average_min_distance(svg_points, gt_points)
+    print(f"\n{'='*60}")
+    print(f"Trajectory Similarity Metrics:")
+    print(f"  Average minimum distance (SVG to GT): {avg_min_dist:.2f} pixels")
+    print(f"  MSE minimum distance (SVG to GT): {mse_min_dist:.2f} pixels²")
+    print(f"{'='*60}")
 
     # Visualize comparison
     import os
