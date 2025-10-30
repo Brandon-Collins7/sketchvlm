@@ -315,6 +315,9 @@ def evaluate(
             n_total += 1
             fname = img_path.name
 
+            # if fname not in ("run_065.png", "run_050_1.png"):
+            #     continue
+
             if only_indices is not None and i not in only_indices:
                 continue
 
