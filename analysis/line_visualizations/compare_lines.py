@@ -85,7 +85,7 @@ def extract_points_from_svg(svg_path, n_points=500, target_size=512):
 
     return np.array(points)
 
-def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
+def extract_points_from_gt_json(json_path, n_points=100, ball_body_index=None):
     """
     Extract n_points uniformly sampled by arc-length from ground truth trajectory JSON.
 
@@ -101,8 +101,8 @@ def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
         Path to the JSON file containing trajectories
     n_points : int
         Number of points to sample uniformly along arc length
-    ball_body_index : str
-        The key in the trajectories dict for the ball (default "10")
+    ball_body_index : str or None
+        The key in the trajectories dict for the ball. If None, automatically finds the ball.
 
     Returns:
     --------
@@ -115,6 +115,23 @@ def extract_points_from_gt_json(json_path, n_points=100, ball_body_index="10"):
 
     # Get scene height for coordinate transformation
     scene_height = data['scene']['height']
+
+    # Find the ball trajectory
+    # If ball_body_index not specified, find it automatically
+    if ball_body_index is None:
+        trajectories = data.get('trajectories', {})
+        if not trajectories:
+            raise ValueError("No trajectories found in GT JSON")
+
+        # Look for common ball body indices
+        for possible_key in ['10', '9', '8', '11', '7']:
+            if possible_key in trajectories:
+                ball_body_index = possible_key
+                break
+
+        # If still not found, just take the first trajectory
+        if ball_body_index is None:
+            ball_body_index = list(trajectories.keys())[0]
 
     # Extract the trajectory points for the ball
     trajectory = data['trajectories'][ball_body_index]
@@ -237,7 +254,7 @@ def compute_average_min_distance(svg_points, gt_points):
 
     return avg_min_distance, mse_min_distance
 
-def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Comparison", save_path=None):
+def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Comparison", save_path=None, background_image_path=None):
     """
     Visualize both SVG trajectory and ground truth trajectory for comparison
 
@@ -251,13 +268,26 @@ def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Compa
         Title for the plot
     save_path : str
         Optional path to save the figure
+    background_image_path : str
+        Optional path to background image to overlay trajectories on
     """
     import matplotlib.pyplot as plt
+    from PIL import Image
+    import os
 
     fig, ax = plt.subplots(figsize=(16, 10))
 
+    # Display background image if provided
+    if background_image_path and os.path.exists(background_image_path):
+        try:
+            img = Image.open(background_image_path)
+            # Display image in 512x512 coordinate space (0,0 at top-left)
+            ax.imshow(img, extent=[0, 512, 512, 0], aspect='auto', alpha=0.5, zorder=1)
+        except Exception as e:
+            print(f"Warning: Could not load background image: {e}")
+
     # Plot ground truth trajectory
-    ax.plot(gt_points[:, 0], gt_points[:, 1], 'b-', linewidth=2, alpha=0.5, label='GT Trajectory')
+    ax.plot(gt_points[:, 0], gt_points[:, 1], 'b-', linewidth=3, alpha=0.8, label='GT Trajectory', zorder=3)
     ax.scatter(gt_points[:, 0], gt_points[:, 1], c='blue', s=50, zorder=4,
                 alpha=0.6, label=f'GT points (n={len(gt_points)})')
     ax.scatter(gt_points[0, 0], gt_points[0, 1], c='blue', s=200, zorder=5,
@@ -266,7 +296,7 @@ def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Compa
                 marker='s', edgecolors='black', linewidths=2, label='GT End')
 
     # Plot SVG trajectory
-    ax.plot(svg_points[:, 0], svg_points[:, 1], 'g-', linewidth=2, alpha=0.5, label='SVG Trajectory')
+    ax.plot(svg_points[:, 0], svg_points[:, 1], 'g-', linewidth=3, alpha=0.8, label='SVG Trajectory', zorder=3)
     ax.scatter(svg_points[:, 0], svg_points[:, 1], c='green', s=50, zorder=4,
                 alpha=0.6, label=f'SVG points (n={len(svg_points)})')
     ax.scatter(svg_points[0, 0], svg_points[0, 1], c='green', s=200, zorder=5,
@@ -274,8 +304,9 @@ def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Compa
     ax.scatter(svg_points[-1, 0], svg_points[-1, 1], c='darkgreen', s=200, zorder=5,
                 marker='s', edgecolors='black', linewidths=2, label='SVG End')
 
-    # Invert Y-axis to match SVG coordinate system
-    ax.invert_yaxis()
+    # Set axis limits and properties
+    ax.set_xlim(0, 512)
+    ax.set_ylim(512, 0)  # Inverted Y-axis to match SVG coordinate system
     ax.axis('equal')
     ax.set_title(f'{title}', fontsize=14, fontweight='bold')
     ax.set_xlabel('X', fontsize=12)
@@ -291,59 +322,167 @@ def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Compa
 
     plt.close()
 
+def process_all_svg_files(svg_dir, output_dir, n_points=100):
+    """
+    Process all SVG files in a directory, finding their GT pairs and computing metrics.
+
+    Parameters:
+    -----------
+    svg_dir : str
+        Directory containing SVG files and their corresponding JSON metadata
+    output_dir : str
+        Directory to save comparison visualizations and metrics
+    n_points : int
+        Number of points to sample from each trajectory
+
+    Returns:
+    --------
+    list of dict
+        List of results for each SVG-GT pair
+    """
+    import os
+    import glob
+    import csv
+
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Find all SVG files
+    svg_files = sorted(glob.glob(os.path.join(svg_dir, "*.svg")))
+    print(f"Found {len(svg_files)} SVG files to process\n")
+
+    results = []
+
+    for svg_file in svg_files:
+        # Get base name (e.g., "item_00000")
+        base_name = os.path.splitext(os.path.basename(svg_file))[0]
+        json_file = os.path.join(svg_dir, f"{base_name}.json")
+
+        # Read source_image from JSON to find GT file
+        if not os.path.exists(json_file):
+            print(f"Warning: No JSON file found for {base_name}, skipping...")
+            continue
+
+        try:
+            with open(json_file, 'r') as f:
+                metadata = json.load(f)
+
+            source_image = metadata.get('source_image', '')
+            if not source_image:
+                print(f"Warning: No source_image in {base_name}.json, skipping...")
+                continue
+
+            # Extract GT identifier (e.g., "run_001_1" from "datasets/ball_path/run_001_1.png")
+            gt_identifier = os.path.splitext(os.path.basename(source_image))[0]
+
+            # Find GT JSON file in datasets/large_run_split/
+            gt_json_path = os.path.join("/Users/log/Github/sketchvlm/datasets/large_run_split",
+                                       gt_identifier, "random_scene_metadata.json")
+
+            if not os.path.exists(gt_json_path):
+                print(f"Warning: GT file not found at {gt_json_path}, skipping...")
+                continue
+
+            print(f"Processing {base_name}...")
+            print(f"  SVG: {svg_file}")
+            print(f"  GT:  {gt_json_path}")
+
+            # Extract points
+            svg_points = extract_points_from_svg(svg_file, n_points=n_points, target_size=512)
+            gt_points = extract_points_from_gt_json(gt_json_path, n_points=n_points)
+
+            # Compute metrics
+            avg_min_dist, mse_min_dist = compute_average_min_distance(svg_points, gt_points)
+
+            print(f"  Average min distance: {avg_min_dist:.2f} pixels")
+            print(f"  MSE min distance: {mse_min_dist:.2f} pixels²")
+
+            # Build path to source image
+            source_image_path = os.path.join("/Users/log/Github/sketchvlm", source_image)
+            if not os.path.exists(source_image_path):
+                print(f"  Warning: Source image not found at {source_image_path}")
+                source_image_path = None
+
+            # Save visualization
+            vis_path = os.path.join(output_dir, f"{base_name}_comparison.png")
+            visualize_comparison(svg_points, gt_points,
+                               title=f"{base_name} - SVG vs GT (Avg Dist: {avg_min_dist:.2f}, MSE Dist: {mse_min_dist:.2f})",
+                               save_path=vis_path,
+                               background_image_path=source_image_path)
+
+            # Store results
+            results.append({
+                'svg_file': base_name,
+                'gt_identifier': gt_identifier,
+                'avg_min_distance': avg_min_dist,
+                'mse_min_distance': mse_min_dist,
+                'n_points': n_points
+            })
+
+            print()
+
+        except Exception as e:
+            print(f"Error processing {base_name}: {e}")
+            print()
+            continue
+
+    # Save summary metrics to CSV
+    if results:
+        csv_path = os.path.join(output_dir, "metrics_summary.csv")
+        with open(csv_path, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=['svg_file', 'gt_identifier', 'avg_min_distance', 'mse_min_distance', 'n_points'])
+            writer.writeheader()
+            writer.writerows(results)
+        print(f"Saved summary metrics to {csv_path}")
+
+        # Print summary statistics
+        avg_distances = [r['avg_min_distance'] for r in results]
+        mse_distances = [r['mse_min_distance'] for r in results]
+        print(f"\nSummary Statistics ({len(results)} files):")
+        print(f"  Average min distance: {np.mean(avg_distances):.2f} ± {np.std(avg_distances):.2f} pixels")
+        print(f"  MSE min distance: {np.mean(mse_distances):.2f} ± {np.std(mse_distances):.2f} pixels²")
+
+    return results
+
 # Usage
 if __name__ == "__main__":
     import numpy as np
-
-    svg_file = "/Users/log/Github/sketchvlm/results/mix_eval/ball_paths/gpt5/gpt5_low_ball_paths/item_00000.svg"
-    gt_json_file = "/Users/log/Github/sketchvlm/datasets/large_run_split/run_001_1/random_scene_metadata.json"
-
-    # Extract 100 points from SVG (scaled to 512x512)
-    svg_points = extract_points_from_svg(svg_file, n_points=100, target_size=512)
-    print(f"SVG: Extracted {len(svg_points)} points (scaled to 512x512)")
-    print(f"  First point: {svg_points[0]}")
-    print(f"  Last point: {svg_points[-1]}")
-    print(f"  X range: [{svg_points[:, 0].min():.2f}, {svg_points[:, 0].max():.2f}]")
-    print(f"  Y range: [{svg_points[:, 1].min():.2f}, {svg_points[:, 1].max():.2f}]")
-
-    # Extract 100 points from ground truth JSON
-    gt_points = extract_points_from_gt_json(gt_json_file, n_points=100)
-    print(f"\nGround Truth: Extracted {len(gt_points)} points (512x512 space)")
-    print(f"  First point: {gt_points[0]}")
-    print(f"  Last point: {gt_points[-1]}")
-    print(f"  X range: [{gt_points[:, 0].min():.2f}, {gt_points[:, 0].max():.2f}]")
-    print(f"  Y range: [{gt_points[:, 1].min():.2f}, {gt_points[:, 1].max():.2f}]")
-
-    # Verify uniform spacing for SVG
-    svg_distances = np.linalg.norm(np.diff(svg_points, axis=0), axis=1)
-    print(f"\nSVG Spacing Statistics:")
-    print(f"  Average spacing: {np.mean(svg_distances):.2f} pixels")
-    print(f"  Std dev: {np.std(svg_distances):.2f} pixels")
-    print(f"  Min spacing: {np.min(svg_distances):.2f} pixels")
-    print(f"  Max spacing: {np.max(svg_distances):.2f} pixels")
-    print(f"  Coefficient of variation: {(np.std(svg_distances)/np.mean(svg_distances)*100):.1f}%")
-
-    # Verify uniform spacing for GT
-    gt_distances = np.linalg.norm(np.diff(gt_points, axis=0), axis=1)
-    print(f"\nGround Truth Spacing Statistics:")
-    print(f"  Average spacing: {np.mean(gt_distances):.2f} pixels")
-    print(f"  Std dev: {np.std(gt_distances):.2f} pixels")
-    print(f"  Min spacing: {np.min(gt_distances):.2f} pixels")
-    print(f"  Max spacing: {np.max(gt_distances):.2f} pixels")
-    print(f"  Coefficient of variation: {(np.std(gt_distances)/np.mean(gt_distances)*100):.1f}%")
-
-    # Compute trajectory similarity metrics
-    avg_min_dist, mse_min_dist = compute_average_min_distance(svg_points, gt_points)
-    print(f"\n{'='*60}")
-    print(f"Trajectory Similarity Metrics:")
-    print(f"  Average minimum distance (SVG to GT): {avg_min_dist:.2f} pixels")
-    print(f"  MSE minimum distance (SVG to GT): {mse_min_dist:.2f} pixels²")
-    print(f"{'='*60}")
-
-    # Visualize comparison
     import os
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Compare SVG ball trajectories with ground truth')
+    parser.add_argument('--svg_dir', type=str,
+                       default='/Users/log/Github/sketchvlm/results/mix_eval/ball_paths/gpt5/gpt5_low_ball_paths',
+                       help='Directory containing SVG files to compare')
+    parser.add_argument('--n_points', type=int, default=100,
+                       help='Number of points to sample from each trajectory')
+    parser.add_argument('--output_name', type=str, default=None,
+                       help='Name for output subdirectory (auto-detected from path if not provided)')
+
+    args = parser.parse_args()
+
+    svg_dir = args.svg_dir
+
+    # Auto-detect model name from path if not provided
+    if args.output_name:
+        output_name = args.output_name
+    else:
+        # Extract name from path (e.g., "gpt5_low_ball_paths" -> "gpt5_low")
+        dir_name = os.path.basename(svg_dir)
+        output_name = dir_name.replace('_ball_paths', '')
+
+    # Create output directory organized by model
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    save_path = os.path.join(script_dir, "trajectory_comparison.png")
-    visualize_comparison(svg_points, gt_points,
-                        title="SVG Model Output vs Ground Truth (512x512 space, 100 points each)",
-                        save_path=save_path)
+    output_dir = os.path.join(script_dir, "comparisons", output_name)
+
+    print("="*60)
+    print("Batch Processing: SVG vs Ground Truth Trajectory Comparison")
+    print("="*60)
+    print(f"SVG Directory: {svg_dir}")
+    print(f"Output Name: {output_name}")
+    print(f"Output Directory: {output_dir}")
+    print(f"Sampling {args.n_points} points per trajectory")
+    print("="*60)
+    print()
+
+    results = process_all_svg_files(svg_dir, output_dir, n_points=args.n_points)

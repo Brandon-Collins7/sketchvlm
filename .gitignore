@@ -7,3 +7,8 @@ datasets/
 /TallyQA_dataset/
 
 nano_generated/
+
+# Line visualization comparisons
+analysis/line_visualizations/comparisons/
+analysis/line_visualizations/test_with_background.png
+analysis/line_visualizations/trajectory_comparison.png
