@@ -10,6 +10,20 @@
 
 # **Frequently Used**
 
+
+**Baseline:**
+
+--no-grid
+
+removes grid from the image that is sent to model
+
+
+--no-system-prompt
+
+removes system prompt from being sent to model
+
+
+
 **Inference:**
 
 **GPT-5 (medium) - Connect Dots**

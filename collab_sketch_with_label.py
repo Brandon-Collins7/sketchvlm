@@ -77,6 +77,8 @@ class SketchApp:
         target_rows: int = 50,
         min_cell_px: int = 18,
         max_cell_px: int = 64,
+        no_grid: bool = False,
+        no_system_prompt: bool = False,
     ):
         self.app = Flask(__name__)
         self.session_id = str(uuid.uuid4())
@@ -86,6 +88,12 @@ class SketchApp:
         self.cache = llm_adapter.cache
         self.max_tokens = llm_adapter.max_tokens
         self.llm = llm_adapter
+        
+        
+        # Needed for baseline
+        self.no_grid = bool(no_grid)
+        self.no_system_prompt = bool(no_system_prompt)
+
 
         # Grid setup
         self.grid_manager = GridManager(
@@ -154,6 +162,11 @@ class SketchApp:
         self.app.add_url_rule('/set-turn-order', 'set_turn_order', self.set_turn_order, methods=['POST'])
 
     # ---------- small helpers ----------
+    
+    def _sys_prompt_or_none(self):
+        if self.no_system_prompt:
+            return None
+        return system_prompt.format(res_x=self.res_x, res_y=self.res_y)
     
     def skip_turn(self):
         """
@@ -309,15 +322,18 @@ class SketchApp:
 
                 # 3) Build a counting prompt from the question
                 #    (mimics your HF path: extract the "thing" and feed COUNTING_PROMPT)
-                thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                prompt = COUNTING_PROMPT.format(thing=thing)
+                if self.no_system_prompt:
+                    prompt = question  # send exactly the per-image text file contents
+                else:
+                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
+                    prompt = COUNTING_PROMPT.format(thing=thing)
 
                 use_stop = not isinstance(self.llm, GeminiAdapter)
 
                 # 4) Single LLM call → full <strokes>...</strokes> XML with numbered <text> labels
                 answer = self.get_response_from_llm(
                     msg=prompt,
-                    system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+                    system_message=self._sys_prompt_or_none(),
                     msg_history=[],
                     init_canvas_str=self.last_canvas_b64,
                     seed_mode=self.seed_mode,
@@ -881,7 +897,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+            system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -896,7 +912,7 @@ class SketchApp:
     def draw_entire_sketch(self):
         all_sketch = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+            system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1109,7 +1125,7 @@ class SketchApp:
     def call_model_stroke_completion(self):
         answer = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+            system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1368,8 +1384,10 @@ class SketchApp:
     def set_background_from_pil(self, pil_img: Image.Image, mode: str = "fit", bgcolor=(255, 255, 255)):
         """Public helper used by batch eval to mimic an uploaded image."""
         if self.dynamic_grid:
-            # Use the new grid manager for dynamic sizing
-            composited = self.grid_manager.create_annotated_image(pil_img, self.show_full_grid, bgcolor)
+            # Recompute grid, place the raw image, then *conditionally* overlay
+            self.grid_manager.update_grid_for_image(pil_img, self.show_full_grid)
+            placed = self.grid_manager.place_image_at_bottom_left(pil_img, bgcolor)
+            composited = placed if self.no_grid else self.grid_manager.overlay_grid(placed)
             
             # Update backward compatibility properties
             self.res_x = self.grid_manager.res_x
@@ -1383,7 +1401,7 @@ class SketchApp:
             # Fall back to old method for static grids
             self._update_grid_for_image(pil_img)
             placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
-            composited = self._overlay_grid(placed)
+            composited = placed if self.no_grid else self._overlay_grid(placed)
             
         self._set_base_canvas(composited)
         self.base_canvas_clean = self.base_canvas.copy()  # pristine background for stepwise + final render
@@ -1417,7 +1435,7 @@ class SketchApp:
 
         answer = self.get_response_from_llm(
             msg=prompt,
-            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+            system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1593,12 +1611,29 @@ class SketchApp:
     
     def _start_counting_session(self, question: str):
         # derive the counted "thing" and seed a counting header (like init_thinking_tags)
+        
+        if self.no_system_prompt:
+            self.input_prompt = question
+            assistant_suffix = self.get_response_from_llm(
+                msg=self.input_prompt,
+                system_message=None,
+                msg_history=[],
+                init_canvas_str=self.last_canvas_b64,
+                seed_mode=self.seed_mode,
+                gen_mode="generation",
+                stop_sequences=None,
+            )
+            self.thinking_tags = assistant_suffix
+            self.update_history(self.thinking_tags)
+            return
+            
         thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
         self.input_prompt = COUNTING_PROMPT.format(thing=thing)
+
         add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+            system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -1755,7 +1790,7 @@ class SketchApp:
                     # ---------- SINGLE-SHOT ----------
                     answer = self.get_response_from_llm(
                         msg=base_prompt,
-                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+                        system_message=self._sys_prompt_or_none(),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -1932,10 +1967,13 @@ class SketchApp:
                 self.set_background_from_pil(img, mode="fit")
 
                 # 2) prompt TODO
-                #prompt = sketch_first_prompt.format(concept=question, gt_sketches_str=gt_example)
                 
-                thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                prompt = COUNTING_PROMPT.format(thing=thing)
+                #prompt = sketch_first_prompt.format(concept=question, gt_sketches_str=gt_example)
+                if self.no_system_prompt:
+                    prompt = question  # send exactly the per-image text file contents
+                else:
+                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
+                    prompt = COUNTING_PROMPT.format(thing=thing)
 
 
 
@@ -1944,7 +1982,7 @@ class SketchApp:
                 # 3) single LLM call
                 answer = self.get_response_from_llm(
                     msg=prompt,
-                    system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+                    system_message=self._sys_prompt_or_none(),
                     msg_history=[],
                     init_canvas_str=self.last_canvas_b64,
                     seed_mode=self.seed_mode,
@@ -2038,6 +2076,25 @@ class SketchApp:
         Seed a session for arbitrary prompts by appending a gated capability toolkit,
         then end at <strokes> exactly like the UI so Gemini is 'in protocol'.
         """
+        
+        # If user asked for raw prompt only, do exactly that.
+        if self.no_system_prompt:
+            self.input_prompt = user_prompt.strip()
+            assistant_suffix = self.get_response_from_llm(
+                msg=self.input_prompt,
+                system_message=None,           # no system
+                msg_history=[],
+                init_canvas_str=self.last_canvas_b64,
+                seed_mode=self.seed_mode,
+                gen_mode="generation",
+                stop_sequences=None,           # don’t force a <strokes>-based stop
+            )
+            # No protocol tags added
+            self.thinking_tags = assistant_suffix
+            self.update_history(self.thinking_tags)
+            return
+            
+        
         # Build the seeded instruction (raw prompt + gated toolkit)
         # Keep your existing system_prompt(res=...) for grid details.
         self.input_prompt = (
@@ -2051,7 +2108,7 @@ class SketchApp:
         add_args = {"stop_sequences": "<strokes>"}  # dropped automatically for Gemini in get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
             msg=self.input_prompt,
-            system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+            system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
@@ -2153,18 +2210,32 @@ class SketchApp:
 
 
                 else:
-                    self._start_generic_session(prompt_from_txt)
-                    use_stop = not isinstance(self.llm, GeminiAdapter)
-                    answer = self.get_response_from_llm(
-                        msg=self.input_prompt,
-                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
-                        msg_history=[],
-                        init_canvas_str=self.last_canvas_b64,
-                        seed_mode=self.seed_mode,
-                        gen_mode="completion",
-                        prefill_msg=self.assitant_history.strip(),
-                        stop_sequences="</answer>" if use_stop else None
-                    )
+                    if self.no_system_prompt:
+                        use_stop = not isinstance(self.llm, GeminiAdapter)
+                        answer = self.get_response_from_llm(
+                            msg=prompt_from_txt,          # verbatim .txt
+                            system_message=None,          # no system
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="generation",
+                            stop_sequences="</answer>" if use_stop else None,
+                        )
+                    else:
+                        self._start_generic_session(prompt_from_txt)
+                        use_stop = not isinstance(self.llm, GeminiAdapter)
+                        answer = self.get_response_from_llm(
+                            msg=self.input_prompt,
+                            system_message=self._sys_prompt_or_none(),
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=self.assitant_history.strip(),
+                            stop_sequences="</answer>" if use_stop else None
+                        )
+                    
+                    
                     answer_xml = self._canon_strokes(answer)
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
                     
@@ -2319,12 +2390,17 @@ class SketchApp:
                     answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
 
                 else:
-                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(thing=thing)
+                    
+                    if self.no_system_prompt:
+                        prompt = question  # send exactly the per-image text file contents
+                    else:
+                        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
+                        prompt = COUNTING_PROMPT.format(thing=thing)
+
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
                         msg=prompt,
-                        system_message=system_prompt.format(res_x=self.res_x, res_y=self.res_y),
+                        system_message=self._sys_prompt_or_none(),
                         msg_history=[],
                         init_canvas_str=self.last_canvas_b64,
                         seed_mode=self.seed_mode,
@@ -2520,6 +2596,11 @@ if __name__ == '__main__':
                    help="Minimum pixel size per cell for readability.")
     parser.add_argument("--max-cell-px", type=int, default=64,
                    help="Upper bound for pixel size per cell.")
+    
+    parser.add_argument("--no-grid", action="store_true",
+                       help="Do NOT draw/overlay the grid; send the raw image only.")
+    parser.add_argument("--no-system-prompt", action="store_true",
+                       help="Do NOT send the system prompt or task prompt. The model only receives the per-sample text file.")
 
 
     args = parser.parse_args()
@@ -2564,6 +2645,8 @@ if __name__ == '__main__':
         target_rows=args.target_rows,
         min_cell_px=args.min_cell_px,
         max_cell_px=args.max_cell_px,
+        no_grid=args.no_grid,
+        no_system_prompt=args.no_system_prompt,
     )
 
     app.api_delay_sec = args.api_delay
