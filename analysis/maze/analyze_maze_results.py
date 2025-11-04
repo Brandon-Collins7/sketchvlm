@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Analyze Gemini 2.5 Flash maze validation responses with path length breakdown.
+Analyze Gemini maze validation responses with path length breakdown.
 This script evaluates model accuracy on maze path validation tasks, broken down by path length.
 """
 
 import json
 import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
 from collections import defaultdict
@@ -203,6 +204,15 @@ def print_path_length_breakdown(results: Dict, title: str):
 
 
 def main():
+    # Parse command line arguments
+    if len(sys.argv) < 2:
+        print("Usage: python analyze_maze_results.py <model_name>")
+        print("Example: python analyze_maze_results.py gemini25_flash")
+        print("         python analyze_maze_results.py gemini25_pro")
+        sys.exit(1)
+
+    model_name = sys.argv[1]
+
     # Build maze to path length mapping
     print("Building maze to path length mapping...")
     maze_to_path_length = build_maze_to_path_length_mapping()
@@ -210,11 +220,14 @@ def main():
 
     # Define paths
     base_path = Path('/Users/log/Github/sketchvlm/results/mix_eval/maze/gemini')
-    invalid_dir = base_path / 'gemini25_flash_invalid'
-    valid_dir = base_path / 'gemini25_flash_valid'
+    invalid_dir = base_path / model_name / f'{model_name}_invalid'
+    valid_dir = base_path / model_name / f'{model_name}_valid'
+
+    # Get display name
+    display_name = model_name.replace('gemini25_', 'Gemini 2.5 ').replace('_', ' ').title()
 
     print("=" * 80)
-    print("Gemini 2.5 Flash - Maze Path Validation Analysis")
+    print(f"{display_name} - Maze Path Validation Analysis")
     print("=" * 80)
     print()
 
