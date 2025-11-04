@@ -1,8 +1,0 @@
-{"index": 0, "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?", "mode": "single_shot", "turns": null, "error": "unhashable type: 'list'", "raw_image": "results\\mix_eval\\20250911_170245\\item_00000_orig.jpg", "grid_image": "results\\mix_eval\\20250911_170245\\item_00000_grid.png", "annotated_image": "results\\mix_eval\\20250911_170245\\item_00000_annotated.png", "svg": "results\\mix_eval\\20250911_170245\\item_00000.svg", "source_image": "datasets\\mix3\\a.png", "source_prompt": "datasets\\mix3\\a.txt"}
-{"index": 1, "mode": "single_shot", "num_strokes_total": 1, "num_strokes_text": 0}
-{"index": 2, "mode": "single_shot", "num_strokes_total": 1, "num_strokes_text": 0}
-{"index": 3, "mode": "single_shot", "num_strokes_total": 11, "num_strokes_text": 0}
-{"index": 4, "mode": "single_shot", "num_strokes_total": 19, "num_strokes_text": 0}
-{"index": 5, "prompt": "this is a connect-the-dot puzzle. can you connect the dots in order by drawing?", "mode": "single_shot", "turns": null, "error": "unhashable type: 'list'", "raw_image": "results\\mix_eval\\20250911_170245\\item_00005_orig.jpg", "grid_image": "results\\mix_eval\\20250911_170245\\item_00005_grid.png", "annotated_image": "results\\mix_eval\\20250911_170245\\item_00005_annotated.png", "svg": "results\\mix_eval\\20250911_170245\\item_00005.svg", "source_image": "datasets\\mix3\\fruit.jpg", "source_prompt": "datasets\\mix3\\fruit.txt"}
-{"index": 6, "mode": "single_shot", "num_strokes_total": 10, "num_strokes_text": 0}
-{"index": 7, "mode": "single_shot", "num_strokes_total": 1, "num_strokes_text": 0}

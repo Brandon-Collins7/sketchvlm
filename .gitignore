@@ -14,3 +14,5 @@ analysis/line_visualizations/test_with_background.png
 analysis/line_visualizations/trajectory_comparison.png
 analysis/line_visualizations/*.html
 analysis/line_visualizations/*_comparison.png
+
+results/mix_eval/*
