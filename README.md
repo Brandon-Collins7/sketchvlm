@@ -60,7 +60,7 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed
 
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v1/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v1/substitution_sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v1/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
 
 -----
