@@ -326,7 +326,7 @@ class SketchApp:
                     prompt = question  # send exactly the per-image text file contents
                 else:
                     thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(thing=thing)
+                    prompt = COUNTING_PROMPT.format(object=thing)
 
                 use_stop = not isinstance(self.llm, GeminiAdapter)
 
@@ -1628,7 +1628,7 @@ class SketchApp:
             return
             
         thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
-        self.input_prompt = COUNTING_PROMPT.format(thing=thing)
+        self.input_prompt = COUNTING_PROMPT.format(object=thing)
 
         add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
@@ -1973,7 +1973,7 @@ class SketchApp:
                     prompt = question  # send exactly the per-image text file contents
                 else:
                     thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(thing=thing)
+                    prompt = COUNTING_PROMPT.format(object=thing)
 
 
 
@@ -2395,7 +2395,7 @@ class SketchApp:
                         prompt = question  # send exactly the per-image text file contents
                     else:
                         thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                        prompt = COUNTING_PROMPT.format(thing=thing)
+                        prompt = COUNTING_PROMPT.format(object=thing)
 
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
