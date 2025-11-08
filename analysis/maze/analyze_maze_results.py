@@ -34,8 +34,8 @@ def build_maze_to_path_length_mapping() -> Dict[str, int]:
     """
     maze_to_path_length = {}
 
-    for path_length in range(1, 8):
-        path_dir = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v1/path_length_{path_length}')
+    for path_length in range(1, 10):  # Check up to path_length_9
+        path_dir = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v2/path_length_{path_length}')
         if not path_dir.exists():
             continue
         for maze_dir in path_dir.iterdir():
@@ -209,7 +209,7 @@ def analyze_directory(dir_path: Path, expected_answer: Union[str, int], maze_to_
                 else:
                     # For invalid paths, read from metadata.json
                     if path_length is not None:
-                        metadata_path = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v1/path_length_{path_length}/{maze_id}/metadata.json')
+                        metadata_path = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v2/path_length_{path_length}/{maze_id}/metadata.json')
                         if metadata_path.exists():
                             with open(metadata_path, 'r') as meta_file:
                                 metadata = json.load(meta_file)
@@ -499,11 +499,12 @@ def create_path_length_plot(results_list: List[Dict], output_path: Path):
 def main():
     # Parse command line arguments
     if len(sys.argv) < 2:
-        print("Usage: python analyze_maze_results.py [--index-mode] <config1> [<config2> ...]")
+        print("Usage: python analyze_maze_results.py [--index-mode] [--base-dir=DIR] <config1> [<config2> ...]")
         print("       Each config should be: parent_dir:model_name:label")
         print()
         print("Flags:")
-        print("  --index-mode    Enable index-based evaluation (ground truth is numeric index for invalid paths)")
+        print("  --index-mode       Enable index-based evaluation (ground truth is numeric index for invalid paths)")
+        print("  --base-dir=DIR     Base directory (gemini or gpt5), default: gemini")
         print()
         print("Examples:")
         print("  Single model:")
@@ -515,22 +516,34 @@ def main():
         print("      gemini25_pro:gemini25_pro:\"Pro (Sketch)\" \\")
         print("      direct_vqa:gemini25_pro:\"Pro (Direct VQA)\"")
         print()
+        print("  GPT-5 models:")
+        print("    python analyze_maze_results.py --base-dir=gpt5 \\")
+        print("      :gpt5_low:\"GPT-5 (Sketch)\"")
+        print()
         print("  Index-based evaluation:")
         print("    python analyze_maze_results.py --index-mode \\")
         print("      gemini25_pro:gemini25_pro:\"Pro (Sketch)\"")
         sys.exit(1)
 
-    # Check for --index-mode flag
+    # Check for flags
     index_mode = False
+    base_dir = 'gemini'
     args = sys.argv[1:]
+
     if '--index-mode' in args:
         index_mode = True
         args = [arg for arg in args if arg != '--index-mode']
 
+    # Extract --base-dir flag
+    base_dir_args = [arg for arg in args if arg.startswith('--base-dir=')]
+    if base_dir_args:
+        base_dir = base_dir_args[0].split('=', 1)[1]
+        args = [arg for arg in args if not arg.startswith('--base-dir=')]
+
     # Check if we have any configs after removing flags
     if not args:
         print("Error: No model configurations provided")
-        print("Usage: python analyze_maze_results.py [--index-mode] <config1> [<config2> ...]")
+        print("Usage: python analyze_maze_results.py [--index-mode] [--base-dir=DIR] <config1> [<config2> ...]")
         sys.exit(1)
 
     # Parse configurations
@@ -546,16 +559,16 @@ def main():
     # Build maze to path length mapping
     print("Building maze to path length mapping...")
     maze_to_path_length = build_maze_to_path_length_mapping()
-    print(f"Mapped {len(maze_to_path_length)} mazes to path lengths 1-7\n")
+    print(f"Mapped {len(maze_to_path_length)} mazes to path lengths\n")
 
     # Determine base path and output directory based on mode
     if index_mode:
         print("Running in INDEX MODE: Ground truth for invalid paths is the modified index\n")
-        base_path = Path('/Users/log/Github/sketchvlm/results/mix_eval/maze/gemini/index')
+        base_path = Path(f'/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/{base_dir}/index')
         output_dir = Path('/Users/log/Github/sketchvlm/analysis/maze/index')
     else:
         print("Running in BINARY MODE: Ground truth is 'valid' or 'invalid'\n")
-        base_path = Path('/Users/log/Github/sketchvlm/results/mix_eval/maze/gemini')
+        base_path = Path(f'/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/{base_dir}')
         output_dir = Path('/Users/log/Github/sketchvlm/analysis/maze/binary')
 
     # Create output directory if it doesn't exist
