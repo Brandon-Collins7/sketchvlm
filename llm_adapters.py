@@ -398,6 +398,12 @@ class OpenAIAdapter(BaseLLMAdapter):
                                 return t.strip()
         return ""
 
+    def response_metadata(self, raw_response) -> dict:
+        try:
+            rid = getattr(raw_response, "id", None) or (isinstance(raw_response, dict) and raw_response.get("id"))
+            return {"response_id": rid}
+        except Exception:
+            return {}
 
 
     def call(self, system_message, messages, additional_args):
@@ -458,7 +464,14 @@ class OpenAIAdapter(BaseLLMAdapter):
                 "model": self.model,
                 "input": [{"role": "user", "content": parts}],
                 "max_output_tokens": self.max_tokens,
+                "store": True, #keep reasoning items server-side between turns
             }
+            
+            
+            prev_id = additional_args.get("previous_response_id")
+            if prev_id:
+                rargs["previous_response_id"] = prev_id
+            
             if "reasoning_effort" in additional_args:
                 rargs["reasoning"] = {"effort": additional_args["reasoning_effort"]}
             
@@ -468,7 +481,9 @@ class OpenAIAdapter(BaseLLMAdapter):
             if temperature is not None:
                 rargs["temperature"] = float(temperature)
 
-            return self._client.responses.create(**rargs)
+            resp = self._client.responses.create(**rargs)
+            self._last_response_id = getattr(resp, "id", None)
+            return resp
 
         # ---------------- Chat Completions (minimal fallback) ----------------
         chat_messages = messages or []
