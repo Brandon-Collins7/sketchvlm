@@ -19,6 +19,10 @@ from typing import Optional, List, Dict
 import html
 
 
+import hashlib, io, base64, os, re
+from pathlib import Path
+
+
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
 from PIL import Image
@@ -26,6 +30,12 @@ from werkzeug.utils import secure_filename
 
 import utils
 from prompts import sketch_first_prompt, system_prompt, gt_example, COUNTING_PROMPT, MIX_TOOLKIT, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT
+from prompts import (
+    ONE_STROKE_SYSTEM_GUARD,
+    STROKES_ONLY_SYSTEM_GUARD,
+    FINAL_ANSWER_SYSTEM_GUARD,
+)
+
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
 from PIL import Image, ImageOps
@@ -326,7 +336,7 @@ class SketchApp:
                     prompt = question  # send exactly the per-image text file contents
                 else:
                     thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(thing=thing)
+                    prompt = COUNTING_PROMPT.format(object=thing)
 
                 use_stop = not isinstance(self.llm, GeminiAdapter)
 
@@ -790,12 +800,20 @@ class SketchApp:
         prefill_msg: Optional[str] = None,
         seed_mode: str = "stochastic",
         stop_sequences: Optional[str] = None,
-        gen_mode: str = "generation"
+        gen_mode: str = "generation",
+        **kw,
+        
     ):
+        
+        
         if msg_history is None:
             msg_history = []
 
         additional_args: Dict = {}
+        
+        if kw:
+            additional_args.update(kw)
+        
         if seed_mode == "deterministic":
             additional_args["temperature"] = 0.0
             additional_args["top_k"] = 1  # ignored by OpenAI adapter
@@ -1123,24 +1141,37 @@ class SketchApp:
 
 
     def call_model_stroke_completion(self):
+        # compute the next stroke number we expect
+        expected = self.stroke_counter + 1
+
+        # add a tiny guidance line – appended to the existing seeded prompt
+        one_stroke_guard = (
+            f"\n\n[Stepwise mode]\n"
+            f"Return EXACTLY ONE stroke: <s{expected}> ... </s{expected}> only.\n"
+            f"Do NOT output any other strokes.\n"
+            f"Do NOT output <final_answer> until explicitly asked.\n"
+            f"Stop immediately after </s{expected}>."
+        )
+
+
+        # use a dynamic stop sequence that matches the next stroke’s closing tag
         answer = self.get_response_from_llm(
-            msg=self.input_prompt,
+            msg=(self.input_prompt + one_stroke_guard),
             system_message=self._sys_prompt_or_none(),
             msg_history=[],
             init_canvas_str=self.last_canvas_b64,
             seed_mode=self.seed_mode,
             gen_mode="completion",
             prefill_msg=self.assitant_history.strip(),
-            stop_sequences="</answer>"
+            stop_sequences=f"</s{expected}>",   # ← key change
         )
 
         if self.multi_stroke:
-            # accept all unseen blocks
             return self._next_undrawn(answer)
         else:
-            # accept only the exact next s-number (e.g., s3 if we’re at s2)
             expected = self.stroke_counter + 1
             return self._next_undrawn(answer, expected_s_no=expected)
+
 
 
     def predict_next_stroke(self):
@@ -1162,6 +1193,7 @@ class SketchApp:
             expected += 1
 
         return "".join(svgs)
+    
     
     '''
     def set_background_from_pil(self, img_pil: Image.Image):
@@ -1288,14 +1320,32 @@ class SketchApp:
             # As a last resort, count text nodes as strokes
             return len(re.findall(r"<text\b", xml_str, flags=re.I))
 
-    def _extract_final_answer_any(self, *candidates: Optional[str]) -> Optional[int]:
+    def _extract_final_answer_any(self, *candidates: Optional[str]) -> Optional[str]:
         """
-        Try several text sources in order and return the first parsed final answer.
+        Return the raw inner text from the first <final_answer>...</final_answer> found
+        across the provided candidate strings. No numeric coercion—whatever is inside
+        the tag is returned (trimmed). If not found, returns None.
         """
+        import html as _html
+        pat = re.compile(r"<final_answer\b[^>]*>(.*?)</final_answer>", re.S | re.I)
+
         for s in candidates:
-            ans = utils.parse_final_answer_boxed(s)
-            if ans is not None:
-                return ans
+            if not s:
+                continue
+            # strip accidental fences so the regex can see the tag
+            t = re.sub(r"^```(?:xml|html)?\s*|\s*```$", "", str(s).strip())
+            m = pat.search(t)
+            if not m:
+                continue
+            inner = m.group(1).strip()
+            # unescape any HTML entities the model might have produced
+            inner = _html.unescape(inner)
+            # also trim surrounding quotes if the model wrapped the answer
+            if (inner.startswith(("'", '"')) and inner.endswith(("'", '"')) 
+                    and len(inner) >= 2):
+                inner = inner[1:-1].strip()
+            return inner
+
         return None
 
 
@@ -1608,7 +1658,23 @@ class SketchApp:
         )
 
     
-    
+  
+
+    def _sha1_bytes(self, b: bytes) -> str:
+        h = hashlib.sha1(); h.update(b); return h.hexdigest()
+
+    def _canon_strokes_context(self) -> str:
+        """
+        Return strokes-so-far as <strokes>...</strokes> (no <svg> wrapper).
+        Assumes self.cur_svg_to_render = '<svg ...> ... </svg>' or 'None'.
+        """
+        if not self.cur_svg_to_render or self.cur_svg_to_render == "None":
+            return "<strokes></strokes>"
+        s = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
+        s = re.sub(r'</svg>\s*$', '</strokes>', s, flags=re.S)
+        return s
+        
+        
     def _start_counting_session(self, question: str):
         # derive the counted "thing" and seed a counting header (like init_thinking_tags)
         
@@ -1628,7 +1694,7 @@ class SketchApp:
             return
             
         thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
-        self.input_prompt = COUNTING_PROMPT.format(thing=thing)
+        self.input_prompt = COUNTING_PROMPT.format(object=thing)
 
         add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
         assistant_suffix = self.get_response_from_llm(
@@ -1973,7 +2039,7 @@ class SketchApp:
                     prompt = question  # send exactly the per-image text file contents
                 else:
                     thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(thing=thing)
+                    prompt = COUNTING_PROMPT.format(object=thing)
 
 
 
@@ -2119,6 +2185,10 @@ class SketchApp:
         # Store the header and open the strokes section
         self.thinking_tags = assistant_suffix + "<strokes>"
         self.update_history(self.thinking_tags)
+        
+        
+    
+        
 
     def evaluate_mixed_folder(
         self,
@@ -2129,8 +2199,20 @@ class SketchApp:
         max_turns: int = 40,
         count_only_text: bool = True,
         skip: int = 0,
-        only: str = None
+        only: str = None,
+        two_turn: bool = False,
+        counting: bool = False,
     ):
+        
+        def _capture_turn_input(system_message: str, user_text: str, svg_so_far: str, step_png_path: str=None):
+            return {
+                "system": (system_message or ""),
+                "user_text": (user_text or ""),
+                "strokes_so_far": (svg_so_far or ""),
+                "step_png": (str(step_png_path) if step_png_path else None),
+            }
+
+        
         src = Path(src_dir)
         assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
 
@@ -2164,6 +2246,7 @@ class SketchApp:
             txt_path = img_path.with_suffix(".txt")
             prompt_from_txt = None
             turns = 0
+            turn_trace = []  # per-turn captures
             raw_path = out_root / f"item_{i:05d}_orig.jpg"
             svg_path = out_root / f"item_{i:05d}.svg"
             png_path = out_root / f"item_{i:05d}_annotated.png"
@@ -2175,6 +2258,32 @@ class SketchApp:
                 img = Image.open(img_path).convert("RGB")
                 with open(txt_path, "r", encoding="utf-8") as f:
                     prompt_from_txt = f.read().strip()
+                    
+                # Decide seed prompt (prepend counting header if requested)
+                if counting:
+                    if self.no_system_prompt:
+                        # honor raw-prompt mode exactly
+                        seed_prompt = prompt_from_txt.strip()
+                    else:
+                        # derive a target “thing” like we do elsewhere
+                        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", prompt_from_txt or "").strip() or "object"
+                        seed_prompt = COUNTING_PROMPT.format(object=thing)
+                else:
+                    seed_prompt = prompt_from_txt
+                    
+                # === COUNTING wiring: match --count-dir behavior ===
+                thing = None
+                if counting:
+                    # mimic the object extraction used in your counting flows
+                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there\??.*$", "", prompt_from_txt or "").strip() or "object"
+
+                base_sys = self._sys_prompt_or_none() or ""
+                sys_count = base_sys
+                if counting:
+                    # COUNTING_PROMPT is a system-scope template in your other flows
+                    sys_count = base_sys + "\n" + COUNTING_PROMPT.format(object=thing)
+
+
 
                 # Background first
                 self.set_background_from_pil(img, mode="fit")
@@ -2186,35 +2295,275 @@ class SketchApp:
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
 
-                if stepwise:
-                    self._start_generic_session(prompt_from_txt)
+                if stepwise: #MULTI-TURN MODE
+                    self._start_generic_session(seed_prompt)
+                    
+                    base_sys = self._sys_prompt_or_none() or ""
+                    sys_with_one = (sys_count if counting else base_sys) + "\n" + ONE_STROKE_SYSTEM_GUARD
+                    prev_resp_id = None  # threaded only when using GPT-5 (Responses API)
+                    
                     self.multi_stroke = False
 
                     while turns < max_turns:
+                        expected_s = self.stroke_counter + 1
+
                         turns += 1
-                        svg_chunk = self.predict_next_stroke()
-                        if not svg_chunk:
-                            break
-                        self.all_strokes_svg += svg_chunk
-                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-                        self._composite_svg_on_base(
-                            self.cur_svg_to_render,
-                            str(out_root / f"item_{i:05d}_step_{turns:03d}.png")
+                        
+                        # Include strokes-so-far as context text and send the updated image via init_canvas_str
+                        context_block = f"\n\n[Context so far]\n{self.all_strokes_svg}</svg>" if self.all_strokes_svg else ""
+                        user_msg = self.input_prompt + context_block
+
+                        use_stop = not isinstance(self.llm, GeminiAdapter)
+                        stop_seq = f"</s{expected_s}>"
+                        answer_raw = self.get_response_from_llm(
+                            msg=user_msg,
+                            system_message=sys_with_one,
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,   # updated raster w/ previous overlays
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=self.assitant_history.strip(),
+                            stop_sequences=stop_seq if use_stop else None,
+                            previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
                         )
 
+                        # Keep a lightweight record of what we sent this turn (for your JSON)
+                        turn_input_dbg = {
+                            "system": sys_with_one,
+                            "user": user_msg,
+                            "overlay_svg": (self.all_strokes_svg + "</svg>") if self.all_strokes_svg else None,
+                            "previous_response_id": prev_resp_id,
+                        }
+
+                        # Extract text and isolate exactly one <sN> ... </sN>
+                        full_text = getattr(self, "_last_assistant_text", None) or self.llm.extract_text(answer_raw)
+                        m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
+                        svg_chunk = m_blk.group(1) if m_blk else ""
+
+                        # Thread response id to the next turn (Responses API)
+                        meta = self.llm.response_metadata(getattr(self, "_last_raw_response", None) or answer_raw)
+                        prev_resp_id = (meta or {}).get("response_id")
+                        
+                        
+                        
+                        if not svg_chunk:
+                            break
+
+                        self.all_strokes_svg += svg_chunk
+                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+
+                        step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
+                        self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
+
+                        # Make next turn see the updated canvas (PNG)
+                        with open(step_png, "rb") as fh:
+                            step_bytes = fh.read()
+                        self.last_canvas_b64 = base64.b64encode(step_bytes).decode("utf-8")
+
+                        
+                        # Build the same strokes context we included in the prompt
+                        context_xml = self._canon_strokes_context()
+                        ctx_preview = context_xml[:200] + ("..." if len(context_xml) > 200 else "")
+                        ctx_sha1 = self._sha1_bytes(context_xml.encode("utf-8"))
+
+
+                        # --- NEW: capture the exact input sent to the provider for this turn
+                        turn_request = getattr(self, "_last_redacted_request", None)
+
+                        # Capture the raw <sN>…</sN> for this turn from assistant history
+                        m = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", self.assitant_history, re.S)
+                        blk_xml = m.group(1) if m else None
+
+                        # Provider’s raw assistant text snapshot for this turn
+                        turn_text = getattr(self, "_last_assistant_text", None)
+
+                        turn_trace.append({
+                            "turn": turns,
+                            "s_no": expected_s,
+                            "stroke_xml": blk_xml,
+                            "assistant_text": turn_text,
+                            "step_png": str(step_png),
+                            "request_input": turn_input_dbg,
+
+                            # NEW: prove what we sent in
+                            "sent_canvas": {
+                                "file": str(step_png),
+                                "sha1": self._sha1_bytes(step_bytes),
+                                "bytes": len(step_bytes),
+                            },
+                            "sent_svg_context": {
+                                "sha1": ctx_sha1,
+                                "chars": len(context_xml),
+                                "preview": ctx_preview,  # first 200 chars for readability
+                            },
+                            "stop_sequences": f"</s{expected_s}>",
+                            "request_preview": turn_request,
+                        })
+
+
+                        delay = getattr(self, "api_delay_sec", 0.0) or 0.0
+                        if delay > 0:
+                            time.sleep(delay)
+
+
+
+                   
+                    # 1) Canonical <strokes>…</strokes> for JSON
                     answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
                     answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+
+                    # 2) Render once to create the SVG and (if your renderer does) the _grid image
+                    #    We’ll then overwrite the annotated PNG with the last step image.
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                    # 3) Force final annotated to be a copy of the last step image (if any)
+                    if turns > 0:
+                        last_step = out_root / f"item_{i:05d}_step_{turns:03d}.png"
+                        if last_step.exists():
+                            import shutil
+                            shutil.copyfile(last_step, png_path)
+                        else:
+                            # Fallback: ensure we still have something rendered
+                            self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+                    else:
+                        # Nothing drawn: still produce an annotated image
+                        self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+
+                    #  Extract final text answer
+                    # 3) ANSWER PHASE (one extra call): ask ONLY for <final_answer>…</final_answer>
+                    final_answer_guard = (
+                        "\n\n[Answer phase]\n"
+                        "All required strokes have been provided.\n"
+                        "Now output ONLY the final answer in a single block:\n"
+                        "<final_answer> ... </final_answer>\n"
+                        "No other text, no strokes. Stop immediately after </final_answer>."
+                    )
+
+                    context_xml = self._canon_strokes_context()
+                    msg = (
+                        self.input_prompt
+                        + "\n\n[Context]\nCurrent strokes so far (machine-readable):\n"
+                        + context_xml
+                        + final_answer_guard
+                    )
+
+                    use_stop = not isinstance(self.llm, GeminiAdapter)
                     
-                    final_ans = self._extract_final_answer_any(self.assitant_history, self.cur_svg_to_render, answer_xml)
+                    base_sys = self._sys_prompt_or_none() or ""
+                    sys_with_ans_guard = (sys_count if counting else base_sys) + "\n" + FINAL_ANSWER_SYSTEM_GUARD
+
+                    answer_phase_raw = self.get_response_from_llm(
+                        msg=msg,
+                        system_message=sys_with_ans_guard,   # ← enforce answer-only at system level
+                        msg_history=[],
+                        init_canvas_str=self.last_canvas_b64,
+                        seed_mode=self.seed_mode,
+                        gen_mode="completion",
+                        prefill_msg=self.assitant_history.strip(),
+                        stop_sequences="</final_answer>" if use_stop else None,
+                        previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
+)
 
 
-                else:
+                    answer_request = getattr(self, "_last_redacted_request", None)
+                    final_ans = self._extract_final_answer_any(answer_phase_raw, self.cur_svg_to_render, context_xml)
+
+                    turn_trace.append({
+                        "turn": "final_answer",
+                        "s_no": None,
+                        "stroke_xml": None,
+                        "assistant_text": answer_phase_raw,
+                        "final_answer": final_ans,
+                        "step_png": str(out_root / f"item_{i:05d}_step_{turns:03d}.png") if turns > 0 else str(raw_path),
+                        "sent_canvas": {
+                            "file": str(out_root / f"item_{i:05d}_step_{turns:03d}.png") if turns > 0 else str(raw_path),
+                            "sha1": self._sha1_bytes(step_bytes if turns > 0 else open(raw_path, "rb").read()),
+                            "bytes": (len(step_bytes) if turns > 0 else os.path.getsize(raw_path)),
+                        },
+                        "sent_svg_context": {
+                            "sha1": self._sha1_bytes(context_xml.encode("utf-8")),
+                            "chars": len(context_xml),
+                            "preview": context_xml[:200] + ("..." if len(context_xml) > 200 else ""),
+                        },
+                        "stop_sequences": "</final_answer>",
+                        "request_preview": answer_request,
+                    })
+
+                elif two_turn: #TWO TURN MODE
+                    self._start_generic_session(seed_prompt)
+                    base_sys = self._sys_prompt_or_none() or ""
+
+                    # ---------- TURN 1: strokes only ----------
+                    sys_turn1 = (sys_count if counting else base_sys) + "\n" + STROKES_ONLY_SYSTEM_GUARD
+                    context_block = ""  # none yet
+                    user_msg = self.input_prompt + context_block
+
+                    use_stop = not isinstance(self.llm, GeminiAdapter)
+                    resp1 = self.get_response_from_llm(
+                        msg=user_msg,
+                        system_message=sys_turn1,
+                        msg_history=[],
+                        init_canvas_str=self.last_canvas_b64,
+                        seed_mode=self.seed_mode,
+                        gen_mode="completion",
+                        prefill_msg=self.assitant_history.strip(),
+                        stop_sequences="</answer>" if use_stop else None,
+                    )
+                    # Extract, render
+                    answer_xml = self._canon_strokes(resp1)
+                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                    # Debug capture
+                    turn_trace.append({
+                        "turn": 1,
+                        "phase": "strokes_only",
+                        "assistant_text": getattr(self, "_last_assistant_text", None),
+                        "request_input": _capture_turn_input(sys_turn1, user_msg, ""),  # no strokes yet
+                        "step_png": str(png_path),
+                    })
+
+                    # Thread previous_response_id for GPT-5
+                    meta1 = self.llm.response_metadata(getattr(self, "_last_raw_response", None)) if hasattr(self, "_last_raw_response") else self.llm.response_metadata(resp1)
+                    prev_resp_id = (meta1 or {}).get("response_id")
+
+                    # ---------- TURN 2: final answer only ----------
+                    sys_turn2 = (sys_count if counting else base_sys) + "\n" + FINAL_ANSWER_SYSTEM_GUARD
+                    context_block2 = f"\n\n[Context so far]\n{answer_xml}"
+                    user_msg2 = self.input_prompt + context_block2
+
+                    resp2 = self.get_response_from_llm(
+                        msg=user_msg2,
+                        system_message=sys_turn2,
+                        msg_history=[],
+                        init_canvas_str=self.last_canvas_b64,
+                        seed_mode=self.seed_mode,
+                        gen_mode="completion",
+                        prefill_msg=self.assitant_history.strip(),
+                        stop_sequences="</final_answer>" if use_stop else None,
+                        previous_response_id=prev_resp_id,   # <-- key for GPT-5
+                    )
+                    final_ans = self._extract_final_answer_any(resp2, answer_xml, self.assitant_history)
+
+                    turn_trace.append({
+                        "turn": 2,
+                        "phase": "final_answer_only",
+                        "assistant_text": getattr(self, "_last_assistant_text", None),
+                        "final_answer": final_ans,
+                        "request_input": _capture_turn_input(sys_turn2, user_msg2, answer_xml),
+                    })
+
+                    # Count strokes from turn 1’s XML
+                    total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
+                    text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
+
+                else:  # ONE TURN MODE
                     if self.no_system_prompt:
                         use_stop = not isinstance(self.llm, GeminiAdapter)
+                        # no system -> prepend counting template into the user msg (like --count-dir raw mode)
+                        msg_once = (COUNTING_PROMPT.format(object=thing) + "\n\n" + prompt_from_txt) if counting else prompt_from_txt
                         answer = self.get_response_from_llm(
-                            msg=prompt_from_txt,          # verbatim .txt
-                            system_message=None,          # no system
+                            msg=msg_once,
+                            system_message=None,
                             msg_history=[],
                             init_canvas_str=self.last_canvas_b64,
                             seed_mode=self.seed_mode,
@@ -2222,11 +2571,13 @@ class SketchApp:
                             stop_sequences="</answer>" if use_stop else None,
                         )
                     else:
-                        self._start_generic_session(prompt_from_txt)
+                        self._start_generic_session(prompt_from_txt)  # keep the user prompt identical
                         use_stop = not isinstance(self.llm, GeminiAdapter)
+                        # system message gets the counting template when counting=True
+                        sys_msg = sys_count if counting else (self._sys_prompt_or_none() or "")
                         answer = self.get_response_from_llm(
                             msg=self.input_prompt,
-                            system_message=self._sys_prompt_or_none(),
+                            system_message=sys_msg,
                             msg_history=[],
                             init_canvas_str=self.last_canvas_b64,
                             seed_mode=self.seed_mode,
@@ -2234,6 +2585,7 @@ class SketchApp:
                             prefill_msg=self.assitant_history.strip(),
                             stop_sequences="</answer>" if use_stop else None
                         )
+
                     
                     
                     answer_xml = self._canon_strokes(answer)
@@ -2248,7 +2600,7 @@ class SketchApp:
 
                 row = {
                     "index": i, "prompt": prompt_from_txt,
-                    "mode": "stepwise" if stepwise else "single_shot",
+                    "mode": "stepwise" if stepwise else ("two_turn" if two_turn else "single_shot"),
                     "turns": (turns if stepwise else None),
                     "model_output": answer_xml,
                     "answer": final_ans,
@@ -2260,7 +2612,7 @@ class SketchApp:
                     "svg": str(svg_path),
                     "source_image": str(img_path),
                     "source_prompt": str(txt_path),
-                    
+                    "turn_trace": turn_trace,
                     "model_output_full": getattr(self, "_last_assistant_text", None),
                     "provider_debug": getattr(self, "_last_provider_debug", None),
                     "request_preview": getattr(self, "_last_redacted_request", None),
@@ -2395,7 +2747,7 @@ class SketchApp:
                         prompt = question  # send exactly the per-image text file contents
                     else:
                         thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                        prompt = COUNTING_PROMPT.format(thing=thing)
+                        prompt = COUNTING_PROMPT.format(object=thing)
 
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     answer = self.get_response_from_llm(
@@ -2601,7 +2953,10 @@ if __name__ == '__main__':
                        help="Do NOT draw/overlay the grid; send the raw image only.")
     parser.add_argument("--no-system-prompt", action="store_true",
                        help="Do NOT send the system prompt or task prompt. The model only receives the per-sample text file.")
-
+    parser.add_argument("--two-turn", action="store_true",
+        help="Turn 1: output all strokes only. Turn 2: output final answer only (for GPT-5 use previous_response_id).")
+    parser.add_argument("--mixed-counting", action="store_true",
+        help="When set, prepend a counting header and treat mixed items as counting tasks.")
 
     args = parser.parse_args()
     
@@ -2679,7 +3034,9 @@ if __name__ == '__main__':
             max_turns=args.mixed_max_turns,
             count_only_text=args.count_only_text,
             only=args.only,
-            skip=args.skip
+            skip=args.skip,
+            two_turn=args.two_turn,
+            counting=args.mixed_counting,
         )
         
         raise SystemExit(0)

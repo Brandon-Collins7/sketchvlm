@@ -73,6 +73,26 @@ Below are the different sketching methods you can use for your task.
   <id>line_1</id>
 </sN>
 
+
+## Arrow (draw the shaft, and the arrowhead as two separate parts)
+
+<s1>
+  <points>'x12y32','x6y32'</points>
+  <t_values>0.00,1.00</t_values>
+  <id>arrow_shaft</id>
+</s1>
+<s2>
+  <points>'x7y33','x6y32'</points>
+  <t_values>0.00,1.00</t_values>
+  <id>arrowhead_top</id>
+</s2>
+<s3>
+  <points>'x7y31','x6y32'</points>
+  <t_values>0.00,1.00</t_values>
+  <id>arrowhead_bottom</id>
+</s3>
+
+
 ## BOX / RECTANGLE (list the 4 corners in order)
 <sN>
   <points>'x12y12','x20y12','x20y18','x12y18','x12y12'</points>
@@ -80,13 +100,14 @@ Below are the different sketching methods you can use for your task.
   <id>box_1</id>
 </sN>
 
-## COUNTING (place numerals near each instance; one stroke per number)
+## COUNTING (place numerals near each instance; one stroke per number; change text size based on object size and image resolution, so can be text size="1.0" or "2.0" up to "32.0" etc)
 <sN>
   <points>'x08y22'</points>
-  <t_values>0.00</t_values>
-  <text size="3.0" color="black">'1'</text>
+  <t_values>0.00</t_values>c
+  <text size="4.0" color="black">'1'</text>
   <id>count_1</id>
 </sN>
+
 
 ## LABELING (anchor a text label to a nearby cell)
 <sN>
@@ -114,7 +135,7 @@ COUNTING_PROMPT = """
 Task: 
 - COUNT all the {object} by placing numbered SVG text strokes on them (no curves).
 
-Output MUST be:
+Output example could be:
 <answer>
 <concept>Numbering each {object}</concept>
 <strokes>
@@ -132,11 +153,12 @@ Rules:
 - Exactly one point per stroke ('xAyB') at the object’s center-ish cell.
 - You MAY style numbers: <text size="1.8" color="#0057ff"> or <style><font_size>…</font_size><color>…</color></style>.
 • size is cells (multiplier) unless you suffix 'px'
-• choose bigger numbers for larger/closer objects if helpful
-• choose readable, high-contrast colors
+• choose bigger text size for larger objects, smaller for tiny objects. use bigger size for higher resolution images, smaller for lower resolution.
+• choose readable colors that will contrast well with the object that you are numbering and the background.
 - If 0 objects, still return the full wrapper with an empty <strokes> block.
 - Do not write anything outside <answer>...</strokes>.
 """
+
 
 
 
@@ -179,6 +201,41 @@ Task:
 Output EXACTLY this XML shape:
 <answer>
 """
+
+
+
+# ======== Multi-turn / control guards (imported by collab code) ========
+
+# Enforce exactly ONE stroke block in stepwise mode.
+ONE_STROKE_SYSTEM_GUARD = """
+[Mode: stepwise]
+You are in stepwise mode. On this turn output EXACTLY ONE stroke block:
+<answer>
+  <strokes>
+    <sN>...</sN>
+  </strokes>
+</answer>
+Do NOT output any other <sM> blocks, no <final_answer>, no explanations. Stop immediately after </answer>.
+"""
+
+# Enforce "all strokes only" (no final answer) for turn 1 of two-turn mode.
+STROKES_ONLY_SYSTEM_GUARD = """
+[Mode: two-turn (turn 1)]
+On this turn, output ONLY the full <answer><strokes>…</strokes></answer> for the complete drawing.
+Do NOT include <final_answer>. Stop immediately after </answer>.
+"""
+
+# Enforce "final answer only" for turn 2 of two-turn mode.
+FINAL_ANSWER_SYSTEM_GUARD = """
+[Mode: two-turn (turn 2)]
+All strokes have already been provided. On this turn output ONLY:
+<final_answer> ... </final_answer>
+Do not output the previous strokes again. Stop immediately after </final_answer>.
+"""
+
+# =========================
+
+
 
 DEFAULT_LABELS_HINT = """ """
 
