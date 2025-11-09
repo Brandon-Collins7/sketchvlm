@@ -1,4 +1,3 @@
-
 system_prompt="""You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
 You will be provided with a blank grid. Your task is to specify where to place strokes on the grid to create a visually appealing sketch to complete the request.
 The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
@@ -67,7 +66,6 @@ Below are the different sketching methods you can use for your task.
   <id>part_2</id>
 </s2>
 
-
 ## STRAIGHT LINE
 <sN>
   <points>'x10y19','x40y19'</points>
@@ -95,7 +93,6 @@ Below are the different sketching methods you can use for your task.
 </s3>
 
 
-
 ## BOX / RECTANGLE (list the 4 corners in order)
 <sN>
   <points>'x12y12','x20y12','x20y18','x12y18','x12y12'</points>
@@ -110,6 +107,7 @@ Below are the different sketching methods you can use for your task.
   <text size="4.0" color="black">'1'</text>
   <id>count_1</id>
 </sN>
+
 
 ## LABELING (anchor a text label to a nearby cell)
 <sN>
@@ -163,6 +161,7 @@ Rules:
 
 
 
+
 GENERIC_LABEL_PROMPT = """
 Task: 
 - LABEL the visible parts with SVG text strokes (no curves).
@@ -204,10 +203,45 @@ Output EXACTLY this XML shape:
 """
 
 
+
+# ======== Multi-turn / control guards (imported by collab code) ========
+
+# Enforce exactly ONE stroke block in stepwise mode.
+ONE_STROKE_SYSTEM_GUARD = """
+[Mode: stepwise]
+You are in stepwise mode. On this turn output EXACTLY ONE stroke block:
+<answer>
+  <strokes>
+    <sN>...</sN>
+  </strokes>
+</answer>
+Do NOT output any other <sM> blocks, no <final_answer>, no explanations. Stop immediately after </answer>.
+"""
+
+# Enforce "all strokes only" (no final answer) for turn 1 of two-turn mode.
+STROKES_ONLY_SYSTEM_GUARD = """
+[Mode: two-turn (turn 1)]
+On this turn, output ONLY the full <answer><strokes>…</strokes></answer> for the complete drawing.
+Do NOT include <final_answer>. Stop immediately after </answer>.
+"""
+
+# Enforce "final answer only" for turn 2 of two-turn mode.
+FINAL_ANSWER_SYSTEM_GUARD = """
+[Mode: two-turn (turn 2)]
+All strokes have already been provided. On this turn output ONLY:
+<final_answer> ... </final_answer>
+Do not output the previous strokes again. Stop immediately after </final_answer>.
+"""
+
+# =========================
+
+
+
+DEFAULT_LABELS_HINT = """ """
+
 MIX_TOOLKIT = """
 
 """
 
 sketch_first_prompt = """ """
 gt_example = """ """
-DEFAULT_LABELS_HINT = """ """
