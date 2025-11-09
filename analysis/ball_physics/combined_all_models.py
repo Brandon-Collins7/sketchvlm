@@ -1,137 +1,396 @@
 #!/usr/bin/env python3
 """
-Combined GPT-5 and Qwen3 Analysis Plot
+Combined Analysis for All Models in batch1
+Processes both sketch (ball_paths) and direct_vqa results for all models.
 """
 
 import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+import json
+import re
 from pathlib import Path
+from typing import Dict, List, Tuple, Optional
 
-def create_combined_plot():
+
+def parse_boxed_answer(text: str) -> Optional[int]:
+    r"""Extract answer from $\boxed{...}$ or \boxed{...} or \(\boxed{...}\) format."""
+    if not text:
+        return None
+
+    # Look for various boxed patterns
+    # Try $\boxed{...}$ first
+    match = re.search(r'\$\\boxed\{([^}]+)\}\$', text)
+    if not match:
+        # Try \boxed{...}
+        match = re.search(r'\\boxed\{([^}]+)\}', text)
+    if not match:
+        # Try \(\boxed{...}\)
+        match = re.search(r'\\\(\\boxed\{([^}]+)\}\\\)', text)
+
+    if match:
+        content = match.group(1).strip().lower()
+        if content == 'none':
+            return 0  # Use 0 for "none"
+        try:
+            return int(content)
+        except ValueError:
+            return None
+    return None
+
+
+def extract_boxed_text(text: str) -> str:
+    r"""Extract the full boxed answer text including the boxed notation."""
+    if not text:
+        return ""
+
+    # Look for various boxed patterns and return the full match
+    # Try $\boxed{...}$ first
+    match = re.search(r'\$\\boxed\{[^}]+\}\$', text)
+    if match:
+        return match.group(0)
+
+    # Try \boxed{...}
+    match = re.search(r'\\boxed\{[^}]+\}', text)
+    if match:
+        return match.group(0)
+
+    # Try \(\boxed{...}\)
+    match = re.search(r'\\\(\\boxed\{[^}]+\}\\\)', text)
+    if match:
+        return match.group(0)
+
+    return ""
+
+
+def load_ground_truth() -> Dict[str, int]:
+    """Load ground truth from random_scene_metadata.json files."""
+    ground_truth = {}
+
+    # Path to the dataset metadata
+    metadata_base = Path('/Users/log/Github/sketchvlm/datasets/large_run_split')
+
+    if not metadata_base.exists():
+        print(f"Warning: Metadata directory not found: {metadata_base}")
+        return ground_truth
+
+    # Iterate through all run directories
+    for run_dir in sorted(metadata_base.glob('run_*')):
+        metadata_file = run_dir / 'random_scene_metadata.json'
+        if metadata_file.exists():
+            try:
+                with open(metadata_file, 'r') as f:
+                    data = json.load(f)
+
+                # Extract bucket_hit from simulation data
+                bucket_hit = data.get('simulation', {}).get('bucket_hit')
+                if bucket_hit is not None:
+                    image_name = run_dir.name + '.png'
+                    ground_truth[image_name] = int(bucket_hit)
+            except Exception as e:
+                print(f"Error loading ground truth from {metadata_file}: {e}")
+
+    return ground_truth
+
+
+def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process sketch/ball_paths results from individual JSON files."""
+    results = []
+
+    # Process all item_*.json files
+    for json_file in sorted(model_dir.glob("item_*.json")):
+        if json_file.name == "summary.json":
+            continue
+
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            # Extract image name from source_image (original filename)
+            source_image = data.get('source_image', '')
+            if source_image:
+                image_name = Path(source_image).name
+            else:
+                # Fallback to raw_image or grid_image path
+                image_path = data.get('raw_image', data.get('grid_image', ''))
+                image_name = Path(image_path).stem.replace('_orig', '').replace('_grid', '') + '.png'
+
+            # Parse the answer
+            answer = data.get('answer')
+            if answer is None:
+                # Try to parse from model_output if it contains boxed format
+                model_output = data.get('model_output', '')
+                answer = parse_boxed_answer(model_output)
+
+            if answer is not None:
+                gold = ground_truth.get(image_name)
+                if gold is not None:
+                    # Get full model output (prefer model_output_full, fallback to model_output)
+                    full_output = data.get('model_output_full', data.get('model_output', ''))
+                    boxed_answer = extract_boxed_text(full_output)
+                    results.append({
+                        'image': image_name,
+                        'model': model_name,
+                        'type': 'paths',
+                        'prediction': int(answer),
+                        'gold': gold,
+                        'correct': int(answer) == gold,
+                        'boxed_answer': boxed_answer,
+                        'model_output': full_output
+                    })
+        except Exception as e:
+            print(f"Error processing {json_file}: {e}")
+
+    return results
+
+
+def process_direct_vqa_json_array(json_file: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process direct_vqa results from JSON array format (Gemini models)."""
+    results = []
+
+    try:
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+
+        for item in data:
+            # Get run_dir and extract image name
+            run_dir = item.get('run_dir', '')
+            image_name = Path(run_dir).name + '.png'
+
+            # Parse answer from response_text
+            response_text = item.get('response_text', '')
+            answer = parse_boxed_answer(response_text)
+
+            if answer is not None:
+                gold = ground_truth.get(image_name)
+                if gold is not None:
+                    boxed_answer = extract_boxed_text(response_text)
+                    results.append({
+                        'image': image_name,
+                        'model': model_name,
+                        'type': 'direct_vqa',
+                        'prediction': answer,
+                        'gold': gold,
+                        'correct': answer == gold,
+                        'boxed_answer': boxed_answer,
+                        'model_output': response_text
+                    })
+    except Exception as e:
+        print(f"Error processing {json_file}: {e}")
+
+    return results
+
+
+def process_direct_vqa_csv(csv_file: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process direct_vqa results from CSV format (Qwen models)."""
+    results = []
+
+    try:
+        df = pd.read_csv(csv_file)
+
+        for _, row in df.iterrows():
+            image_name = row['image']
+            parsed_int = row.get('parsed_int')
+
+            if pd.notna(parsed_int):
+                gold = ground_truth.get(image_name)
+                if gold is not None:
+                    raw_text = row.get('raw_text', '')
+                    boxed_answer = extract_boxed_text(raw_text)
+                    results.append({
+                        'image': image_name,
+                        'model': model_name,
+                        'type': 'direct_vqa',
+                        'prediction': int(parsed_int),
+                        'gold': gold,
+                        'correct': int(parsed_int) == gold,
+                        'boxed_answer': boxed_answer,
+                        'model_output': raw_text
+                    })
+    except Exception as e:
+        print(f"Error processing {csv_file}: {e}")
+
+    return results
+
+
+def process_direct_vqa_individual_json(model_dir: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process direct_vqa results from individual JSON files (GPT5)."""
+    results = []
+
+    # Process all item_*.json files
+    for json_file in sorted(model_dir.glob("item_*.json")):
+        if json_file.name == "summary.json":
+            continue
+
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            # Extract image name from source_image (original filename)
+            source_image = data.get('source_image', '')
+            if source_image:
+                image_name = Path(source_image).name
+            else:
+                # Fallback to raw_image or grid_image path
+                image_path = data.get('raw_image', data.get('grid_image', ''))
+                image_name = Path(image_path).stem.replace('_orig', '').replace('_grid', '') + '.png'
+
+            # Parse the answer from model_output_full or model_output
+            model_output = data.get('model_output_full', data.get('model_output', ''))
+            answer = parse_boxed_answer(model_output)
+
+            if answer is not None:
+                gold = ground_truth.get(image_name)
+                if gold is not None:
+                    # Get full model output (prefer model_output_full, fallback to model_output)
+                    full_output = data.get('model_output_full', data.get('model_output', ''))
+                    boxed_answer = extract_boxed_text(full_output)
+                    results.append({
+                        'image': image_name,
+                        'model': model_name,
+                        'type': 'direct_vqa',
+                        'prediction': answer,
+                        'gold': gold,
+                        'correct': answer == gold,
+                        'boxed_answer': boxed_answer,
+                        'model_output': full_output
+                    })
+        except Exception as e:
+            print(f"Error processing {json_file}: {e}")
+
+    return results
+
+
+def process_all_models():
+    """Process all models in batch1 directory."""
     base_dir = Path(__file__).parent.parent.parent
+    batch1_dir = base_dir / "results" / "mix_eval" / "ball_paths" / "batch1"
     output_dir = base_dir / "analysis" / "ball_physics"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load GPT-5 accuracy breakdown
-    gpt5_acc = pd.read_csv(output_dir / "accuracy_breakdown.csv")
+    # Load ground truth from metadata files
+    print("Loading ground truth from random_scene_metadata.json files...")
+    ground_truth = load_ground_truth()
+    print(f"Loaded {len(ground_truth)} ground truth labels")
 
-    # Load Qwen3 accuracy breakdown
-    qwen3_acc = pd.read_csv(output_dir / "qwen3_accuracy_breakdown.csv")
+    all_results = []
 
-    # Prepare data for plotting
-    data = []
+    # Define models to process
+    models_config = [
+        # Sketch (ball_paths) models
+        ('gemini_25_flash_ball_paths', 'Gemini-2.5-Flash', 'paths'),
+        ('gemini_25_pro_ball_paths', 'Gemini-2.5-Pro', 'paths'),
+        ('gpt5_low_ball_paths', 'GPT-5-low', 'paths'),
+        ('gpt5_med_ball_paths', 'GPT-5-med', 'paths'),
+        ('qwen3_235b_thinking_ball_paths', 'Qwen-235B', 'paths'),
+        ('qwen3_8b_thinking_ball_paths', 'Qwen-8B', 'paths'),
+    ]
 
-    # GPT-5 data
-    for reasoning in ['low', 'med', 'high']:
-        for type_name in ['direct_vqa', 'paths']:
-            row = gpt5_acc[
-                (gpt5_acc['type'] == type_name) &
-                (gpt5_acc['reasoning'] == reasoning)
-            ]
-            if not row.empty:
-                label = f"GPT-5-{reasoning}"
-                data.append({
-                    'model': label,
-                    'type': 'Direct VQA' if type_name == 'direct_vqa' else 'SketchVLM',
-                    'accuracy': row.iloc[0]['accuracy'] * 100,
-                    'reasoning': reasoning
-                })
+    # Process sketch/ball_paths models
+    print("\nProcessing sketch (ball_paths) results...")
+    for dir_name, model_name, _ in models_config:
+        model_dir = batch1_dir / dir_name
+        if model_dir.exists() and model_dir.is_dir():
+            print(f"  Processing {model_name}...")
+            results = process_sketch_results(model_dir, model_name, ground_truth)
+            all_results.extend(results)
+            print(f"    Found {len(results)} results")
 
-    # Qwen3 data
-    for model in ['qwen8b', 'qwen235b']:
-        for type_name in ['direct_vqa', 'paths']:
-            row = qwen3_acc[
-                (qwen3_acc['type'] == type_name) &
-                (qwen3_acc['model'] == model)
-            ]
-            if not row.empty:
-                model_label = 'Qwen-8B' if model == 'qwen8b' else 'Qwen-235B'
-                data.append({
-                    'model': model_label,
-                    'type': 'Direct VQA' if type_name == 'direct_vqa' else 'SketchVLM',
-                    'accuracy': row.iloc[0]['accuracy'] * 100,
-                    'reasoning': None
-                })
+    # Process direct_vqa models
+    print("\nProcessing direct_vqa results...")
+    direct_vqa_dir = batch1_dir / "direct_vqa"
 
-    df = pd.DataFrame(data)
+    # Gemini JSON arrays
+    for json_file in direct_vqa_dir.glob("gemini-*.json"):
+        if "2.5-flash" in json_file.name:
+            model_name = "Gemini-2.5-Flash"
+        elif "2.5-pro" in json_file.name:
+            model_name = "Gemini-2.5-Pro"
+        else:
+            continue
 
-    # Create pivot table
-    pivot = df.pivot(index='model', columns='type', values='accuracy')
+        print(f"  Processing {model_name} (direct_vqa)...")
+        results = process_direct_vqa_json_array(json_file, model_name, ground_truth)
+        all_results.extend(results)
+        print(f"    Found {len(results)} results")
 
-    # Reorder for better visualization
-    model_order = ['GPT-5-low', 'GPT-5-med', 'GPT-5-high', 'Qwen-8B', 'Qwen-235B']
-    pivot = pivot.reindex([m for m in model_order if m in pivot.index])
+    # Qwen and GPT-5-med CSVs
+    csv_files = [
+        ('qwen235b_results.csv', 'Qwen-235B'),
+        ('qwen8b_results.csv', 'Qwen-8B'),
+        ('gpt5_med_no_sketch.csv', 'GPT-5-med'),
+    ]
 
-    # Create plot
-    fig, ax = plt.subplots(figsize=(14, 7))
+    for csv_file, model_name in csv_files:
+        csv_path = direct_vqa_dir / csv_file
+        if csv_path.exists():
+            print(f"  Processing {model_name} (direct_vqa)...")
+            results = process_direct_vqa_csv(csv_path, model_name, ground_truth)
+            all_results.extend(results)
+            print(f"    Found {len(results)} results")
 
-    x = np.arange(len(pivot.index))
-    width = 0.35
+    # GPT5 low individual JSONs
+    gpt5_dir = direct_vqa_dir / "gpt5_low_no_sketch"
+    if gpt5_dir.exists():
+        print(f"  Processing GPT-5-low (direct_vqa)...")
+        results = process_direct_vqa_individual_json(gpt5_dir, "GPT-5-low", ground_truth)
+        all_results.extend(results)
+        print(f"    Found {len(results)} results")
 
-    bars1 = ax.bar(x - width/2, pivot['Direct VQA'], width,
-                   label='Direct VQA', color='#3498db', alpha=0.8)
-    bars2 = ax.bar(x + width/2, pivot['SketchVLM'], width,
-                   label='SketchVLM', color='#e74c3c', alpha=0.8)
+    # Create DataFrame
+    df = pd.DataFrame(all_results)
 
-    # Add value labels
-    for bars in [bars1, bars2]:
-        for bar in bars:
-            height = bar.get_height()
-            if not np.isnan(height):
-                ax.text(bar.get_x() + bar.get_width()/2., height,
-                       f'{height:.1f}%',
-                       ha='center', va='bottom', fontsize=9, fontweight='bold')
+    # Save to CSV
+    output_file = output_dir / "batch1_all_models_results.csv"
+    df.to_csv(output_file, index=False)
+    print(f"\n✓ Saved all results to: {output_file}")
+    print(f"  Total results: {len(df)}")
 
-    # Customize plot
-    ax.set_xlabel('Model', fontsize=13, fontweight='bold')
-    ax.set_ylabel('Accuracy (%)', fontsize=13, fontweight='bold')
-    ax.set_title('Ball Physics: Direct VQA vs SketchVLM Across All Models',
-                 fontsize=15, fontweight='bold', pad=20)
-    ax.set_xticks(x)
-    ax.set_xticklabels(pivot.index, rotation=0, ha='center')
-    ax.legend(fontsize=12, loc='upper left')
-    ax.grid(axis='y', alpha=0.3, linestyle='--')
-    ax.set_ylim(0, 100)
-
-    # Add vertical line to separate GPT-5 from Qwen
-    ax.axvline(x=2.5, color='gray', linestyle='--', linewidth=1.5, alpha=0.5)
-
-    # Add text labels for sections
-    ax.text(1, 95, 'GPT-5', ha='center', fontsize=11, fontweight='bold',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.3))
-    ax.text(3.5, 95, 'Qwen3', ha='center', fontsize=11, fontweight='bold',
-            bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
-
-    plt.tight_layout()
-
-    # Save plot
-    plot_path = output_dir / "combined_all_models.png"
-    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-    print(f"Saved combined plot to: {plot_path}")
-
-    plot_path_pdf = output_dir / "combined_all_models.pdf"
-    plt.savefig(plot_path_pdf, bbox_inches='tight')
-    print(f"Saved combined plot to: {plot_path_pdf}")
-
-    plt.close()
-
-    # Print summary
+    # Compute and display accuracy
     print("\n" + "="*80)
-    print("COMBINED ACCURACY SUMMARY")
+    print("ACCURACY SUMMARY")
     print("="*80)
-    print("\nGPT-5:")
-    for idx in pivot.index:
-        if 'GPT-5' in idx:
-            print(f"  {idx:15s}: Direct VQA={pivot.loc[idx, 'Direct VQA']:.1f}%, "
-                  f"SketchVLM={pivot.loc[idx, 'SketchVLM']:.1f}%")
 
-    print("\nQwen3:")
-    for idx in pivot.index:
-        if 'Qwen' in idx:
-            sketch = pivot.loc[idx, 'SketchVLM']
-            sketch_str = f"{sketch:.1f}%" if not np.isnan(sketch) else "N/A"
-            print(f"  {idx:15s}: Direct VQA={pivot.loc[idx, 'Direct VQA']:.1f}%, "
-                  f"SketchVLM={sketch_str}")
+    # Overall accuracy by model and type
+    summary = df.groupby(['model', 'type']).agg({
+        'correct': ['sum', 'count', 'mean']
+    }).round(4)
+
+    print("\nAccuracy by Model and Type:")
+    print("-" * 80)
+    for (model, type_), row in summary.iterrows():
+        correct = int(row['correct']['sum'])
+        total = int(row['correct']['count'])
+        accuracy = row['correct']['mean'] * 100
+        type_label = 'SketchVLM' if type_ == 'paths' else 'Direct VQA'
+        print(f"{model:20s} | {type_label:12s} | {correct:3d}/{total:3d} = {accuracy:5.1f}%")
+
+    # Create pivot table for easier comparison
+    pivot = df.groupby(['model', 'type'])['correct'].mean().unstack(fill_value=0) * 100
+
+    # Save pivot table
+    pivot_file = output_dir / "batch1_accuracy_pivot.csv"
+    pivot.to_csv(pivot_file)
+    print(f"\n✓ Saved accuracy pivot table to: {pivot_file}")
+
+    # Display pivot table
+    print("\n" + "="*80)
+    print("ACCURACY PIVOT TABLE (%)")
+    print("="*80)
+    print(pivot.to_string())
+
+    # Model-level summary (best of both approaches)
+    print("\n" + "="*80)
+    print("MODEL COMPARISON")
+    print("="*80)
+    model_summary = df.groupby('model')['correct'].agg(['sum', 'count', 'mean'])
+    model_summary['accuracy'] = (model_summary['mean'] * 100).round(1)
+    model_summary = model_summary.sort_values('accuracy', ascending=False)
+
+    print("\nOverall Accuracy (combining both direct_vqa and paths):")
+    for model, row in model_summary.iterrows():
+        print(f"  {model:20s}: {int(row['sum']):3d}/{int(row['count']):3d} = {row['accuracy']:5.1f}%")
+
+    return df, pivot
+
 
 if __name__ == "__main__":
-    create_combined_plot()
+    df, pivot = process_all_models()
