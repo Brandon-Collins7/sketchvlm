@@ -2349,12 +2349,21 @@ class SketchApp:
                         if not svg_chunk:
                             break
 
-                        self.all_strokes_svg += svg_chunk
+                        # Normalize tag number to expected_s (helps if the model echoes a wrong s#)
+                        blk_fixed = self._retag_block_to_no(svg_chunk, expected_s)
+
+                        # Convert model XML → actual SVG <g>/<path>/<text>…
+                        svg = self.parse_model_to_svg(blk_fixed)
+
+                        # Append to the running SVG and advance our stroke counter
+                        self.all_strokes_svg += svg
+                        self.stroke_counter = expected_s
                         self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
 
                         step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
                         self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
-
+                        last_step_png = step_png
+                        
                         # Make next turn see the updated canvas (PNG)
                         with open(step_png, "rb") as fh:
                             step_bytes = fh.read()
@@ -2405,28 +2414,25 @@ class SketchApp:
                         if delay > 0:
                             time.sleep(delay)
 
-
-
-                   
                     # 1) Canonical <strokes>…</strokes> for JSON
                     answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
                     answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
 
-                    # 2) Render once to create the SVG and (if your renderer does) the _grid image
-                    #    We’ll then overwrite the annotated PNG with the last step image.
-                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+                    # 2) Save the full SVG directly (don’t re-render strokes; we already drew them stepwise)
+                    svg_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(svg_path, "w", encoding="utf-8") as f:
+                        f.write(self.cur_svg_to_render)
 
-                    # 3) Force final annotated to be a copy of the last step image (if any)
-                    if turns > 0:
-                        last_step = out_root / f"item_{i:05d}_step_{turns:03d}.png"
-                        if last_step.exists():
-                            import shutil
-                            shutil.copyfile(last_step, png_path)
-                        else:
-                            # Fallback: ensure we still have something rendered
-                            self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+                    # 3) Save the background “_grid” snapshot for parity with other flows
+                    orig_with_grid = png_path.with_name(png_path.stem.replace("_annotated", "_grid") + png_path.suffix)
+                    (getattr(self, "base_canvas_clean", self.base_canvas)).save(str(orig_with_grid))
+
+                    # 4) Final annotated PNG = the last visible step if we have one; otherwise composite once
+                    if turns > 0 and 'last_step_png' in locals() and last_step_png.exists():
+                        import shutil
+                        shutil.copyfile(last_step_png, png_path)
                     else:
-                        # Nothing drawn: still produce an annotated image
+                        # Nothing drawn: still produce an annotated image from whatever we have
                         self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
 
                     #  Extract final text answer
