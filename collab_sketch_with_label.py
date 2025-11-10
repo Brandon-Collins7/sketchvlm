@@ -1665,14 +1665,15 @@ class SketchApp:
 
     def _canon_strokes_context(self) -> str:
         """
-        Return strokes-so-far as <strokes>...</strokes> (no <svg> wrapper).
-        Assumes self.cur_svg_to_render = '<svg ...> ... </svg>' or 'None'.
+        Return strokes-so-far as <strokes>...</strokes> built from all <sN>...</sN>
+        blocks we’ve appended into self.assitant_history. This keeps the original
+        grid-anchored XML format (xAyB points, text tags, etc.) that the model expects.
         """
-        if not self.cur_svg_to_render or self.cur_svg_to_render == "None":
-            return "<strokes></strokes>"
-        s = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
-        s = re.sub(r'</svg>\s*$', '</strokes>', s, flags=re.S)
-        return s
+        s = str(self.assitant_history or "")
+        # Collect all <sN>...</sN> blocks in order
+        blocks = re.findall(r"(<s\d+>.*?</s\d+>)", s, flags=re.S | re.I)
+        return "<strokes>" + "".join(blocks) + "</strokes>"
+
         
         
     def _start_counting_session(self, question: str):
@@ -2309,8 +2310,8 @@ class SketchApp:
 
                         turns += 1
                         
-                        # Include strokes-so-far as context text and send the updated image via init_canvas_str
-                        context_block = f"\n\n[Context so far]\n{self.all_strokes_svg}</svg>" if self.all_strokes_svg else ""
+                        context_xml = self._canon_strokes_context()
+                        context_block = f"\n\n[Context so far]\n{context_xml}" if context_xml else ""
                         user_msg = self.input_prompt + context_block
 
                         use_stop = not isinstance(self.llm, GeminiAdapter)
@@ -2337,7 +2338,13 @@ class SketchApp:
 
                         # Extract text and isolate exactly one <sN> ... </sN>
                         full_text = getattr(self, "_last_assistant_text", None) or self.llm.extract_text(answer_raw)
+                        full_text = self._normalize_listish_blocks(full_text or "")
                         m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
+                        
+                        # if not m_blk:
+                        #     # fallback — accept any <sK>…</sK> and retag to expected_s
+                        #     m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
+                        
                         svg_chunk = m_blk.group(1) if m_blk else ""
 
                         # Thread response id to the next turn (Responses API)
@@ -2351,6 +2358,8 @@ class SketchApp:
 
                         # Normalize tag number to expected_s (helps if the model echoes a wrong s#)
                         blk_fixed = self._retag_block_to_no(svg_chunk, expected_s)
+                        
+                        self.update_history(blk_fixed)
 
                         # Convert model XML → actual SVG <g>/<path>/<text>…
                         svg = self.parse_model_to_svg(blk_fixed)
@@ -2371,7 +2380,6 @@ class SketchApp:
 
                         
                         # Build the same strokes context we included in the prompt
-                        context_xml = self._canon_strokes_context()
                         ctx_preview = context_xml[:200] + ("..." if len(context_xml) > 200 else "")
                         ctx_sha1 = self._sha1_bytes(context_xml.encode("utf-8"))
 
