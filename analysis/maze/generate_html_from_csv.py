@@ -68,6 +68,19 @@ def generate_html(csv_path, output_path):
                 base_path / model_base, model_prefix, validity
             )
 
+    # Load annotated images for two_turn models
+    for model_base, model_prefix in [
+        ('gemini', 'gemini25_flash'),
+        ('gemini', 'gemini25_pro'),
+        ('gpt5', 'gpt5_low')
+    ]:
+        for validity in ['invalid', 'valid']:
+            key = f'{model_prefix}_two_turn_{validity}'
+            print(f"  Loading {key}...")
+            sketch_images[key] = load_annotated_images(
+                base_path / model_base / 'two_turn', model_prefix, validity
+            )
+
     # Read CSV data
     with open(csv_path, 'r') as f:
         reader = csv.DictReader(f)
@@ -92,11 +105,14 @@ def generate_html(csv_path, output_path):
     # Model definitions with image columns for sketch models
     models = [
         ('gemini_flash_sketch', 'Flash (Sketch)', True),
-        ('gemini_pro_sketch', 'Pro (Sketch)', True),
         ('gemini_flash_vqa', 'Flash (VQA)', False),
+        ('gemini_flash_two_turn', 'Flash (Two-Turn)', True),
+        ('gemini_pro_sketch', 'Pro (Sketch)', True),
         ('gemini_pro_vqa', 'Pro (VQA)', False),
+        ('gemini_pro_two_turn', 'Pro (Two-Turn)', True),
         ('gpt5_low_sketch', 'GPT-5 (Sketch)', True),
         ('gpt5_low_vqa', 'GPT-5 (VQA)', False),
+        ('gpt5_low_two_turn', 'GPT-5 (Two-Turn)', True),
     ]
 
     # Count statistics
@@ -334,8 +350,11 @@ def generate_html(csv_path, output_path):
                     # Map model keys to actual prefixes
                     prefix_map = {
                         'gemini_flash_sketch': 'gemini25_flash',
+                        'gemini_flash_two_turn': 'gemini25_flash_two_turn',
                         'gemini_pro_sketch': 'gemini25_pro',
-                        'gpt5_low_sketch': 'gpt5_low'
+                        'gemini_pro_two_turn': 'gemini25_pro_two_turn',
+                        'gpt5_low_sketch': 'gpt5_low',
+                        'gpt5_low_two_turn': 'gpt5_low_two_turn'
                     }
                     prefix = prefix_map.get(model_key, model_key)
                     img_key = f'{prefix}_invalid'
@@ -367,8 +386,11 @@ def generate_html(csv_path, output_path):
                 if has_image:
                     prefix_map = {
                         'gemini_flash_sketch': 'gemini25_flash',
+                        'gemini_flash_two_turn': 'gemini25_flash_two_turn',
                         'gemini_pro_sketch': 'gemini25_pro',
-                        'gpt5_low_sketch': 'gpt5_low'
+                        'gemini_pro_two_turn': 'gemini25_pro_two_turn',
+                        'gpt5_low_sketch': 'gpt5_low',
+                        'gpt5_low_two_turn': 'gpt5_low_two_turn'
                     }
                     prefix = prefix_map.get(model_key, model_key)
                     img_key = f'{prefix}_valid'

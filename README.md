@@ -77,7 +77,11 @@ python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort lo
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
 
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-grid --no-system-prompt
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --two-turn
 
 
 
