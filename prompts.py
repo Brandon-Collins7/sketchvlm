@@ -109,7 +109,7 @@ Below are the different sketching methods you can use for your task.
 </sN>
 
 
-## LABELING (anchor a text label to a nearby cell)
+## LABELING (anchor a text label to the cell closest to center of the object/part; change text size based on object/part size and image resolution, so can be text size="1.0" or "2.0" up to "32.0" etc)
 <sN>
   <points>'x26y17'</points>
   <t_values>0.00</t_values>
@@ -162,9 +162,44 @@ Rules:
 
 
 
+# GENERIC_LABEL_PROMPT = """
+# Task: 
+# - LABEL the visible parts with SVG text strokes (no curves).
+
+# Output EXACTLY this XML shape:
+# <answer>
+# <concept>Labeling: {concept}</concept>
+# <strokes>
+#   <!-- one <sN> per label -->
+#   <s1>
+#     <text size="2.0" color="#0057ff">'head'</text>   <!-- size: cells or 'px' -->
+#     <points>'xAyB'</points>
+#     <t_values>0.00</t_values>
+#     <id>label_head</id>
+#     <!-- optional alternative:
+#     <style><font_size>2.0</font_size><color>#0057ff</color></style>
+#     -->
+#   </s1>
+# </strokes>
+
+# Rules:
+# - Use ONLY text strokes (no curves).
+# - Anchor each label at the center-ish cell of the part ('xAyB').
+# - You MAY set style via:
+#   • attributes on <text>: size="2.2" (cells) or "38px"; color="#RRGGBB"/"rgb()"/named
+#   • or a <style> block with <font_size> and <color>.
+# - Choose bigger text size for larger objects, smaller for tiny objects. use bigger size for higher resolution images, smaller for lower resolution.
+# - Choose high-contrast colors against the background.
+# - Do not write anything outside <answer>...</strokes>.
+# """
+
+
 GENERIC_LABEL_PROMPT = """
-Task: 
-- LABEL the visible parts with SVG text strokes (no curves).
+Task:
+- The object in the image is a {concept}.
+- Label ONLY the following parts of the {concept}: {labels_hint}.
+- Do not invent or add any new part names beyond this list.
+- Use SVG text strokes (no curves) to place each label.
 
 Output EXACTLY this XML shape:
 <answer>
@@ -172,24 +207,20 @@ Output EXACTLY this XML shape:
 <strokes>
   <!-- one <sN> per label -->
   <s1>
-    <text size="2.0" color="#0057ff">'head'</text>   <!-- size: cells or 'px' -->
+    <text size="1.6" color="#ff0066">'head'</text>   <!-- size: cells or 'px' -->
     <points>'xAyB'</points>
     <t_values>0.00</t_values>
     <id>label_head</id>
-    <!-- optional alternative:
-    <style><font_size>2.0</font_size><color>#0057ff</color></style>
-    -->
   </s1>
 </strokes>
 
 Rules:
 - Use ONLY text strokes (no curves).
-- Anchor each label at the center-ish cell of the part ('xAyB').
-- You MAY set style via:
-  • attributes on <text>: size="2.2" (cells) or "38px"; color="#RRGGBB"/"rgb()"/named
-  • or a <style> block with <font_size> and <color>.
-- Prefer larger fonts for larger parts and smaller fonts for tiny parts.
-- Choose high-contrast colors against the background.
+- Anchor each label at the center of the corresponding part ('xAyB').
+- You MAY style the text labels: <text size="1.8" color="#0057ff"> or <style><font_size>…</font_size><color>…</color></style>
+- Use one <sN> per label name in the list above.
+- Choose bigger text size for larger objects, smaller for tiny objects. use bigger size for higher resolution images, smaller for lower resolution.
+- Choose readable colors that will contrast well with the object/part that you are labeling and the background.
 - Do not write anything outside <answer>...</strokes>.
 """
 
