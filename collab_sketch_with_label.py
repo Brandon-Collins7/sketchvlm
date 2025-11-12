@@ -2203,6 +2203,8 @@ class SketchApp:
         only: str = None,
         two_turn: bool = False,
         counting: bool = False,
+        labeling: bool = False, 
+        labels_hint: str = None,
     ):
         
         def _capture_turn_input(system_message: str, user_text: str, svg_so_far: str, step_png_path: str=None):
@@ -2260,17 +2262,23 @@ class SketchApp:
                 with open(txt_path, "r", encoding="utf-8") as f:
                     prompt_from_txt = f.read().strip()
                     
-                # Decide seed prompt (prepend counting header if requested)
+                # Decide seed prompt (prepend counting/labeling header if requested)
                 if counting:
                     if self.no_system_prompt:
-                        # honor raw-prompt mode exactly
                         seed_prompt = prompt_from_txt.strip()
                     else:
-                        # derive a target “thing” like we do elsewhere
                         thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", prompt_from_txt or "").strip() or "object"
                         seed_prompt = COUNTING_PROMPT.format(object=thing)
+                elif labeling:
+                    # Minimal concept inference; fall back to "object"
+                    # (You can make this smarter later, but keeping this tiny on purpose.)
+                    m = re.search(r"(?:parts|of)\s+(?:the|a|an)\s+([A-Za-z0-9 _\-\+]+)", (prompt_from_txt or ""), re.I)
+                    concept = (m.group(1).strip() if m else "object")
+                    hint = labels_hint or DEFAULT_LABELS_HINT
+                    seed_prompt = GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=hint)
                 else:
                     seed_prompt = prompt_from_txt
+
                     
                 # === COUNTING wiring: match --count-dir behavior ===
                 thing = None
@@ -2283,8 +2291,21 @@ class SketchApp:
                 if counting:
                     # COUNTING_PROMPT is a system-scope template in your other flows
                     sys_count = base_sys + "\n" + COUNTING_PROMPT.format(object=thing)
-
-
+                    
+                    
+                    
+                # Build task-specific system message once
+                sys_label = None
+                if labeling:
+                    # mirror the counting pattern by pushing the template into system scope
+                    # (keeps behavior parallel to --mixed-counting)
+                    hint = labels_hint or DEFAULT_LABELS_HINT
+                    # concept chosen just above; ensure it's set here too:
+                    try:
+                        concept  # may exist from block above
+                    except NameError:
+                        concept = "object"
+                    sys_label = (base_sys or "") + "\n" + GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=hint)
 
                 # Background first
                 self.set_background_from_pil(img, mode="fit")
@@ -2300,7 +2321,7 @@ class SketchApp:
                     self._start_generic_session(seed_prompt)
                     
                     base_sys = self._sys_prompt_or_none() or ""
-                    sys_with_one = (sys_count if counting else base_sys) + "\n" + ONE_STROKE_SYSTEM_GUARD
+                    sys_with_one = (sys_count if counting else sys_label if labeling else base_sys) + "\n" + ONE_STROKE_SYSTEM_GUARD
                     prev_resp_id = None  # threaded only when using GPT-5 (Responses API)
                     
                     self.multi_stroke = False
@@ -2508,7 +2529,7 @@ class SketchApp:
                     base_sys = self._sys_prompt_or_none() or ""
 
                     # ---------- TURN 1: strokes only ----------
-                    sys_turn1 = (sys_count if counting else base_sys) + "\n" + STROKES_ONLY_SYSTEM_GUARD
+                    sys_turn1 = (sys_count if counting else sys_label if labeling else base_sys) + "\n" + STROKES_ONLY_SYSTEM_GUARD
                     context_block = ""  # none yet
                     user_msg = self.input_prompt + context_block
 
@@ -2541,7 +2562,7 @@ class SketchApp:
                     prev_resp_id = (meta1 or {}).get("response_id")
 
                     # ---------- TURN 2: final answer only ----------
-                    sys_turn2 = (sys_count if counting else base_sys) + "\n" + FINAL_ANSWER_SYSTEM_GUARD
+                    sys_turn2 = (sys_count if counting else sys_label if labeling else base_sys) + "\n" + FINAL_ANSWER_SYSTEM_GUARD
                     context_block2 = f"\n\n[Context so far]\n{answer_xml}"
                     user_msg2 = self.input_prompt + context_block2
 
@@ -2574,6 +2595,7 @@ class SketchApp:
                     if self.no_system_prompt:
                         use_stop = not isinstance(self.llm, GeminiAdapter)
                         # no system -> prepend counting template into the user msg (like --count-dir raw mode)
+                        #format with counting prompt or labeling prompt
                         msg_once = (COUNTING_PROMPT.format(object=thing) + "\n\n" + prompt_from_txt) if counting else prompt_from_txt
                         answer = self.get_response_from_llm(
                             msg=msg_once,
@@ -2588,7 +2610,7 @@ class SketchApp:
                         self._start_generic_session(prompt_from_txt)  # keep the user prompt identical
                         use_stop = not isinstance(self.llm, GeminiAdapter)
                         # system message gets the counting template when counting=True
-                        sys_msg = sys_count if counting else (self._sys_prompt_or_none() or "")
+                        sys_msg = sys_count if counting else sys_label if labeling else (self._sys_prompt_or_none() or "")
                         answer = self.get_response_from_llm(
                             msg=self.input_prompt,
                             system_message=sys_msg,
@@ -2971,6 +2993,9 @@ if __name__ == '__main__':
         help="Turn 1: output all strokes only. Turn 2: output final answer only (for GPT-5 use previous_response_id).")
     parser.add_argument("--mixed-counting", action="store_true",
         help="When set, prepend a counting header and treat mixed items as counting tasks.")
+    parser.add_argument("--mixed-labeling", action="store_true",
+    help="When set, use the labeling template in mixed eval (like --mixed-counting).")
+
 
     args = parser.parse_args()
     
@@ -3051,6 +3076,8 @@ if __name__ == '__main__':
             skip=args.skip,
             two_turn=args.two_turn,
             counting=args.mixed_counting,
+            labeling=args.mixed_labeling,
+            labels_hint=args.labels_hint,
         )
         
         raise SystemExit(0)
