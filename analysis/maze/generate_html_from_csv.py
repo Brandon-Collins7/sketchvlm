@@ -59,7 +59,8 @@ def generate_html(csv_path, output_path):
     for model_base, model_prefix in [
         ('gemini', 'gemini25_flash'),
         ('gemini', 'gemini25_pro'),
-        ('gpt5', 'gpt5_low')
+        ('gpt5', 'gpt5_low'),
+        ('qwen3', 'qwen3_235b')
     ]:
         for validity in ['invalid', 'valid']:
             key = f'{model_prefix}_{validity}'
@@ -113,6 +114,8 @@ def generate_html(csv_path, output_path):
         ('gpt5_low_sketch', 'GPT-5 (Sketch)', True),
         ('gpt5_low_vqa', 'GPT-5 (VQA)', False),
         ('gpt5_low_two_turn', 'GPT-5 (Two-Turn)', True),
+        ('qwen3_235b_sketch', 'Qwen3 (Sketch)', True),
+        ('qwen3_235b_vqa', 'Qwen3 (VQA)', False),
     ]
 
     # Count statistics
@@ -354,7 +357,8 @@ def generate_html(csv_path, output_path):
                         'gemini_pro_sketch': 'gemini25_pro',
                         'gemini_pro_two_turn': 'gemini25_pro_two_turn',
                         'gpt5_low_sketch': 'gpt5_low',
-                        'gpt5_low_two_turn': 'gpt5_low_two_turn'
+                        'gpt5_low_two_turn': 'gpt5_low_two_turn',
+                        'qwen3_235b_sketch': 'qwen3_235b'
                     }
                     prefix = prefix_map.get(model_key, model_key)
                     img_key = f'{prefix}_invalid'
@@ -390,7 +394,8 @@ def generate_html(csv_path, output_path):
                         'gemini_pro_sketch': 'gemini25_pro',
                         'gemini_pro_two_turn': 'gemini25_pro_two_turn',
                         'gpt5_low_sketch': 'gpt5_low',
-                        'gpt5_low_two_turn': 'gpt5_low_two_turn'
+                        'gpt5_low_two_turn': 'gpt5_low_two_turn',
+                        'qwen3_235b_sketch': 'qwen3_235b'
                     }
                     prefix = prefix_map.get(model_key, model_key)
                     img_key = f'{prefix}_valid'

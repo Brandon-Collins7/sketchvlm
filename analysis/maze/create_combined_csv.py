@@ -116,6 +116,8 @@ def main():
         ('gpt5_low_sketch', base_path / 'gpt5', 'gpt5_low'),
         ('gpt5_low_vqa', base_path / 'gpt5' / 'direct_vqa', 'gpt5_low'),
         ('gpt5_low_two_turn', base_path / 'gpt5' / 'two_turn', 'gpt5_low'),
+        ('qwen3_235b_sketch', base_path / 'qwen3', 'qwen3_235b'),
+        ('qwen3_235b_vqa', base_path / 'qwen3' / 'direct_vqa', 'qwen3_235b'),
     ]
 
     # Collect all maze IDs from results files (not just dataset)

@@ -3,8 +3,8 @@
 Plot comparison of trajectory metrics across different models.
 
 Usage:
-    python3 plot_model_comparison.py --models gpt5_low gpt5_med gpt5_high
-    python3 plot_model_comparison.py --models gpt5_low gpt5_med --output comparison.png
+    python3 plot_model_comparison.py --models gpt5_med gemini_25_pro gpt5_low gemini_25_flash --output all_models_comparison.png
+    python3 plot_model_comparison.py --models gpt5_low gpt5_med
 """
 
 import argparse
@@ -12,6 +12,31 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+
+def format_model_name(model_name):
+    """
+    Format model name for display.
+
+    Parameters:
+    -----------
+    model_name : str
+        Raw model name (e.g., 'gpt5_med')
+
+    Returns:
+    --------
+    str
+        Formatted model name (e.g., 'GPT-5 (medium)')
+    """
+    name_map = {
+        'gpt5_low': 'GPT-5 (low)',
+        'gpt5_med': 'GPT-5 (medium)',
+        'gpt5_high': 'GPT-5 (high)',
+        'gemini_25_flash': 'Gemini 2.5 Flash',
+        'gemini_25_pro': 'Gemini 2.5 Pro',
+        'qwen3_8b_thinking': 'Qwen3 8B Thinking',
+        'qwen3_235b_thinking': 'Qwen3 235B Thinking'
+    }
+    return name_map.get(model_name, model_name)
 
 def load_model_metrics(comparisons_dir, model_name):
     """
@@ -66,7 +91,7 @@ def plot_model_comparison(models, comparisons_dir, output_path=None):
     stats = []
     for model_name, df in model_data.items():
         stats.append({
-            'model': model_name,
+            'model': format_model_name(model_name),
             'avg_dist_mean': df['avg_min_distance'].mean(),
             'avg_dist_std': df['avg_min_distance'].std(),
             'mse_mean': df['mse_min_distance'].mean(),
@@ -90,9 +115,10 @@ def plot_model_comparison(models, comparisons_dir, output_path=None):
 
     ax1.set_xlabel('Model', fontsize=12, fontweight='bold')
     ax1.set_ylabel('Average Minimum Distance (pixels)', fontsize=12, fontweight='bold')
-    ax1.set_title('Average Minimum Distance\n(Lower is Better)', fontsize=14, fontweight='bold')
+    ax1.set_title('Average Minimum Distance', fontsize=14, fontweight='bold')
     ax1.set_xticks(x)
     ax1.set_xticklabels(stats_df['model'], rotation=45, ha='right')
+    ax1.set_ylim(0, 70)
     ax1.grid(True, alpha=0.3, axis='y')
 
     # Add value labels on bars
@@ -110,7 +136,7 @@ def plot_model_comparison(models, comparisons_dir, output_path=None):
 
     ax2.set_xlabel('Model', fontsize=12, fontweight='bold')
     ax2.set_ylabel('MSE Minimum Distance (pixels²)', fontsize=12, fontweight='bold')
-    ax2.set_title('MSE Minimum Distance\n(Lower is Better)', fontsize=14, fontweight='bold')
+    ax2.set_title('MSE Minimum Distance', fontsize=14, fontweight='bold')
     ax2.set_xticks(x)
     ax2.set_xticklabels(stats_df['model'], rotation=45, ha='right')
     ax2.grid(True, alpha=0.3, axis='y')

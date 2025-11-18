@@ -1,3 +1,11 @@
+"""
+Compare SVG ball path trajectories with ground truth.
+Processes multiple models from batch directories and computes distance metrics.
+
+Usage:
+    python3 compare_lines.py
+    python3 compare_lines.py --n_points 200
+"""
 import numpy as np
 from svgpathtools import parse_path
 import xml.etree.ElementTree as ET
@@ -362,21 +370,19 @@ def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Compa
 
     # Plot ground truth trajectory
     ax.plot(gt_points[:, 0], gt_points[:, 1], 'b-', linewidth=3, alpha=0.8, label='GT Trajectory', zorder=3)
-    ax.scatter(gt_points[:, 0], gt_points[:, 1], c='blue', s=50, zorder=4,
-                alpha=0.6, label=f'GT points (n={len(gt_points)})')
+    ax.scatter(gt_points[:, 0], gt_points[:, 1], c='blue', s=50, zorder=4, alpha=0.6)
     ax.scatter(gt_points[0, 0], gt_points[0, 1], c='blue', s=200, zorder=5,
-                marker='o', edgecolors='black', linewidths=2, label='GT Start')
+                marker='o', edgecolors='black', linewidths=2)
     ax.scatter(gt_points[-1, 0], gt_points[-1, 1], c='darkblue', s=200, zorder=5,
-                marker='s', edgecolors='black', linewidths=2, label='GT End')
+                marker='s', edgecolors='black', linewidths=2)
 
     # Plot SVG trajectory
-    ax.plot(svg_points[:, 0], svg_points[:, 1], 'g-', linewidth=3, alpha=0.8, label='SVG Trajectory', zorder=3)
-    ax.scatter(svg_points[:, 0], svg_points[:, 1], c='green', s=50, zorder=4,
-                alpha=0.6, label=f'SVG points (n={len(svg_points)})')
+    ax.plot(svg_points[:, 0], svg_points[:, 1], 'g-', linewidth=3, alpha=0.8, label='SketchVLM', zorder=3)
+    ax.scatter(svg_points[:, 0], svg_points[:, 1], c='green', s=50, zorder=4, alpha=0.6)
     ax.scatter(svg_points[0, 0], svg_points[0, 1], c='green', s=200, zorder=5,
-                marker='o', edgecolors='black', linewidths=2, label='SVG Start')
+                marker='o', edgecolors='black', linewidths=2)
     ax.scatter(svg_points[-1, 0], svg_points[-1, 1], c='darkgreen', s=200, zorder=5,
-                marker='s', edgecolors='black', linewidths=2, label='SVG End')
+                marker='s', edgecolors='black', linewidths=2)
 
     # Set axis limits and properties
     ax.set_xlim(0, 512)
@@ -385,7 +391,7 @@ def visualize_comparison(svg_points, gt_points, title="SVG vs Ground Truth Compa
     ax.set_title(f'{title}', fontsize=14, fontweight='bold')
     ax.set_xlabel('X', fontsize=12)
     ax.set_ylabel('Y', fontsize=12)
-    ax.legend(loc='best', fontsize=10, ncol=2)
+    ax.legend(loc='upper center', fontsize=12, ncol=2)
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -428,13 +434,18 @@ def process_all_svg_files(svg_dir, output_dir, n_points=100):
     results = []
 
     for svg_file in svg_files:
-        # Get base name (e.g., "item_00000")
-        base_name = os.path.splitext(os.path.basename(svg_file))[0]
-        json_file = os.path.join(svg_dir, f"{base_name}.json")
+        # Get base name (e.g., "batch0_item_00000" or "item_00000")
+        base_name_with_prefix = os.path.splitext(os.path.basename(svg_file))[0]
+
+        # Strip batch prefix if present (e.g., "batch0_" or "batch1_")
+        import re
+        base_name = re.sub(r'^batch\d+_', '', base_name_with_prefix)
+
+        json_file = os.path.join(svg_dir, f"{base_name_with_prefix}.json")
 
         # Read source_image from JSON to find GT file
         if not os.path.exists(json_file):
-            print(f"Warning: No JSON file found for {base_name}, skipping...")
+            print(f"Warning: No JSON file found for {base_name_with_prefix}, skipping...")
             continue
 
         try:
@@ -452,12 +463,17 @@ def process_all_svg_files(svg_dir, output_dir, n_points=100):
             # Get just the filename without path or extension
             gt_identifier = os.path.splitext(os.path.basename(source_image_normalized))[0]
 
-            # Find GT JSON file in datasets/large_run_split/
-            gt_json_path = os.path.join("/Users/log/Github/sketchvlm/datasets/large_run_split",
-                                       gt_identifier, "random_scene_metadata.json")
+            # Find GT JSON file - check both batch directories
+            gt_json_path = None
+            for gt_base_dir in ["/Users/log/Github/sketchvlm/datasets/large_run_split",
+                               "/Users/log/Github/sketchvlm/datasets/large_second_batch"]:
+                potential_path = os.path.join(gt_base_dir, gt_identifier, "random_scene_metadata.json")
+                if os.path.exists(potential_path):
+                    gt_json_path = potential_path
+                    break
 
-            if not os.path.exists(gt_json_path):
-                print(f"Warning: GT file not found at {gt_json_path}, skipping...")
+            if not gt_json_path:
+                print(f"Warning: GT file not found for {gt_identifier}, skipping...")
                 continue
 
             print(f"Processing {base_name}...")
@@ -483,7 +499,7 @@ def process_all_svg_files(svg_dir, output_dir, n_points=100):
             # Save visualization
             vis_path = os.path.join(output_dir, f"{base_name}_comparison.png")
             visualize_comparison(svg_points, gt_points,
-                               title=f"{base_name} - SVG vs GT (Avg Dist: {avg_min_dist:.2f}, MSE Dist: {mse_min_dist:.2f})",
+                               title=f"{base_name} - SketchVLM vs GT (Avg Dist: {avg_min_dist:.2f}, MSE Dist: {mse_min_dist:.2f})",
                                save_path=vis_path,
                                background_image_path=source_image_path)
 
@@ -521,6 +537,80 @@ def process_all_svg_files(svg_dir, output_dir, n_points=100):
 
     return results
 
+def process_combined_batches(model_config, batch_dirs, output_base_dir, n_points=100):
+    """
+    Process multiple batch directories for a model and combine results.
+
+    Parameters:
+    -----------
+    model_config : dict
+        Configuration with 'name' and 'dirs' keys
+    batch_dirs : list
+        List of base batch directories to search
+    output_base_dir : str
+        Base directory for output
+    n_points : int
+        Number of points to sample
+
+    Returns:
+    --------
+    list of dict
+        Combined results from all batches
+    """
+    import glob
+    import shutil
+
+    model_name = model_config['name']
+    dir_patterns = model_config['dirs']
+
+    print(f"\n{'='*80}")
+    print(f"Processing model: {model_name}")
+    print(f"{'='*80}")
+
+    # Create a temporary directory to hold all SVG files for this model
+    temp_dir = os.path.join("/tmp", f"combined_{model_name}")
+    os.makedirs(temp_dir, exist_ok=True)
+
+    # Collect all SVG files from all batches
+    svg_count = 0
+    batch_index = 0
+    for batch_dir in batch_dirs:
+        for pattern in dir_patterns:
+            full_path = os.path.join(batch_dir, pattern)
+            if os.path.exists(full_path):
+                svg_files = glob.glob(os.path.join(full_path, "*.svg"))
+                print(f"Found {len(svg_files)} SVG files in {full_path}")
+
+                # Copy files to temp directory with unique names to avoid collisions
+                for svg_file in svg_files:
+                    base_name = os.path.basename(svg_file)
+                    name_without_ext = os.path.splitext(base_name)[0]
+                    json_file = svg_file.replace('.svg', '.json')
+
+                    # Add batch prefix to avoid filename collisions
+                    unique_svg_name = f"batch{batch_index}_{base_name}"
+                    unique_json_name = f"batch{batch_index}_{name_without_ext}.json"
+
+                    shutil.copy(svg_file, os.path.join(temp_dir, unique_svg_name))
+                    if os.path.exists(json_file):
+                        shutil.copy(json_file, os.path.join(temp_dir, unique_json_name))
+                    svg_count += 1
+
+                batch_index += 1
+
+    print(f"Total SVG files collected: {svg_count}")
+
+    # Create output directory for this model
+    output_dir = os.path.join(output_base_dir, model_name)
+
+    # Process all collected files
+    results = process_all_svg_files(temp_dir, output_dir, n_points=n_points)
+
+    # Cleanup temp directory
+    shutil.rmtree(temp_dir)
+
+    return results
+
 # Usage
 if __name__ == "__main__":
     import numpy as np
@@ -528,38 +618,71 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description='Compare SVG ball trajectories with ground truth')
-    parser.add_argument('--svg_dir', type=str,
-                       default='/Users/log/Github/sketchvlm/results/mix_eval/ball_paths/gpt5/gpt5_low_ball_paths',
-                       help='Directory containing SVG files to compare')
     parser.add_argument('--n_points', type=int, default=100,
                        help='Number of points to sample from each trajectory')
-    parser.add_argument('--output_name', type=str, default=None,
-                       help='Name for output subdirectory (auto-detected from path if not provided)')
 
     args = parser.parse_args()
 
-    svg_dir = args.svg_dir
+    # Define batch directories
+    batch_dirs = [
+        '/Users/log/Github/sketchvlm/results/mix_eval/ball_paths/batch1',
+        '/Users/log/Github/sketchvlm/results/mix_eval/ball_paths/batch2'
+    ]
 
-    # Auto-detect model name from path if not provided
-    if args.output_name:
-        output_name = args.output_name
-    else:
-        # Extract name from path (e.g., "gpt5_low_ball_paths" -> "gpt5_low")
-        dir_name = os.path.basename(svg_dir)
-        output_name = dir_name.replace('_ball_paths', '')
+    # Define models to process
+    models = [
+        {
+            'name': 'gpt5_low',
+            'dirs': ['gpt5_low_ball_paths', 'gpt5_low_ball_paths_batch2']
+        },
+        {
+            'name': 'gpt5_med',
+            'dirs': ['gpt5_med_ball_paths', 'gpt5_med_ball_paths_batch2']
+        },
+        {
+            'name': 'gemini_25_flash',
+            'dirs': ['gemini_25_flash_ball_paths', 'gemini_25_flash_ball_paths_batch2']
+        },
+        {
+            'name': 'gemini_25_pro',
+            'dirs': ['gemini_25_pro_ball_paths', 'gemini_25_pro_ball_paths_batch2']
+        }
+    ]
 
-    # Create output directory organized by model
+    # Create output base directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(script_dir, "comparisons", output_name)
+    output_base_dir = os.path.join(script_dir, "comparisons")
 
-    print("="*60)
+    print("="*80)
     print("Batch Processing: SVG vs Ground Truth Trajectory Comparison")
-    print("="*60)
-    print(f"SVG Directory: {svg_dir}")
-    print(f"Output Name: {output_name}")
-    print(f"Output Directory: {output_dir}")
+    print("="*80)
+    print(f"Batch directories:")
+    for batch_dir in batch_dirs:
+        print(f"  - {batch_dir}")
+    print(f"\nModels to process:")
+    for model in models:
+        print(f"  - {model['name']}")
+    print(f"\nOutput base directory: {output_base_dir}")
     print(f"Sampling {args.n_points} points per trajectory")
-    print("="*60)
-    print()
+    print("="*80)
 
-    results = process_all_svg_files(svg_dir, output_dir, n_points=args.n_points)
+    # Process each model
+    all_results = {}
+    for model in models:
+        results = process_combined_batches(model, batch_dirs, output_base_dir, n_points=args.n_points)
+        all_results[model['name']] = results
+
+    # Print overall summary
+    print("\n" + "="*80)
+    print("OVERALL SUMMARY")
+    print("="*80)
+    for model_name, results in all_results.items():
+        if results:
+            avg_distances = [r['avg_min_distance'] for r in results]
+            mse_distances = [r['mse_min_distance'] for r in results]
+            print(f"\n{model_name} ({len(results)} files):")
+            print(f"  Average min distance: {np.mean(avg_distances):.2f} ± {np.std(avg_distances):.2f} pixels")
+            print(f"  MSE min distance: {np.mean(mse_distances):.2f} ± {np.std(mse_distances):.2f} pixels²")
+        else:
+            print(f"\n{model_name}: No results")
+    print("="*80)
