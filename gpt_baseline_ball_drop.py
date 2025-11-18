@@ -143,19 +143,28 @@ class OpenAIAdapter:
     def __init__(self, model_name: str = "gpt-5", api_key_env: str = "OPENAI_API_KEY",
                  temperature: Optional[float] = None, max_output_tokens: int = 32,
                  reasoning_effort: Optional[str] = None, verbose: bool = False,
-                 debug_dir: Optional[Path] = None):
+                 debug_dir: Optional[Path] = None, use_openrouter: bool = False,
+                 openrouter_provider: Optional[str] = None):
         load_dotenv()
         self.api_key = os.environ.get(api_key_env, "")
         if not self.api_key:
             raise RuntimeError(f"Missing API key in env var {api_key_env}")
         from openai import OpenAI  # lazy import
-        self._client = OpenAI(api_key=self.api_key)
+        if use_openrouter:
+            self._client = OpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=self.api_key
+            )
+        else:
+            self._client = OpenAI(api_key=self.api_key)
         self.model_name = model_name
         self.temperature = temperature
         self.max_output_tokens = max_output_tokens
         self.reasoning_effort = reasoning_effort
         self.verbose = verbose
         self.debug_dir = debug_dir
+        self.use_openrouter = use_openrouter
+        self.openrouter_provider = openrouter_provider
         if self.debug_dir:
             self.debug_dir.mkdir(parents=True, exist_ok=True)
 
@@ -170,42 +179,90 @@ class OpenAIAdapter:
         img = Image.open(img_path).convert("RGB")
         try:
             data_url = self._pil_to_data_url(img)
-            req_payload: Dict[str, Any] = dict(
-                model=self.model_name,
-                input=[
-                    {"role": "system", "content": [{"type": "input_text", "text": SYSTEM_FORCE_BOXED}]},
+
+            if self.use_openrouter:
+                # Use standard OpenAI Chat Completions format for OpenRouter
+                messages = [
+                    {"role": "system", "content": SYSTEM_FORCE_BOXED},
                     {"role": "user", "content": [
-                        {"type": "input_text", "text": prompt},
-                        {"type": "input_image", "image_url": data_url},
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": data_url}},
                     ]},
-                ],
-                max_output_tokens=self.max_output_tokens,
-            )
-            if self.reasoning_effort:
-                req_payload["reasoning"] = {"effort": str(self.reasoning_effort)}
-            if self.temperature is not None:
-                req_payload["temperature"] = float(self.temperature)
+                ]
+                req_payload: Dict[str, Any] = dict(
+                    model=self.model_name,
+                    messages=messages,
+                    max_tokens=self.max_output_tokens,
+                )
+                if self.temperature is not None:
+                    req_payload["temperature"] = float(self.temperature)
 
-            if self.debug_dir:
-                try:
-                    req_path = self.debug_dir / (img_path.stem + ".request.json")
-                    with open(req_path, "w", encoding="utf-8") as f:
-                        json.dump(req_payload, f, ensure_ascii=False, indent=2)
-                except Exception:
-                    pass
+                req_payload["extra_body"] = {
+                    "provider": {
+                        "only": ["alibaba"],        # allow ONLY Alibaba
+                        "allow_fallbacks": False,   # never route elsewhere
+                    }
+                }
 
-            resp = self._client.responses.create(**req_payload)
+                if self.debug_dir:
+                    try:
+                        req_path = self.debug_dir / (img_path.stem + ".request.json")
+                        with open(req_path, "w", encoding="utf-8") as f:
+                            json.dump(req_payload, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
 
-            if self.debug_dir:
-                try:
-                    rawd = _as_dict(resp)
-                    dump_path = self.debug_dir / (img_path.stem + ".response.json")
-                    with open(dump_path, "w", encoding="utf-8") as f:
-                        json.dump(rawd, f, ensure_ascii=False, indent=2)
-                except Exception:
-                    pass
+                resp = self._client.chat.completions.create(**req_payload)
 
-            return _extract_output_text(resp)
+                if self.debug_dir:
+                    try:
+                        rawd = _as_dict(resp)
+                        dump_path = self.debug_dir / (img_path.stem + ".response.json")
+                        with open(dump_path, "w", encoding="utf-8") as f:
+                            json.dump(rawd, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+
+                # Extract response from standard chat completions format
+                return resp.choices[0].message.content or ""
+            else:
+                # Use GPT-5 native API format
+                req_payload: Dict[str, Any] = dict(
+                    model=self.model_name,
+                    input=[
+                        {"role": "system", "content": [{"type": "input_text", "text": SYSTEM_FORCE_BOXED}]},
+                        {"role": "user", "content": [
+                            {"type": "input_text", "text": prompt},
+                            {"type": "input_image", "image_url": data_url},
+                        ]},
+                    ],
+                    max_output_tokens=self.max_output_tokens,
+                )
+                if self.reasoning_effort:
+                    req_payload["reasoning"] = {"effort": str(self.reasoning_effort)}
+                if self.temperature is not None:
+                    req_payload["temperature"] = float(self.temperature)
+
+                if self.debug_dir:
+                    try:
+                        req_path = self.debug_dir / (img_path.stem + ".request.json")
+                        with open(req_path, "w", encoding="utf-8") as f:
+                            json.dump(req_payload, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+
+                resp = self._client.responses.create(**req_payload)
+
+                if self.debug_dir:
+                    try:
+                        rawd = _as_dict(resp)
+                        dump_path = self.debug_dir / (img_path.stem + ".response.json")
+                        with open(dump_path, "w", encoding="utf-8") as f:
+                            json.dump(rawd, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+
+                return _extract_output_text(resp)
         finally:
             img.close()
 
@@ -259,6 +316,8 @@ def evaluate(
     max_output_tokens: int = 32,
     reasoning_effort: Optional[str] = "medium",
     debug_dir: Optional[Path] = None,
+    use_openrouter: bool = False,
+    openrouter_provider: Optional[str] = None,
 ) -> None:
     imgs: List[Path] = []
     for ext in ("*.jpg", "*.jpeg", "*.png", "*.webp", "*.bmp"):
@@ -273,16 +332,22 @@ def evaluate(
         raise RuntimeError(f"No images found under: {images_dir}")
 
     if model_kind.lower() in {"openai", "gpt"}:
+        api_key_env = "OPENROUTER_API_KEY" if use_openrouter else "OPENAI_API_KEY"
         adapter = OpenAIAdapter(
             model_name=openai_model,
+            api_key_env=api_key_env,
             temperature=temperature,
             max_output_tokens=max_output_tokens,
             reasoning_effort=reasoning_effort,
             verbose=verbose,
             debug_dir=debug_dir,
+            use_openrouter=use_openrouter,
+            openrouter_provider=openrouter_provider,
         )
         model_suffix = f"-{reasoning_effort}" if reasoning_effort else ""
-        model_descriptor = f"openai::{openai_model}{model_suffix}"
+        provider_suffix = f"-{openrouter_provider}" if use_openrouter and openrouter_provider else ""
+        router_prefix = "openrouter::" if use_openrouter else "openai::"
+        model_descriptor = f"{router_prefix}{openai_model}{model_suffix}{provider_suffix}"
     else:
         raise ValueError("Only --model openai|gpt is implemented in this script.")
 
@@ -314,6 +379,9 @@ def evaluate(
         for i, img_path in iterator:
             n_total += 1
             fname = img_path.name
+
+            if fname not in ("run_085.png"):
+                continue
 
             if only_indices is not None and i not in only_indices:
                 continue
@@ -413,6 +481,8 @@ def main():
     ap.add_argument("--reasoning-effort", choices=["minimal","low","medium","high"], default="medium",
                     help="GPT‑5 reasoning effort level." )
     ap.add_argument("--debug-dir", type=str, default="", help="Optional folder to dump raw JSON Responses AND request payloads." )
+    ap.add_argument("--use-openrouter", action="store_true", help="Use OpenRouter API instead of direct OpenAI API." )
+    ap.add_argument("--openrouter-provider", type=str, default=None, help="OpenRouter provider to use (e.g., 'Alibaba', 'OpenAI')." )
     args = ap.parse_args()
 
     images_dir = Path(args.images)
@@ -445,6 +515,8 @@ def main():
         max_output_tokens=args.max_output_tokens,
         reasoning_effort=args.reasoning_effort,
         debug_dir=debug_dir,
+        use_openrouter=args.use_openrouter,
+        openrouter_provider=args.openrouter_provider,
     )
 
 if __name__ == "__main__":
@@ -457,5 +529,25 @@ python gpt_baseline_ball_drop.py --images datasets/ball_number --openai-model gp
 
 python gpt_baseline_ball_drop.py --images datasets/vpct_ball_drop --openai-model gpt-5 --reasoning-effort high --max-output-tokens 20000 --out results/mix_eval/vpct_ball_gpt5_high_2.jsonl --csv results/mix_eval/vpct_ball_gpt5_high_2.csv --debug-dir results/mix_eval/raw_responses_2 --progress --verbose 
 
+
+
+python gpt_baseline_ball_drop.py \
+    --images datasets/ball_number \
+    --use-openrouter \
+    --openrouter-provider alibaba \
+    --openai-model "qwen/qwen3-vl-8b-thinking" \
+    --out results/qwen8b_results2.jsonl \
+    --csv results/qwen8b_results2.csv \
+    --progress --verbose
+
+
+python gpt_baseline_ball_drop.py \
+    --images datasets/ball_number \
+    --use-openrouter \
+    --openrouter-provider alibaba \
+    --openai-model "qwen/qwen3-vl-235b-a22b-thinking" \
+    --out results/qwen235b_results.jsonl \
+    --csv results/qwen235b_results.csv \
+    --progress --verbose
 
   '''

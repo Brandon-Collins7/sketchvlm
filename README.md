@@ -41,7 +41,11 @@ python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir {dataset_
 
 Ex:
 
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/ball_path --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20  
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/ball_path --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --reasoning-effort low --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/second_batch_ball_number --max-tokens 20000 --reasoning-effort low --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
 To get the ball_path dataset (so it's formatted in same way as other datasets) from the large_run_split, run gather_ball_prompts.py. This will create almost two equivalent folders, where one just adds a small bit to the prompt that requires the model to sketch the path.
 
@@ -52,10 +56,39 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-d
 
 **Gemini-2.5-Pro - Physics ball drop**
 
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir {dataset_directory} --max-tokens 10000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+
+
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --two-turn
+
+
+
 
 
 -----
+
 
 **Comparisons / Accuracy:**
 

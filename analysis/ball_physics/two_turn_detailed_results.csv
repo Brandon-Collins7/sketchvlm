@@ -1,0 +1,793 @@
+batch,item,image,answer_text,prediction,gold,correct,model
+batch1,item_00000,run_001_1.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00001,run_004.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00002,run_006_1.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00003,run_007.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00004,run_008.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00005,run_009.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00006,run_010.png,$\boxed{2}$,2,4,False,Gemini 2.5 Flash
+batch1,item_00007,run_011.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00008,run_011_2.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00009,run_012.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00010,run_012_1.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00011,run_013.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00012,run_014.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00013,run_015.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch1,item_00014,run_016.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00015,run_016_1.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00016,run_017.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch1,item_00017,run_018.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00018,run_019.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch1,item_00019,run_020.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00020,run_021.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00021,run_022.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch1,item_00022,run_023.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch1,item_00023,run_023_1.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00024,run_024_1.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00025,run_025.png,$\boxed{2}$,2,4,False,Gemini 2.5 Flash
+batch1,item_00026,run_026.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch1,item_00027,run_027.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch1,item_00028,run_028.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch1,item_00029,run_029.png,$\boxed{1}$,1,2,False,Gemini 2.5 Flash
+batch1,item_00030,run_030.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch1,item_00031,run_031.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00032,run_032.png,$\boxed{1}$,1,2,False,Gemini 2.5 Flash
+batch1,item_00033,run_033_1.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00034,run_034.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch1,item_00035,run_035.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00036,run_036_1.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00037,run_037.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch1,item_00038,run_038.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00039,run_039.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00040,run_040.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00041,run_042.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00042,run_042_1.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00043,run_043.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00044,run_044.png,$\boxed{3}$,3,1,False,Gemini 2.5 Flash
+batch1,item_00045,run_045.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00046,run_045_1.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00047,run_046.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00048,run_047.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00049,run_047_1.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00050,run_048.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00051,run_049.png,$\boxed{2}$,2,1,False,Gemini 2.5 Flash
+batch1,item_00052,run_050.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00053,run_050_1.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00054,run_051.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00055,run_052.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch1,item_00056,run_054.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00057,run_055.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00058,run_056.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00059,run_058.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00060,run_061.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00061,run_062.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00062,run_063.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00063,run_064.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch1,item_00064,run_065.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00065,run_066.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00066,run_068.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00067,run_069.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00068,run_070.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch1,item_00069,run_071.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00070,run_072.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00071,run_073.png,$\boxed{4}$,4,1,False,Gemini 2.5 Flash
+batch1,item_00072,run_074.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00073,run_075.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00074,run_076.png,$\boxed{2}$,2,1,False,Gemini 2.5 Flash
+batch1,item_00075,run_078.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch1,item_00076,run_079.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch1,item_00077,run_080.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00078,run_082.png,$\boxed{2}$,2,1,False,Gemini 2.5 Flash
+batch1,item_00079,run_084.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch1,item_00080,run_085.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00081,run_086.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00082,run_087.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00083,run_088.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch1,item_00084,run_089.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00085,run_090.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch1,item_00086,run_092.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch1,item_00087,run_093.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00088,run_094.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch1,item_00089,run_095.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00090,run_096.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00091,run_097.png,$\boxed{2}$,2,1,False,Gemini 2.5 Flash
+batch1,item_00092,run_098.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00093,run_099.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00094,run_103.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch1,item_00095,run_107.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00096,run_110.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch1,item_00097,run_113.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch1,item_00098,run_114.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00000,run_b2_001.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00001,run_b2_002.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00002,run_b2_003.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00003,run_b2_004.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00004,run_b2_005.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00005,run_b2_007.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00006,run_b2_008.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00007,run_b2_009.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00008,run_b2_010.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00009,run_b2_011.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00010,run_b2_012.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00011,run_b2_013.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00012,run_b2_014.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00013,run_b2_015.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00014,run_b2_018.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00015,run_b2_019.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00016,run_b2_021.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00017,run_b2_022.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00018,run_b2_023.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00019,run_b2_024.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00020,run_b2_025.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00021,run_b2_026.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00022,run_b2_028.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00023,run_b2_029.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00024,run_b2_030.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00025,run_b2_031.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00026,run_b2_032.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00027,run_b2_033.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00028,run_b2_034.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00029,run_b2_036.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00030,run_b2_037.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00031,run_b2_038.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00032,run_b2_039.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00033,run_b2_040.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00034,run_b2_041.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00035,run_b2_042.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00036,run_b2_043.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00037,run_b2_044.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00038,run_b2_045.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00039,run_b2_046.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00040,run_b2_047.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch2,item_00041,run_b2_048.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00042,run_b2_049.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00043,run_b2_050.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00044,run_b2_051.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00045,run_b2_052.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00046,run_b2_053.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00047,run_b2_054.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00048,run_b2_056.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00049,run_b2_057.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00050,run_b2_058.png,$\boxed{3}$,3,4,False,Gemini 2.5 Flash
+batch2,item_00051,run_b2_059.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00052,run_b2_060.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00053,run_b2_061.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00054,run_b2_062.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00055,run_b2_065.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00056,run_b2_066.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00057,run_b2_067.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00058,run_b2_069.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00059,run_b2_070.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00060,run_b2_071.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00061,run_b2_073.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00062,run_b2_074.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00063,run_b2_075.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00064,run_b2_078.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch2,item_00065,run_b2_079.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00066,run_b2_080.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00067,run_b2_082.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00068,run_b2_083.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00069,run_b2_084.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00070,run_b2_086.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00071,run_b2_087.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00072,run_b2_088.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00073,run_b2_090.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00074,run_b2_091.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00075,run_b2_092.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00076,run_b2_096.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch2,item_00077,run_b2_097.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00078,run_b2_098.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00079,run_b2_099.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00080,run_b2_100.png,$\boxed{3}$,3,1,False,Gemini 2.5 Flash
+batch2,item_00081,run_b2_101.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00082,run_b2_102.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00083,run_b2_103.png,$\boxed{3}$,3,1,False,Gemini 2.5 Flash
+batch2,item_00084,run_b2_104.png,$\boxed{2}$,2,2,True,Gemini 2.5 Flash
+batch2,item_00085,run_b2_107.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00086,run_b2_108.png,$\boxed{4}$,4,2,False,Gemini 2.5 Flash
+batch2,item_00087,run_b2_109.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00088,run_b2_110.png,$\boxed{1}$,1,2,False,Gemini 2.5 Flash
+batch2,item_00089,run_b2_111.png,$\boxed{4}$,4,3,False,Gemini 2.5 Flash
+batch2,item_00090,run_b2_112.png,$\boxed{4}$,4,4,True,Gemini 2.5 Flash
+batch2,item_00091,run_b2_113.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00092,run_b2_114.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00093,run_b2_115.png,$\boxed{1}$,1,1,True,Gemini 2.5 Flash
+batch2,item_00094,run_b2_116.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00095,run_b2_117.png,$\boxed{2}$,2,3,False,Gemini 2.5 Flash
+batch2,item_00096,run_b2_118.png,$\boxed{3}$,3,2,False,Gemini 2.5 Flash
+batch2,item_00097,run_b2_119.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch2,item_00098,run_b2_120.png,$\boxed{3}$,3,3,True,Gemini 2.5 Flash
+batch1,item_00000,run_001_1.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00001,run_004.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00002,run_006_1.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch1,item_00003,run_007.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00004,run_008.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00005,run_009.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00006,run_010.png,$\boxed{2}$,2,4,False,Gemini 2.5 Pro
+batch1,item_00007,run_011.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00008,run_011_2.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00009,run_012.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00010,run_012_1.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00011,run_013.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00012,run_014.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00013,run_015.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00014,run_016.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00015,run_016_1.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00016,run_017.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00017,run_018.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch1,item_00018,run_019.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00019,run_020.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00020,run_021.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00021,run_022.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00022,run_023.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00023,run_023_1.png,$\boxed{4}$,4,3,False,Gemini 2.5 Pro
+batch1,item_00024,run_024_1.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00025,run_025.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00026,run_026.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00027,run_027.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00028,run_028.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch1,item_00029,run_029.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00030,run_030.png,$\boxed{1}$,1,2,False,Gemini 2.5 Pro
+batch1,item_00031,run_031.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00032,run_032.png,$\boxed{1}$,1,2,False,Gemini 2.5 Pro
+batch1,item_00033,run_033_1.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00034,run_034.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00035,run_035.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00036,run_036_1.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00037,run_037.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch1,item_00038,run_038.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00039,run_039.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00040,run_040.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00041,run_042.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00042,run_042_1.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00043,run_043.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00044,run_044.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00045,run_045.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00046,run_045_1.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00047,run_046.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00048,run_047.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00049,run_047_1.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00050,run_048.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00051,run_049.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00052,run_050.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00053,run_050_1.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00054,run_051.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch1,item_00055,run_052.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch1,item_00056,run_054.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00057,run_055.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00058,run_056.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00059,run_058.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00060,run_061.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00061,run_062.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00062,run_063.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00063,run_064.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch1,item_00064,run_065.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00065,run_066.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00066,run_068.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00067,run_069.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00068,run_070.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch1,item_00069,run_071.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00070,run_072.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch1,item_00071,run_073.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00072,run_074.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00073,run_075.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00074,run_076.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch1,item_00075,run_078.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00076,run_079.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00077,run_080.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00078,run_082.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00079,run_084.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00080,run_085.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00081,run_086.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00082,run_087.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00083,run_088.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch1,item_00084,run_089.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00085,run_090.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00086,run_092.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch1,item_00087,run_093.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch1,item_00088,run_094.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00089,run_095.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00090,run_096.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00091,run_097.png,$\boxed{2}$,2,1,False,Gemini 2.5 Pro
+batch1,item_00092,run_098.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch1,item_00093,run_099.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00094,run_103.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch1,item_00095,run_107.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00096,run_110.png,$\boxed{4}$,4,3,False,Gemini 2.5 Pro
+batch1,item_00097,run_113.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch1,item_00098,run_114.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch2,item_00000,run_b2_001.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00001,run_b2_002.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00002,run_b2_003.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch2,item_00003,run_b2_004.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00004,run_b2_005.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00005,run_b2_007.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00006,run_b2_008.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00007,run_b2_009.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00008,run_b2_010.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00009,run_b2_011.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch2,item_00010,run_b2_012.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00011,run_b2_013.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00012,run_b2_014.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00013,run_b2_015.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00014,run_b2_018.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00015,run_b2_019.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00016,run_b2_021.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch2,item_00017,run_b2_022.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00018,run_b2_023.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00019,run_b2_024.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch2,item_00020,run_b2_025.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00021,run_b2_026.png,$\boxed{1}$,1,2,False,Gemini 2.5 Pro
+batch2,item_00022,run_b2_028.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00023,run_b2_029.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch2,item_00024,run_b2_030.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00025,run_b2_031.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00026,run_b2_032.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00027,run_b2_033.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00028,run_b2_034.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00029,run_b2_036.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch2,item_00030,run_b2_037.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00031,run_b2_038.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00032,run_b2_039.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch2,item_00033,run_b2_040.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00034,run_b2_041.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00035,run_b2_042.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00036,run_b2_043.png,$\boxed{2}$,2,4,False,Gemini 2.5 Pro
+batch2,item_00037,run_b2_044.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00038,run_b2_045.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00039,run_b2_046.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00040,run_b2_047.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00041,run_b2_048.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch2,item_00042,run_b2_049.png,$\boxed{3}$,3,4,False,Gemini 2.5 Pro
+batch2,item_00043,run_b2_050.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00044,run_b2_051.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00045,run_b2_052.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00046,run_b2_053.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00047,run_b2_054.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00048,run_b2_056.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00049,run_b2_057.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00050,run_b2_058.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00051,run_b2_059.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00052,run_b2_060.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00053,run_b2_061.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00054,run_b2_062.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00055,run_b2_065.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00056,run_b2_066.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00057,run_b2_067.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00058,run_b2_069.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00059,run_b2_070.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00060,run_b2_071.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00061,run_b2_073.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00062,run_b2_074.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00063,run_b2_075.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00064,run_b2_078.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00065,run_b2_079.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00066,run_b2_080.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00067,run_b2_082.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00068,run_b2_083.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00069,run_b2_084.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00070,run_b2_086.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00071,run_b2_087.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00072,run_b2_088.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00073,run_b2_090.png,$\boxed{1}$,1,3,False,Gemini 2.5 Pro
+batch2,item_00074,run_b2_091.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00075,run_b2_092.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00076,run_b2_096.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00077,run_b2_097.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00078,run_b2_098.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00079,run_b2_099.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00080,run_b2_100.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00081,run_b2_101.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch2,item_00082,run_b2_102.png,$\boxed{4}$,4,2,False,Gemini 2.5 Pro
+batch2,item_00083,run_b2_103.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00084,run_b2_104.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00085,run_b2_107.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00086,run_b2_108.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00087,run_b2_109.png,$\boxed{3}$,3,1,False,Gemini 2.5 Pro
+batch2,item_00088,run_b2_110.png,$\boxed{2}$,2,2,True,Gemini 2.5 Pro
+batch2,item_00089,run_b2_111.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00090,run_b2_112.png,$\boxed{4}$,4,4,True,Gemini 2.5 Pro
+batch2,item_00091,run_b2_113.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00092,run_b2_114.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00093,run_b2_115.png,$\boxed{1}$,1,1,True,Gemini 2.5 Pro
+batch2,item_00094,run_b2_116.png,$\boxed{3}$,3,3,True,Gemini 2.5 Pro
+batch2,item_00095,run_b2_117.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00096,run_b2_118.png,$\boxed{3}$,3,2,False,Gemini 2.5 Pro
+batch2,item_00097,run_b2_119.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch2,item_00098,run_b2_120.png,$\boxed{2}$,2,3,False,Gemini 2.5 Pro
+batch1,item_00000,run_001_1.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00001,run_004.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00002,run_006_1.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00003,run_007.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00004,run_008.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00005,run_009.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00006,run_010.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch1,item_00007,run_011.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00008,run_011_2.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00009,run_012.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00010,run_012_1.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch1,item_00011,run_013.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00012,run_014.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00013,run_015.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00014,run_016.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00015,run_016_1.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00016,run_017.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00017,run_018.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00018,run_019.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00019,run_020.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00020,run_021.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00021,run_022.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00022,run_023.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch1,item_00023,run_023_1.png,$\boxed{4}$,4,3,False,GPT-5 Low
+batch1,item_00024,run_024_1.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00025,run_025.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch1,item_00026,run_026.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00027,run_027.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00028,run_028.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00029,run_029.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00030,run_030.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00031,run_031.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00032,run_032.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00033,run_033_1.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00034,run_034.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch1,item_00035,run_035.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch1,item_00036,run_036_1.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00037,run_037.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00038,run_038.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00039,run_039.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00040,run_040.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00041,run_042.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch1,item_00042,run_042_1.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch1,item_00043,run_043.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00044,run_044.png,$\boxed{2}$,2,1,False,GPT-5 Low
+batch1,item_00045,run_045.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00046,run_045_1.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00047,run_046.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00048,run_047.png,$\boxed{2}$,2,1,False,GPT-5 Low
+batch1,item_00049,run_047_1.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00050,run_048.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00051,run_049.png,$\boxed{2}$,2,1,False,GPT-5 Low
+batch1,item_00052,run_050.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00053,run_050_1.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00054,run_051.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00055,run_052.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00056,run_054.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00057,run_055.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00058,run_056.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00059,run_058.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00060,run_061.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00061,run_062.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00062,run_063.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00063,run_064.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00064,run_065.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00065,run_066.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00066,run_068.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00067,run_069.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00068,run_070.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00069,run_071.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00070,run_072.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00071,run_073.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00072,run_074.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00073,run_075.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00074,run_076.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch1,item_00075,run_078.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00076,run_079.png,$\boxed{3}$,3,1,False,GPT-5 Low
+batch1,item_00077,run_080.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00078,run_082.png,$\boxed{2}$,2,1,False,GPT-5 Low
+batch1,item_00079,run_084.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00080,run_085.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00081,run_086.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00082,run_087.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00083,run_088.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch1,item_00084,run_089.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch1,item_00085,run_090.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch1,item_00086,run_092.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch1,item_00087,run_093.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00088,run_094.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch1,item_00089,run_095.png,$\boxed{4}$,4,3,False,GPT-5 Low
+batch1,item_00090,run_096.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00091,run_097.png,$\boxed{4}$,4,1,False,GPT-5 Low
+batch1,item_00092,run_098.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00093,run_099.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00094,run_103.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00095,run_107.png,$\boxed{1}$,1,2,False,GPT-5 Low
+batch1,item_00096,run_110.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch1,item_00097,run_113.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch1,item_00098,run_114.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00000,run_b2_001.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00001,run_b2_002.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00002,run_b2_003.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch2,item_00003,run_b2_004.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00004,run_b2_005.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00005,run_b2_007.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00006,run_b2_008.png,$\boxed{4}$,4,3,False,GPT-5 Low
+batch2,item_00007,run_b2_009.png,$\boxed{4}$,4,3,False,GPT-5 Low
+batch2,item_00008,run_b2_010.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00009,run_b2_011.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00010,run_b2_012.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00011,run_b2_013.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00012,run_b2_014.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00013,run_b2_015.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00014,run_b2_018.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00015,run_b2_019.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00016,run_b2_021.png,$\boxed{4}$,4,2,False,GPT-5 Low
+batch2,item_00017,run_b2_022.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00018,run_b2_023.png,\boxed{2},2,2,True,GPT-5 Low
+batch2,item_00019,run_b2_024.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00020,run_b2_025.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00021,run_b2_026.png,$\boxed{1}$,1,2,False,GPT-5 Low
+batch2,item_00022,run_b2_028.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00023,run_b2_029.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00024,run_b2_030.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00025,run_b2_031.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00026,run_b2_032.png,\boxed{2},2,2,True,GPT-5 Low
+batch2,item_00027,run_b2_033.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00028,run_b2_034.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00029,run_b2_036.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00030,run_b2_037.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00031,run_b2_038.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00032,run_b2_039.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00033,run_b2_040.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00034,run_b2_041.png,$\boxed{4}$,4,3,False,GPT-5 Low
+batch2,item_00035,run_b2_042.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00036,run_b2_043.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00037,run_b2_044.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00038,run_b2_045.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch2,item_00039,run_b2_046.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00040,run_b2_047.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00041,run_b2_048.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00042,run_b2_049.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00043,run_b2_050.png,\boxed{2},2,2,True,GPT-5 Low
+batch2,item_00044,run_b2_051.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00045,run_b2_052.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00046,run_b2_053.png,$\boxed{3}$,3,4,False,GPT-5 Low
+batch2,item_00047,run_b2_054.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00048,run_b2_056.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00049,run_b2_057.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00050,run_b2_058.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00051,run_b2_059.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00052,run_b2_060.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00053,run_b2_061.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00054,run_b2_062.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00055,run_b2_065.png,\boxed{3},3,3,True,GPT-5 Low
+batch2,item_00056,run_b2_066.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch2,item_00057,run_b2_067.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00058,run_b2_069.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00059,run_b2_070.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00060,run_b2_071.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00061,run_b2_073.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00062,run_b2_074.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00063,run_b2_075.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch2,item_00064,run_b2_078.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00065,run_b2_079.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00066,run_b2_080.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00067,run_b2_082.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00068,run_b2_083.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00069,run_b2_084.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00070,run_b2_086.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00071,run_b2_087.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch2,item_00072,run_b2_088.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00073,run_b2_090.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00074,run_b2_091.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00075,run_b2_092.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00076,run_b2_096.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00077,run_b2_097.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00078,run_b2_098.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00079,run_b2_099.png,$\boxed{3}$,3,2,False,GPT-5 Low
+batch2,item_00080,run_b2_100.png,$\boxed{2}$,2,1,False,GPT-5 Low
+batch2,item_00081,run_b2_101.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00082,run_b2_102.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00083,run_b2_103.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00084,run_b2_104.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00085,run_b2_107.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00086,run_b2_108.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00087,run_b2_109.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00088,run_b2_110.png,$\boxed{2}$,2,2,True,GPT-5 Low
+batch2,item_00089,run_b2_111.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00090,run_b2_112.png,$\boxed{4}$,4,4,True,GPT-5 Low
+batch2,item_00091,run_b2_113.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00092,run_b2_114.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00093,run_b2_115.png,$\boxed{1}$,1,1,True,GPT-5 Low
+batch2,item_00094,run_b2_116.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00095,run_b2_117.png,$\boxed{3}$,3,3,True,GPT-5 Low
+batch2,item_00096,run_b2_118.png,$\boxed{1}$,1,2,False,GPT-5 Low
+batch2,item_00097,run_b2_119.png,$\boxed{2}$,2,3,False,GPT-5 Low
+batch2,item_00098,run_b2_120.png,$\boxed{1}$,1,3,False,GPT-5 Low
+batch1,item_00000,run_001_1.png,\boxed{1},1,1,True,GPT-5 Med
+batch1,item_00001,run_004.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00002,run_006_1.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00003,run_007.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00004,run_008.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00005,run_009.png,\boxed{3},3,2,False,GPT-5 Med
+batch1,item_00006,run_010.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00007,run_011.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00008,run_011_2.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00009,run_012.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00010,run_012_1.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00011,run_013.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch1,item_00012,run_014.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00013,run_015.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00014,run_016.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch1,item_00015,run_016_1.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00016,run_017.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00017,run_018.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00018,run_019.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00019,run_020.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00020,run_021.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch1,item_00021,run_022.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00022,run_023.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00023,run_023_1.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00024,run_024_1.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00025,run_025.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00026,run_026.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00027,run_027.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00028,run_028.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00029,run_029.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00030,run_030.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00031,run_031.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00032,run_032.png,$\boxed{1}$,1,2,False,GPT-5 Med
+batch1,item_00033,run_033_1.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00034,run_034.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00035,run_035.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00036,run_036_1.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00037,run_037.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00038,run_038.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00039,run_039.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00040,run_040.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00041,run_042.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch1,item_00042,run_042_1.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00043,run_043.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch1,item_00044,run_044.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00045,run_045.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00046,run_045_1.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00047,run_046.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00048,run_047.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch1,item_00049,run_047_1.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00050,run_048.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch1,item_00051,run_049.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00052,run_050.png,$\boxed{4}$,4,3,False,GPT-5 Med
+batch1,item_00053,run_050_1.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00054,run_051.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00055,run_052.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00056,run_054.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00057,run_055.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00058,run_056.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00059,run_058.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00060,run_061.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00061,run_062.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00062,run_063.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00063,run_064.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00064,run_065.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00065,run_066.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00066,run_068.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00067,run_069.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00068,run_070.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00069,run_071.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00070,run_072.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00071,run_073.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00072,run_074.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00073,run_075.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00074,run_076.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch1,item_00075,run_078.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00076,run_079.png,$\boxed{3}$,3,1,False,GPT-5 Med
+batch1,item_00077,run_080.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00078,run_082.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00079,run_084.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00080,run_085.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00081,run_086.png,$\boxed{4}$,4,3,False,GPT-5 Med
+batch1,item_00082,run_087.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch1,item_00083,run_088.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch1,item_00084,run_089.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00085,run_090.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00086,run_092.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch1,item_00087,run_093.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00088,run_094.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00089,run_095.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00090,run_096.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00091,run_097.png,$\boxed{2}$,2,1,False,GPT-5 Med
+batch1,item_00092,run_098.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00093,run_099.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00094,run_103.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00095,run_107.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00096,run_110.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch1,item_00097,run_113.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch1,item_00098,run_114.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00000,run_b2_001.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00001,run_b2_002.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00002,run_b2_003.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00003,run_b2_004.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00004,run_b2_005.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00005,run_b2_007.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00006,run_b2_008.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00007,run_b2_009.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00008,run_b2_010.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00009,run_b2_011.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00010,run_b2_012.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00011,run_b2_013.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00012,run_b2_014.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00013,run_b2_015.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00014,run_b2_018.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch2,item_00015,run_b2_019.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00016,run_b2_021.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00017,run_b2_022.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00018,run_b2_023.png,$\boxed{1}$,1,2,False,GPT-5 Med
+batch2,item_00019,run_b2_024.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00020,run_b2_025.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00021,run_b2_026.png,$\boxed{1}$,1,2,False,GPT-5 Med
+batch2,item_00022,run_b2_028.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00023,run_b2_029.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00024,run_b2_030.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch2,item_00025,run_b2_031.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00026,run_b2_032.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00027,run_b2_033.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00028,run_b2_034.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00029,run_b2_036.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00030,run_b2_037.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00031,run_b2_038.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00032,run_b2_039.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00033,run_b2_040.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00034,run_b2_041.png,$\boxed{4}$,4,3,False,GPT-5 Med
+batch2,item_00035,run_b2_042.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00036,run_b2_043.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00037,run_b2_044.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00038,run_b2_045.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00039,run_b2_046.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00040,run_b2_047.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00041,run_b2_048.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00042,run_b2_049.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00043,run_b2_050.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00044,run_b2_051.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00045,run_b2_052.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00046,run_b2_053.png,$\boxed{3}$,3,4,False,GPT-5 Med
+batch2,item_00047,run_b2_054.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00048,run_b2_056.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00049,run_b2_057.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch2,item_00050,run_b2_058.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00051,run_b2_059.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00052,run_b2_060.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00053,run_b2_061.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00054,run_b2_062.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00055,run_b2_065.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00056,run_b2_066.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00057,run_b2_067.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00058,run_b2_069.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00059,run_b2_070.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00060,run_b2_071.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00061,run_b2_073.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00062,run_b2_074.png,\boxed{2},2,2,True,GPT-5 Med
+batch2,item_00063,run_b2_075.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00064,run_b2_078.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch2,item_00065,run_b2_079.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00066,run_b2_080.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00067,run_b2_082.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00068,run_b2_083.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00069,run_b2_084.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00070,run_b2_086.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00071,run_b2_087.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00072,run_b2_088.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00073,run_b2_090.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00074,run_b2_091.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00075,run_b2_092.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00076,run_b2_096.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00077,run_b2_097.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00078,run_b2_098.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00079,run_b2_099.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00080,run_b2_100.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00081,run_b2_101.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00082,run_b2_102.png,$\boxed{3}$,3,2,False,GPT-5 Med
+batch2,item_00083,run_b2_103.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00084,run_b2_104.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00085,run_b2_107.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00086,run_b2_108.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00087,run_b2_109.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00088,run_b2_110.png,$\boxed{1}$,1,2,False,GPT-5 Med
+batch2,item_00089,run_b2_111.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00090,run_b2_112.png,$\boxed{4}$,4,4,True,GPT-5 Med
+batch2,item_00091,run_b2_113.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00092,run_b2_114.png,$\boxed{3}$,3,3,True,GPT-5 Med
+batch2,item_00093,run_b2_115.png,$\boxed{1}$,1,1,True,GPT-5 Med
+batch2,item_00094,run_b2_116.png,$\boxed{4}$,4,3,False,GPT-5 Med
+batch2,item_00095,run_b2_117.png,$\boxed{2}$,2,3,False,GPT-5 Med
+batch2,item_00096,run_b2_118.png,$\boxed{2}$,2,2,True,GPT-5 Med
+batch2,item_00097,run_b2_119.png,\boxed{3},3,3,True,GPT-5 Med
+batch2,item_00098,run_b2_120.png,$\boxed{3}$,3,3,True,GPT-5 Med

@@ -2875,8 +2875,8 @@ class SketchApp:
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="SketchAgent (Claude, GPT, or Gemini)")
-    parser.add_argument("--llm", choices=["claude", "gpt", "gemini"], required=True, help="Which provider to use.")
+    parser = argparse.ArgumentParser(description="SketchAgent (Claude, GPT, Gemini, or Qwen3)")
+    parser.add_argument("--llm", choices=["claude", "gpt", "gemini", "qwen3"], required=True, help="Which provider to use.")
     parser.add_argument("--model", type=str, default=None, help="Model id (e.g., claude-3-5-sonnet-20240620, o3, or gemini-2.5-pro).")
     parser.add_argument("--deterministic", action="store_true", help="Set temperature=0 and top_k=1 (if supported).")
     parser.add_argument("--max-tokens", type=int, default=3000)

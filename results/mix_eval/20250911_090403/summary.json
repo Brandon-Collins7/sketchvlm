@@ -1,9 +1,0 @@
-{
-  "folder": "datasets\\mix",
-  "timestamp": "20250911_090403",
-  "total_items": 15,
-  "processed": 15,
-  "out_root": "results\\mix_eval\\20250911_090403",
-  "mode": "single_shot",
-  "notes": "Prompts are taken verbatim from paired .txt files."
-}

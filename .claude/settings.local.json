@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pip uninstall:*)",
-      "Bash(PKG_CONFIG_PATH=\"/opt/homebrew/lib/pkgconfig\" pip install cairocffi cairosvg)"
+      "Bash(PKG_CONFIG_PATH=\"/opt/homebrew/lib/pkgconfig\" pip install cairocffi cairosvg)",
+      "Bash(python3:*)"
     ],
     "deny": []
   }

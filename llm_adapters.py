@@ -525,6 +525,70 @@ class OpenAIAdapter(BaseLLMAdapter):
         return OpenAIAdapter.get_text_from_response(raw_response)
 
 
+# =========================
+# OpenRouter Adapter (Qwen3)
+# =========================
+class OpenRouterAdapter(BaseLLMAdapter):
+    """
+    Uses OpenRouter API with Alibaba provider for Qwen3-VL models.
+    - Images sent as image_url (data URI) in message content.
+    - Provider preference set to Alibaba only.
+    """
+    def __init__(self, model: str, cache: bool = False, max_tokens: int = 3000):
+        super().__init__(model, cache, max_tokens)
+        import openai
+        load_dotenv()
+        api_key = os.getenv("OPENROUTER_API_KEY")
+        self._client = openai.OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key
+        )
+
+    def build_user_content(self, init_canvas_b64: Optional[str], text: str):
+        content: List[Dict] = []
+        if init_canvas_b64:
+            hdr = "data:image/jpeg;base64," if init_canvas_b64[:3] == "/9j" else "data:image/png;base64,"
+            content.append({
+                "type": "image_url",
+                "image_url": {"url": hdr + init_canvas_b64}
+            })
+        content.append({"type": "text", "text": text})
+        return content
+
+    def call(self, system_message, messages, additional_args):
+        add_args = additional_args or {}
+        temperature = add_args.get("temperature")
+        stop_sequences = add_args.get("stop_sequences")
+
+        # Build messages with system message
+        chat_messages = messages or []
+        if isinstance(system_message, str) and system_message.strip():
+            chat_messages = [{"role": "system", "content": system_message}] + chat_messages
+
+        args = dict(
+            model=self.model,
+            messages=chat_messages,
+            max_tokens=self.max_tokens,
+            extra_body={
+                "provider": {
+                    "only": ["alibaba"],      # enforce single provider
+                    "allow_fallbacks": False  # never fall back       
+                }
+            }
+        )
+        if temperature is not None:
+            args["temperature"] = float(temperature)
+        if stop_sequences:
+            args["stop"] = stop_sequences if isinstance(stop_sequences, list) else [stop_sequences]
+
+        return self._client.chat.completions.create(**args)
+
+    def extract_text(self, raw_response) -> str:
+        """Extract text from OpenRouter response (same format as OpenAI)."""
+        if hasattr(raw_response, "choices") and raw_response.choices:
+            return raw_response.choices[0].message.content.strip()
+        return ""
+
 
 # =========================
 # Adapter Factory
@@ -532,16 +596,16 @@ class OpenAIAdapter(BaseLLMAdapter):
 def make_adapter(llm_name: str, model: str, cache: bool, max_tokens: int) -> BaseLLMAdapter:
     """
     Factory function to create the appropriate LLM adapter based on provider name.
-    
+
     Args:
-        llm_name: Provider name ('claude', 'gpt', 'gemini')
+        llm_name: Provider name ('claude', 'gpt', 'gemini', 'openrouter', 'qwen3')
         model: Model identifier
         cache: Whether to enable caching
         max_tokens: Maximum tokens for responses
-        
+
     Returns:
         Configured LLM adapter instance
-        
+
     Raises:
         ValueError: If unknown LLM provider is specified
     """
@@ -552,4 +616,6 @@ def make_adapter(llm_name: str, model: str, cache: bool, max_tokens: int) -> Bas
         return OpenAIAdapter(model=model, cache=cache, max_tokens=max_tokens)
     if name in ("gemini", "google"):
         return GeminiAdapter(model=model, cache=cache, max_tokens=max_tokens)
-    raise ValueError("Unknown --llm. Use 'claude', 'gpt', or 'gemini'.")
+    if name in ("openrouter", "qwen3"):
+        return OpenRouterAdapter(model=model, cache=cache, max_tokens=max_tokens)
+    raise ValueError("Unknown --llm. Use 'claude', 'gpt', 'gemini', or 'qwen3'.")
