@@ -59,6 +59,7 @@ def generate_html(csv_path, output_path):
     for model_base, model_prefix in [
         ('gemini', 'gemini25_flash'),
         ('gemini', 'gemini25_pro'),
+        ('gemini', 'gemini3_pro'),
         ('gpt5', 'gpt5_low'),
         ('qwen3', 'qwen3_235b')
     ]:
@@ -111,6 +112,8 @@ def generate_html(csv_path, output_path):
         ('gemini_pro_sketch', 'Pro (Sketch)', True),
         ('gemini_pro_vqa', 'Pro (VQA)', False),
         ('gemini_pro_two_turn', 'Pro (Two-Turn)', True),
+        ('gemini3_pro_sketch', 'Pro3 (Sketch)', True),
+        ('gemini3_pro_vqa', 'Pro3 (VQA)', False),
         ('gpt5_low_sketch', 'GPT-5 (Sketch)', True),
         ('gpt5_low_vqa', 'GPT-5 (VQA)', False),
         ('gpt5_low_two_turn', 'GPT-5 (Two-Turn)', True),
@@ -356,6 +359,7 @@ def generate_html(csv_path, output_path):
                         'gemini_flash_two_turn': 'gemini25_flash_two_turn',
                         'gemini_pro_sketch': 'gemini25_pro',
                         'gemini_pro_two_turn': 'gemini25_pro_two_turn',
+                        'gemini3_pro_sketch': 'gemini3_pro',
                         'gpt5_low_sketch': 'gpt5_low',
                         'gpt5_low_two_turn': 'gpt5_low_two_turn',
                         'qwen3_235b_sketch': 'qwen3_235b'
@@ -393,6 +397,7 @@ def generate_html(csv_path, output_path):
                         'gemini_flash_two_turn': 'gemini25_flash_two_turn',
                         'gemini_pro_sketch': 'gemini25_pro',
                         'gemini_pro_two_turn': 'gemini25_pro_two_turn',
+                        'gemini3_pro_sketch': 'gemini3_pro',
                         'gpt5_low_sketch': 'gpt5_low',
                         'gpt5_low_two_turn': 'gpt5_low_two_turn',
                         'qwen3_235b_sketch': 'qwen3_235b'
