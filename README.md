@@ -8,8 +8,34 @@
   - prompts.py - LLM prompts and templates
 
 
-# **Frequently Used**
+# Run with Specific Model 
 
+## GPT-5
+
+### GPT-5 (low)
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir path/to/dataset --max-tokens 20000 --reasoning-effort low --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
+
+### GPT-5 (medium)
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir path/to/dataset --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
+
+### GPT-5 (high)
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir path/to/dataset --max-tokens 20000 --reasoning-effort high --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
+
+## Gemini 
+
+### Gemini 3.0 Pro
+python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+### Gemini 2.5 Pro
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro-preview --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+### Gemini 2.5 Flash
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+## Claude
+python collab_sketch_with_label.py --llm claude --model claude-3-5-sonnet-20240620 --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
+
+# **Frequently Used**
 
 **Baseline:**
 
@@ -17,86 +43,15 @@
 
 removes grid from the image that is sent to model
 
-
 --no-system-prompt
 
-removes system prompt from being sent to model
+removes sketch system prompt from being sent to model
 
 
 
 **Inference:**
 
-**GPT-5 (medium) - Connect Dots**
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir {dataset_directory} --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
-
-Ex:
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir connecting_dots_dataset/worksheets_source --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
-
-
-**GPT-5 (medium) - Physics ball drop (exact same but change dataset)**
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir {dataset_directory} --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
-
-Ex:
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/ball_path --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --reasoning-effort low --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/second_batch_ball_number --max-tokens 20000 --reasoning-effort low --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
 To get the ball_path dataset (so it's formatted in same way as other datasets) from the large_run_split, run gather_ball_prompts.py. This will create almost two equivalent folders, where one just adds a small bit to the prompt that requires the model to sketch the path.
-
-
-**Gemini-2.5-Pro - Connect Dots (just changed model)**
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir {dataset_directory} --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 
-
-**Gemini-2.5-Pro - Physics ball drop**
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-
-
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
-
-
-
-python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
-
-python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
-
-python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --only "164"
-
-
-
-python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "114,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199"
-
-
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
-
-
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --two-turn
-
-
 
 
 
@@ -104,8 +59,6 @@ python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort lo
 
 
 **Comparisons / Accuracy:**
-
-Sometimes will take a minute for html to finish generating. Htmls include accuracy
 
 \***Html compare + accuracy - Physics ball drop; VQA (no sketch) vs Sketch**
 
@@ -131,19 +84,6 @@ Where really just the "file" variable path (to match the result with correct gt)
 This is shoddy and should probably be made better.
 
 
-
-
-# Code Execution Examples
-
-## Model Types
-### Claude
-python sketch_app.py --llm claude --model claude-3-5-sonnet-20240620
-
-### OpenAI GPT
-python sketch_app.py --llm gpt --model o3
-
-### Gemini 2.5 Pro
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro
 
 
 ## New Grid Fix (for higher res images)
@@ -199,5 +139,5 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-d
 
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --max-examples 200 --count-only-text --api-delay 5
 
-#multi-turn
+# multi-turn
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --tallyqa-stepwise --tallyqa-max-turns 40 --max-examples 200 --count-only-text --api-delay 4
