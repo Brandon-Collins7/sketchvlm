@@ -569,9 +569,10 @@ class OpenRouterAdapter(BaseLLMAdapter):
             model=self.model,
             messages=chat_messages,
             max_tokens=self.max_tokens,
+            # CHANGE TO EITHER "hyperbolic" or "alibaba"
             extra_body={
                 "provider": {
-                    "only": ["alibaba"],      # enforce single provider
+                    "only": ["hyperbolic"],      # enforce single provider
                     "allow_fallbacks": False  # never fall back       
                 }
             }
