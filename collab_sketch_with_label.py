@@ -568,9 +568,10 @@ class SketchApp:
         if isinstance(self.llm, GeminiAdapter) and gen_mode == "completion":
             additional_args.pop("stop_sequences", None)
         '''
-        # Do not use stop-sequences with Gemini (causes premature STOP and empties)
-        if isinstance(self.llm, GeminiAdapter) and "stop_sequences" in additional_args:
-            additional_args.pop("stop_sequences", None)
+        #NOTE: this code was causing duplication issue for GEMINI
+        # # Do not use stop-sequences with Gemini (causes premature STOP and empties)
+        # if isinstance(self.llm, GeminiAdapter) and "stop_sequences" in additional_args:
+        #     additional_args.pop("stop_sequences", None)
         
         
         # optional tiny throttle (helps Gemini avoid empty outputs)
@@ -584,7 +585,6 @@ class SketchApp:
 
         if gen_mode == "completion" and prefill_msg:
             other_msg = other_msg[:-1]
-            content = f"{prefill_msg}{content}"
 
         # ----- NEW LOGGING -----
         # ... after you compute `content` and still inside get_response_from_llm
