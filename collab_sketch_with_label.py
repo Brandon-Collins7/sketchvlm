@@ -29,12 +29,12 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
-from prompts import sketch_first_prompt, system_prompt, gt_example, COUNTING_PROMPT, MIX_TOOLKIT, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT
 from prompts import (
-    ONE_STROKE_SYSTEM_GUARD,
-    STROKES_ONLY_SYSTEM_GUARD,
-    FINAL_ANSWER_SYSTEM_GUARD,
+    sketch_first_prompt, system_prompt, gt_example, COUNTING_PROMPT, MIX_TOOLKIT, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT,
+    ONE_STROKE_SYSTEM_GUARD, STROKES_ONLY_SYSTEM_GUARD, FINAL_ANSWER_SYSTEM_GUARD,
+    build_system_prompt,
 )
+
 
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
@@ -184,7 +184,10 @@ class SketchApp:
     def _sys_prompt_or_none(self):
         if self.no_system_prompt:
             return None
-        return system_prompt.format(res_x=self.res_x, res_y=self.res_y)
+        # Treat “colab”, stepwise, and two-turn as multi-turn prompt mode.
+        multi = bool(getattr(self, "_prompt_multi_turn", False) or self.sketch_mode == "colab")
+        return build_system_prompt(self.res_x, self.res_y, multi_turn=multi)
+
     
     def skip_turn(self):
         """
@@ -1608,6 +1611,8 @@ class SketchApp:
 
                 if stepwise: #MULTI-TURN MODE
                     self._start_generic_session(seed_prompt)
+                    self._prompt_multi_turn = True
+
                     
                     base_sys = self._sys_prompt_or_none() or ""
                     sys_with_one = (sys_count if counting else sys_label if labeling else base_sys) + "\n" + ONE_STROKE_SYSTEM_GUARD
@@ -1669,6 +1674,14 @@ class SketchApp:
                         # if not m_blk:
                         #     # fallback — accept any <sK>…</sK> and retag to expected_s
                         #     m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
+                        
+                        # If the model tries to give the final answer prematurely, skip strokes phase
+                        if "<final_answer" in (full_text or ""):
+                            svg_chunk = ""   # force the no-stroke path below
+                        else:
+                            m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
+                            svg_chunk = m_blk.group(1) if m_blk else ""
+
                         
                         svg_chunk = m_blk.group(1) if m_blk else ""
                         
@@ -1914,6 +1927,9 @@ class SketchApp:
 
                 elif two_turn: #TWO TURN MODE
                     self._start_generic_session(seed_prompt)
+                    
+                    self._prompt_multi_turn = True
+
                     base_sys = self._sys_prompt_or_none() or ""
 
                     # ---------- TURN 1: strokes only ----------
@@ -1980,6 +1996,8 @@ class SketchApp:
                     text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
 
                 else:  # ONE TURN MODE
+                    self._prompt_multi_turn = False
+
                     if self.no_system_prompt:
                         use_stop = not isinstance(self.llm, GeminiAdapter)
                         # no system -> prepend counting template into the user msg (like --count-dir raw mode)
