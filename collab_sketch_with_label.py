@@ -152,6 +152,14 @@ class SketchApp:
         
         self.text_font_family = "Arial"
         self.text_font_scale  = 3.2   # ~3.2 * cell_size (e.g., 12 -> 38.4px). Tweak to taste.
+        
+        
+        #  stroke-color cycling (human-view only) ----
+        self.cycle_stroke_colors = False      # set from CLI later
+        self.save_colored_steps  = False      # set from CLI later
+        self._palette = ["#ff0000","#ff7f00","#ffff00","#00a000","#0000ff","#800080"]  # ROYGBP
+        self._colored_svg = self._svg_root_open()  # parallel SVG just for human-colored composites
+
 
 
         # Routes
@@ -281,6 +289,48 @@ class SketchApp:
                 s_used.add(s_no)
 
         return keep
+
+    def _recolor_svg_group(self, g_block: str, color: str) -> str:
+        """Return a copy of <g ...>...</g> with stroke/fill set to `color` (if present)."""
+        if not color:
+            return g_block
+        # stroke on paths/shapes
+        g2 = re.sub(r'stroke="[^"]+"', f'stroke="{color}"', g_block)
+        # text fill (keep stroke-none on text)
+        g2 = re.sub(r'(<text\b[^>]*\bfill=")[^"]+(")', r'\1'+color+r'\2', g2)
+        # if text has no fill, inject one
+        g2 = re.sub(r'(<text\b(?![^>]*\bfill=)[^>]*)(>)', r'\1 fill="'+color+r'"\2', g2)
+        return g2
+    
+    
+    def _render_svg_to_png_no_b64(self, svg_text: str, out_png: str):
+        over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg_text.encode()))).convert("RGBA")
+        base = getattr(self, "base_canvas_clean", self.base_canvas).convert("RGBA")
+        if over.size != base.size:
+            inner = re.sub(r'^.*?<svg[^>]*>|</svg>\s*$', '', svg_text, flags=re.S)
+            svg_text = (f'<svg width="{base.size[0]}" height="{base.size[1]}" '
+                        f'xmlns="http://www.w3.org/2000/svg">{inner}</svg>')
+            over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg_text.encode()))).convert("RGBA")
+        Image.alpha_composite(base, over).convert("RGB").save(out_png)
+
+    
+    # --- model-view control (original vs re-render) ---
+    def _encode_pil_to_b64(self, pil_img):
+        import io, base64
+        buf = io.BytesIO()
+        pil_img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    def _canvas_b64_for_model(self):
+        """
+        In stepwise mode: return the b64 the provider should see this turn.
+        If --stepwise-original-only is on, prefer the raw original; else use last re-render.
+        """
+        if getattr(self, "stepwise_send_original_only", False):
+            # prefer raw original; fall back to original-with-grid; then to last
+            return getattr(self, "orig_raw_b64", None) or getattr(self, "orig_canvas_b64", None) or self.last_canvas_b64
+        return self.last_canvas_b64
+
 
 
 
@@ -581,6 +631,7 @@ class SketchApp:
 
         # ---- call provider ----
         response = self.call_llm(system_message, other_msg, additional_args)
+        self._last_raw_response = response
         content  = self.llm.extract_text(response)
 
         if gen_mode == "completion" and prefill_msg:
@@ -926,6 +977,12 @@ class SketchApp:
             # advance our global stroke count by one
             self.stroke_counter = expected
             expected += 1
+            
+            # maintain a human-colored running SVG alongside model-colored one
+            if self.cycle_stroke_colors:
+                color = self._palette[(self.stroke_counter-1) % len(self._palette)]
+                colored_group = self._recolor_svg_group(svg, color)
+                self._colored_svg += colored_group
 
         return "".join(svgs)
     
@@ -1377,7 +1434,7 @@ class SketchApp:
                 msg=self.input_prompt,
                 system_message=None,           # no system
                 msg_history=[],
-                init_canvas_str=self.last_canvas_b64,
+                init_canvas_str=self._canvas_b64_for_model(),
                 seed_mode=self.seed_mode,
                 gen_mode="generation",
                 stop_sequences=None,           # don’t force a <strokes>-based stop
@@ -1403,7 +1460,7 @@ class SketchApp:
             msg=self.input_prompt,
             system_message=self._sys_prompt_or_none(),
             msg_history=[],
-            init_canvas_str=self.last_canvas_b64,
+            init_canvas_str=self._canvas_b64_for_model(),
             seed_mode=self.seed_mode,
             gen_mode="generation",
             **add_args
@@ -1536,12 +1593,18 @@ class SketchApp:
                 # Background first
                 self.set_background_from_pil(img, mode="fit")
                 img.save(str(raw_path), quality=95)
+                
+                self.orig_raw_b64 = self._encode_pil_to_b64(img)
+                self.orig_canvas_b64 = self._encode_pil_to_b64(self.base_canvas)
+
 
                 # Header AFTER grid
                 self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
+                self._colored_svg = self._svg_root_open()
+                self.explanations = []
 
                 if stepwise: #MULTI-TURN MODE
                     self._start_generic_session(seed_prompt)
@@ -1558,19 +1621,34 @@ class SketchApp:
                         turns += 1
                         
                         context_xml = self._canon_strokes_context()
-                        context_block = f"\n\n[Context so far]\n{context_xml}" if context_xml else ""
-                        user_msg = self.input_prompt + context_block
+                        context_parts = []
+
+                        # (A) Strokes context (skip when --stepwise-vision-only)
+                        if not getattr(self, "stepwise_vision_only", False):
+                            if context_xml:
+                                context_parts.append("\n\n[Context so far]\n" + context_xml)
+
+                        # (B) Explanations context (include when --stepwise-explanations)
+                        if getattr(self, "stepwise_explanations", False) and self.explanations:
+                            context_parts.append("\n\n[Explanation so far]\n" + "\n".join(self.explanations))
+
+                        user_msg = self.input_prompt + "".join(context_parts)
+
+
 
                         use_stop = not isinstance(self.llm, GeminiAdapter)
                         stop_seq = f"</s{expected_s}>"
+                        
+                        prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
+                        
                         answer_raw = self.get_response_from_llm(
                             msg=user_msg,
                             system_message=sys_with_one,
                             msg_history=[],
-                            init_canvas_str=self.last_canvas_b64,   # updated raster w/ previous overlays
+                            init_canvas_str=self._canvas_b64_for_model(),   # updated raster w/ previous overlays
                             seed_mode=self.seed_mode,
                             gen_mode="completion",
-                            prefill_msg=self.assitant_history.strip(),
+                            prefill_msg=prefill,
                             stop_sequences=stop_seq if use_stop else None,
                             previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
                         )
@@ -1593,6 +1671,24 @@ class SketchApp:
                         #     m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
                         
                         svg_chunk = m_blk.group(1) if m_blk else ""
+                        
+                        
+                        # --- NEW: extract natural-language explanation outside the <sN>...</sN> block
+                        explanation_this_turn = ""
+                        if isinstance(full_text, str) and full_text.strip():
+                            if m_blk:
+                                explanation_this_turn = (full_text[:m_blk.start()] + full_text[m_blk.end():]).strip()
+                            else:
+                                # no <sN> block found; treat the whole reply as explanation (we'll break on no stroke)
+                                explanation_this_turn = full_text.strip()
+
+                            # strip code fences or leftover XML wrappers
+                            explanation_this_turn = re.sub(r"```.*?```", "", explanation_this_turn, flags=re.S).strip()
+
+                        # persist if non-empty
+                        if explanation_this_turn:
+                            self.explanations.append(explanation_this_turn)
+
 
                         # Thread response id to the next turn (Responses API)
                         meta = self.llm.response_metadata(getattr(self, "_last_raw_response", None) or answer_raw)
@@ -1610,6 +1706,14 @@ class SketchApp:
 
                         # Convert model XML → actual SVG <g>/<path>/<text>…
                         svg = self.parse_model_to_svg(blk_fixed)
+                        
+                        
+                        # keep a human-colored copy in parallel
+                        if self.cycle_stroke_colors:
+                            color = self._palette[(expected_s-1) % len(self._palette)]
+                            colored_group = self._recolor_svg_group(svg, color)
+                            self._colored_svg += colored_group
+
 
                         # Append to the running SVG and advance our stroke counter
                         self.all_strokes_svg += svg
@@ -1624,6 +1728,14 @@ class SketchApp:
                         with open(step_png, "rb") as fh:
                             step_bytes = fh.read()
                         self.last_canvas_b64 = base64.b64encode(step_bytes).decode("utf-8")
+                        
+                        
+                        # ---- Human-colored step copy (do NOT update last_canvas_b64)
+                        if self.save_colored_steps and self.cycle_stroke_colors:
+                            step_png_color = out_root / f"item_{i:05d}_step_{turns:03d}_color.png"
+                            colored_svg_full = self._colored_svg + "</svg>"
+                            self._render_svg_to_png_no_b64(colored_svg_full, str(step_png_color))
+
 
                         
                         # Build the same strokes context we included in the prompt
@@ -1641,6 +1753,15 @@ class SketchApp:
                         # Provider’s raw assistant text snapshot for this turn
                         turn_text = getattr(self, "_last_assistant_text", None)
 
+                        # prove what we sent in (original vs re-render)
+                        if getattr(self, "stepwise_send_original_only", False):
+                            sent_file = str(raw_path)
+                            with open(raw_path, "rb") as _rb:
+                                sent_bytes = _rb.read()
+                        else:
+                            sent_file = str(step_png)
+                            sent_bytes = step_bytes
+
                         turn_trace.append({
                             "turn": turns,
                             "s_no": expected_s,
@@ -1648,21 +1769,24 @@ class SketchApp:
                             "assistant_text": turn_text,
                             "step_png": str(step_png),
                             "request_input": turn_input_dbg,
-
-                            # NEW: prove what we sent in
                             "sent_canvas": {
-                                "file": str(step_png),
-                                "sha1": self._sha1_bytes(step_bytes),
-                                "bytes": len(step_bytes),
+                                "file": sent_file,
+                                "sha1": self._sha1_bytes(sent_bytes),
+                                "bytes": len(sent_bytes),
                             },
                             "sent_svg_context": {
                                 "sha1": ctx_sha1,
                                 "chars": len(context_xml),
-                                "preview": ctx_preview,  # first 200 chars for readability
+                                "preview": ctx_preview,
                             },
                             "stop_sequences": f"</s{expected_s}>",
                             "request_preview": turn_request,
+                            "omitted_strokes_context": bool(getattr(self, "stepwise_vision_only", False)),
+                            "explanation": explanation_this_turn,
+                            "explanations_so_far": ("\n".join(self.explanations) if self.explanations else ""),
+
                         })
+
 
 
                         delay = getattr(self, "api_delay_sec", 0.0) or 0.0
@@ -1689,6 +1813,14 @@ class SketchApp:
                     else:
                         # Nothing drawn: still produce an annotated image from whatever we have
                         self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+                    
+                    
+                    # ---- final human-colored PNG (parallel artifact)
+                    if self.save_colored_steps and self.cycle_stroke_colors:
+                        final_colored_png = png_path.with_name(png_path.stem.replace("_annotated", "_annotated_color") + png_path.suffix)
+                        colored_svg_full = self._colored_svg + "</svg>"
+                        self._render_svg_to_png_no_b64(colored_svg_full, str(final_colored_png))
+
 
                     #  Extract final text answer
                     # 3) ANSWER PHASE (one extra call): ask ONLY for <final_answer>…</final_answer>
@@ -1701,26 +1833,36 @@ class SketchApp:
                     )
 
                     context_xml = self._canon_strokes_context()
-                    msg = (
-                        self.input_prompt
-                        + "\n\n[Context]\nCurrent strokes so far (machine-readable):\n"
-                        + context_xml
-                        + final_answer_guard
-                    )
+                    context_parts = []
+
+                    # (A) Strokes (respect --stepwise-vision-only)
+                    if not getattr(self, "stepwise_vision_only", False):
+                        if context_xml:
+                            context_parts.append("\n\n[Context]\nCurrent strokes so far (machine-readable):\n" + context_xml)
+
+                    # (B) Explanations (respect --stepwise-explanations)
+                    if getattr(self, "stepwise_explanations", False) and self.explanations:
+                        context_parts.append("\n\n[Explanation so far]\n" + "\n".join(self.explanations))
+
+                    msg = self.input_prompt + "".join(context_parts) + final_answer_guard
+
+
 
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     
                     base_sys = self._sys_prompt_or_none() or ""
                     sys_with_ans_guard = (sys_count if counting else base_sys) + "\n" + FINAL_ANSWER_SYSTEM_GUARD
+                    
+                    prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
 
                     answer_phase_raw = self.get_response_from_llm(
                         msg=msg,
                         system_message=sys_with_ans_guard,   # ← enforce answer-only at system level
                         msg_history=[],
-                        init_canvas_str=self.last_canvas_b64,
+                        init_canvas_str=self._canvas_b64_for_model(),
                         seed_mode=self.seed_mode,
                         gen_mode="completion",
-                        prefill_msg=self.assitant_history.strip(),
+                        prefill_msg=prefill,
                         stop_sequences="</final_answer>" if use_stop else None,
                         previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
 )
@@ -1728,6 +1870,21 @@ class SketchApp:
 
                     answer_request = getattr(self, "_last_redacted_request", None)
                     final_ans = self._extract_final_answer_any(answer_phase_raw, self.cur_svg_to_render, context_xml)
+
+                    # reflect which image the model actually saw for the answer call
+                    if getattr(self, "stepwise_send_original_only", False):
+                        sent_file = str(raw_path)
+                        with open(raw_path, "rb") as _rb:
+                            sent_bytes = _rb.read()
+                    else:
+                        # when no strokes, we may not have step_bytes; fall back to raw
+                        if turns > 0:
+                            sent_file = str(out_root / f"item_{i:05d}_step_{turns:03d}.png")
+                            sent_bytes = step_bytes
+                        else:
+                            sent_file = str(raw_path)
+                            with open(raw_path, "rb") as _rb:
+                                sent_bytes = _rb.read()
 
                     turn_trace.append({
                         "turn": "final_answer",
@@ -1737,9 +1894,9 @@ class SketchApp:
                         "final_answer": final_ans,
                         "step_png": str(out_root / f"item_{i:05d}_step_{turns:03d}.png") if turns > 0 else str(raw_path),
                         "sent_canvas": {
-                            "file": str(out_root / f"item_{i:05d}_step_{turns:03d}.png") if turns > 0 else str(raw_path),
-                            "sha1": self._sha1_bytes(step_bytes if turns > 0 else open(raw_path, "rb").read()),
-                            "bytes": (len(step_bytes) if turns > 0 else os.path.getsize(raw_path)),
+                            "file": sent_file,
+                            "sha1": self._sha1_bytes(sent_bytes),
+                            "bytes": len(sent_bytes),
                         },
                         "sent_svg_context": {
                             "sha1": self._sha1_bytes(context_xml.encode("utf-8")),
@@ -1748,7 +1905,12 @@ class SketchApp:
                         },
                         "stop_sequences": "</final_answer>",
                         "request_preview": answer_request,
+                        "omitted_strokes_context": bool(getattr(self, "stepwise_vision_only", False)),
+                        "explanations_so_far": ("\n".join(self.explanations) if self.explanations else ""),
+
+
                     })
+
 
                 elif two_turn: #TWO TURN MODE
                     self._start_generic_session(seed_prompt)
@@ -1879,6 +2041,8 @@ class SketchApp:
                     "provider_debug": getattr(self, "_last_provider_debug", None),
                     "request_preview": getattr(self, "_last_redacted_request", None),
                     
+                    "explanations": self.explanations,
+                    
                     "grid_config": {
                         "adaptive_grid": self.grid_manager.adaptive_grid,
                         "cell_size": self.grid_manager.cell_size,
@@ -1886,6 +2050,7 @@ class SketchApp:
                         "res_y": self.grid_manager.res_y,
                         "grid_size_px": self.grid_manager.grid_size,  # (width, height)
                     },
+                    
                     "cell_pixel_map": self.grid_manager.positions,  # already a dict: {'x1y1': (px, py), ...}
 
                 }
@@ -1898,19 +2063,42 @@ class SketchApp:
                 })
 
             except Exception as e:
+                # build error record with full context so you can debug formatting/parsing issues
                 err = {
-                    "index": i, "prompt": prompt_from_txt,
-                    "mode": "stepwise" if stepwise else "single_shot",
+                    "index": i,
+                    "prompt": prompt_from_txt,
+                    "mode": "stepwise" if stepwise else ("two_turn" if two_turn else "single_shot"),
                     "turns": (turns if stepwise else None),
                     "error": str(e),
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path), "svg": str(svg_path),
-                    "source_image": str(img_path), "source_prompt": str(txt_path),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+
+                    # NEW: preserve what the model actually returned (even if it was malformed)
+                    "model_output_full": getattr(self, "_last_assistant_text", None),
+                    "provider_debug": getattr(self, "_last_provider_debug", None),
+                    "request_preview": getattr(self, "_last_redacted_request", None),
+
+                    # If we collected any turns before crashing, keep that too
+                    "turn_trace": locals().get("turn_trace", []),
                 }
+
+                # Optional but handy: write a sidecar raw dump for fast inspection
+                try:
+                    raw_txt = getattr(self, "_last_assistant_text", None)
+                    if raw_txt:
+                        with open(out_root / f"item_{i:05d}_raw.txt", "w", encoding="utf-8") as tf:
+                            tf.write(raw_txt)
+                except Exception:
+                    pass
+
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(err, jf, indent=2)
                 results.append(err)
+
 
         with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
             for r in results:
@@ -2057,6 +2245,24 @@ if __name__ == '__main__':
         help="When set, prepend a counting header and treat mixed items as counting tasks.")
     parser.add_argument("--mixed-labeling", action="store_true",
     help="When set, use the labeling template in mixed eval (like --mixed-counting).")
+    parser.add_argument("--cycle-stroke-colors", action="store_true",
+                        help="Cycle stroke hues per turn (human-view only: red→orange→yellow→green→blue→purple).")
+    parser.add_argument("--save-colored-steps", action="store_true",
+                        help="If set, save *_step_XXX_color.png and *_annotated_color.png with cycled colors.")
+    parser.add_argument("--stepwise-original-only", action="store_true",
+    help="Stepwise mode: always send the original image back to the model each turn (no re-rendered overlays).")
+    parser.add_argument(
+    "--stepwise-vision-only",
+    action="store_true",
+    help="Stepwise: send only the updated image back to the model (no text stroke history)."
+)
+    parser.add_argument(
+    "--stepwise-explanations",
+    action="store_true",
+    help="In stepwise mode, capture a natural-language explanation each turn and send it back. "
+         "Works with --stepwise-vision-only (sends explanation but not text strokes)."
+)
+
 
 
     args = parser.parse_args()
@@ -2110,6 +2316,16 @@ if __name__ == '__main__':
 
     if args.deterministic:
         app.seed_mode = "deterministic"
+        
+        
+    app.cycle_stroke_colors = args.cycle_stroke_colors
+    app.save_colored_steps  = args.save_colored_steps
+
+    app.stepwise_send_original_only = args.stepwise_original_only
+    app.stepwise_vision_only = args.stepwise_vision_only
+
+    app.stepwise_explanations = args.stepwise_explanations
+
         
     
     # If --mixed-dir is provided, run mixed folder eval and exit
