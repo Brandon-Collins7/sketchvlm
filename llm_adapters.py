@@ -187,6 +187,10 @@ class GeminiAdapter(BaseLLMAdapter):
         gen_cfg = {"max_output_tokens": self.max_tokens}
         if "temperature" in additional_args:
             gen_cfg["temperature"] = additional_args["temperature"]
+
+        # force single candidate
+        gen_cfg["candidate_count"] = 1
+        
         # Gemini supports stop_sequences in generation_config
         ss = additional_args.get("stop_sequences")
         if ss:
