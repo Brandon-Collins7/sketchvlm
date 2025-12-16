@@ -12,9 +12,20 @@ from typing import Dict, List, Tuple, Optional
 
 
 def parse_boxed_answer(text: str) -> Optional[int]:
-    r"""Extract answer from $\boxed{...}$ or \boxed{...} or \(\boxed{...}\) format."""
+    r"""Extract answer from $\boxed{...}$ or \boxed{...} or \(\boxed{...}\) or <answer> format."""
     if not text:
         return None
+
+    # Try <answer> tags first (for ViLaSR)
+    answer_match = re.search(r'<answer>\s*(\d+|none)\s*</answer>', text, re.IGNORECASE)
+    if answer_match:
+        content = answer_match.group(1).strip().lower()
+        if content == 'none':
+            return 0
+        try:
+            return int(content)
+        except ValueError:
+            return None
 
     # Look for various boxed patterns
     # Try $\boxed{...}$ first
@@ -211,6 +222,130 @@ def process_direct_vqa_csv(csv_file: Path, model_name: str, ground_truth: Dict[s
     return results
 
 
+def process_jsonl_results(jsonl_file: Path, model_name: str, result_type: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process ViLaSR results from a JSONL file."""
+    results = []
+
+    if not jsonl_file.exists():
+        return results
+
+    try:
+        with open(jsonl_file, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                try:
+                    data = json.loads(line.strip())
+
+                    # Extract image name from image_path
+                    image_path = data.get('image_path', [])
+                    if isinstance(image_path, list) and len(image_path) > 0:
+                        image_name = Path(image_path[0]).name
+                    else:
+                        image_name = Path(image_path).name
+
+                    # Parse the answer from model_output
+                    model_output = data.get('model_output', '')
+                    answer = parse_boxed_answer(model_output)
+
+                    if answer is not None:
+                        gold = ground_truth.get(image_name)
+                        if gold is not None:
+                            boxed_answer = extract_boxed_text(model_output)
+                            results.append({
+                                'image': image_name,
+                                'model': model_name,
+                                'type': result_type,
+                                'prediction': int(answer),
+                                'gold': gold,
+                                'correct': int(answer) == gold,
+                                'boxed_answer': boxed_answer,
+                                'model_output': model_output
+                            })
+                except json.JSONDecodeError as e:
+                    print(f"    Warning: Error decoding JSON at line {line_num}: {e}")
+                    continue
+                except Exception as e:
+                    print(f"    Warning: Error processing line {line_num}: {e}")
+                    continue
+
+    except Exception as e:
+        print(f"  Error reading {jsonl_file}: {e}")
+
+    return results
+
+
+def process_thinkmorph_results(model_dir: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process ThinkMorph results from directories with text_data.json files.
+
+    ThinkMorph has a unique structure where each result is in a directory named
+    like 'sample_YYYYMMDD_HHMMSS_run_XXX' and contains a text_data.json file.
+    The run name (e.g., run_XXX or run_XXX_Y) must be extracted from the directory name.
+    """
+    results = []
+
+    if not model_dir.exists():
+        return results
+
+    # Process all sample directories
+    for sample_dir in sorted(model_dir.iterdir()):
+        if not sample_dir.is_dir():
+            continue
+
+        # Extract run name from directory name
+        # Pattern: sample_YYYYMMDD_HHMMSS_<run_name>
+        # e.g., sample_20251203_080208_run_001_1 -> run_001_1
+        dir_name = sample_dir.name
+        parts = dir_name.split('_')
+
+        # Find the index where 'run' starts
+        run_idx = None
+        for i, part in enumerate(parts):
+            if part == 'run':
+                run_idx = i
+                break
+
+        if run_idx is None:
+            continue
+
+        # Extract run name (everything from 'run' onwards)
+        run_name = '_'.join(parts[run_idx:])
+        image_name = run_name + '.png'
+
+        # Look for text_data.json
+        json_file = sample_dir / 'text_data.json'
+        if not json_file.exists():
+            continue
+
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            # Extract answer from text_outputs
+            text_outputs = data.get('text_outputs', [])
+            model_output = '\n'.join(text_outputs) if text_outputs else ''
+
+            # Parse the boxed answer
+            answer = parse_boxed_answer(model_output)
+
+            if answer is not None:
+                gold = ground_truth.get(image_name)
+                if gold is not None:
+                    boxed_answer = extract_boxed_text(model_output)
+                    results.append({
+                        'image': image_name,
+                        'model': model_name,
+                        'type': 'paths',
+                        'prediction': int(answer),
+                        'gold': gold,
+                        'correct': int(answer) == gold,
+                        'boxed_answer': boxed_answer,
+                        'model_output': model_output
+                    })
+        except Exception as e:
+            print(f"Error processing {json_file}: {e}")
+
+    return results
+
+
 def process_direct_vqa_individual_json(model_dir: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
     """Process direct_vqa results from individual JSON files (GPT5)."""
     results = []
@@ -276,23 +411,39 @@ def process_all_models():
     # Define models to process
     models_config = [
         # Sketch (ball_paths) models
-        ('gemini_25_flash_ball_paths', 'Gemini-2.5-Flash', 'paths'),
-        ('gemini_25_pro_ball_paths', 'Gemini-2.5-Pro', 'paths'),
-        ('gpt5_low_ball_paths', 'GPT-5-low', 'paths'),
-        ('gpt5_med_ball_paths', 'GPT-5-med', 'paths'),
-        ('qwen3_235b_thinking_ball_paths', 'Qwen-235B', 'paths'),
-        ('qwen3_8b_thinking_ball_paths', 'Qwen-8B', 'paths'),
+        ('gemini_25_flash_ball_paths', 'Gemini-2.5-Flash', 'paths', False),
+        ('gemini_25_pro_ball_paths', 'Gemini-2.5-Pro', 'paths', False),
+        ('gpt5_low_ball_paths', 'GPT-5-low', 'paths', False),
+        ('gpt5_med_ball_paths', 'GPT-5-med', 'paths', False),
+        ('qwen3_235b_thinking_ball_paths', 'Qwen-235B', 'paths', False),
+        ('qwen3_8b_thinking_ball_paths', 'Qwen-8B', 'paths', False),
+        ('qwen25_7b_ball_paths', 'Qwen2.5-7B', 'paths', False),
+        ('vilasr_ball_paths', 'ViLaSR', 'paths', True),  # JSONL format
     ]
 
     # Process sketch/ball_paths models
     print("\nProcessing sketch (ball_paths) results...")
-    for dir_name, model_name, _ in models_config:
+    for dir_name, model_name, result_type, is_jsonl in models_config:
         model_dir = batch1_dir / dir_name
         if model_dir.exists() and model_dir.is_dir():
             print(f"  Processing {model_name}...")
-            results = process_sketch_results(model_dir, model_name, ground_truth)
+            if is_jsonl:
+                # Process JSONL file
+                jsonl_file = model_dir / 'results.jsonl'
+                results = process_jsonl_results(jsonl_file, model_name, result_type, ground_truth)
+            else:
+                # Process individual JSON files
+                results = process_sketch_results(model_dir, model_name, ground_truth)
             all_results.extend(results)
             print(f"    Found {len(results)} results")
+
+    # Process ThinkMorph (special handling due to different directory structure)
+    thinkmorph_dir = batch1_dir / "thinkmorph_ball_paths"
+    if thinkmorph_dir.exists():
+        print(f"  Processing ThinkMorph...")
+        results = process_thinkmorph_results(thinkmorph_dir, "ThinkMorph", ground_truth)
+        all_results.extend(results)
+        print(f"    Found {len(results)} results")
 
     # Process direct_vqa models
     print("\nProcessing direct_vqa results...")
@@ -327,13 +478,19 @@ def process_all_models():
             all_results.extend(results)
             print(f"    Found {len(results)} results")
 
-    # GPT5 low individual JSONs
-    gpt5_dir = direct_vqa_dir / "gpt5_low_no_sketch"
-    if gpt5_dir.exists():
-        print(f"  Processing GPT-5-low (direct_vqa)...")
-        results = process_direct_vqa_individual_json(gpt5_dir, "GPT-5-low", ground_truth)
-        all_results.extend(results)
-        print(f"    Found {len(results)} results")
+    # GPT5-low and Qwen2.5-7B individual JSONs
+    individual_json_dirs = [
+        ('gpt5_low_no_sketch', 'GPT-5-low'),
+        ('qwen25_7b_no_sketch', 'Qwen2.5-7B'),
+    ]
+
+    for dir_name, model_name in individual_json_dirs:
+        model_dir = direct_vqa_dir / dir_name
+        if model_dir.exists():
+            print(f"  Processing {model_name} (direct_vqa)...")
+            results = process_direct_vqa_individual_json(model_dir, model_name, ground_truth)
+            all_results.extend(results)
+            print(f"    Found {len(results)} results")
 
     # Create DataFrame
     df = pd.DataFrame(all_results)
