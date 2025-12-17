@@ -5,13 +5,16 @@ This script evaluates model accuracy on maze path validation tasks, broken down 
 
 Example usage:
     python3 analysis/maze/analyze_maze_results.py \
-        "gemini25_flash:gemini25_flash:Flash (Sketch)" \
-        "gemini25_pro:gemini25_pro:Pro (Sketch)" \
-        "direct_vqa:gemini25_pro:Pro (Direct VQA)"
+        ":gemini3_pro:Gemini-3-Pro (Sketch)" \
+        "direct_vqa:gemini3_pro:Gemini-3-Pro (Direct VQA)" \
+        ":gemini25_flash:Gemini-2.5-Flash (Sketch)" \
+        "direct_vqa:gemini25_flash:Gemini-2.5-Flash (Direct VQA)" \
+        ":gemini25_pro:Gemini-2.5-Pro (Sketch)" \
+        "direct_vqa:gemini25_pro:Gemini-2.5-Pro (Direct VQA)"
 
     For index-based evaluation:
     python3 analysis/maze/analyze_maze_results.py --index-mode \
-        "gemini25_pro:gemini25_pro:Pro (Sketch)"
+        ":gemini3_pro:Gemini-3-Pro (Sketch)"
 """
 
 import json

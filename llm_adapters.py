@@ -578,7 +578,8 @@ class OpenRouterAdapter(BaseLLMAdapter):
         }
 
         # Special handling for image generation model - two-turn approach
-        if self._is_image_gen_model:
+        # Only use it when explicitly requested via use_image_gen flag
+        if self._is_image_gen_model and add_args.get("use_image_gen", False):
             return self._call_image_gen_two_turn(system_message, chat_messages, temperature)
 
         # Standard path for non-image models
@@ -715,7 +716,7 @@ class OpenRouterAdapter(BaseLLMAdapter):
         # Add follow-up question asking for final answer (generic - format is in original prompt)
         turn2_messages.append({
             "role": "user",
-            "content": "Now give your final answer in the format of  \"$\\boxed{answer}$\."
+            "content": r"Now give your final answer in the format of  \"$\boxed{answer}$\."
         })
 
         # Turn 2: Text only
@@ -760,7 +761,8 @@ class OpenRouterAdapter(BaseLLMAdapter):
     def extract_text(self, raw_response) -> str:
         """Extract text from OpenRouter response (same format as OpenAI)."""
         # For two-turn image gen, use stored text from Turn 2
-        if hasattr(self, '_last_image_gen_text') and self._last_image_gen_text:
+        # Only if we actually have stored text (meaning image gen was used)
+        if hasattr(self, '_last_image_gen_text') and self._last_image_gen_text is not None:
             text = self._last_image_gen_text
             # Clear the stored text after extraction
             self._last_image_gen_text = None

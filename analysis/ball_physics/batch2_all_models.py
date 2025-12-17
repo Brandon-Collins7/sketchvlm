@@ -126,6 +126,10 @@ def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[
 
             # Parse the answer
             answer = data.get('answer')
+            # If answer is a string (e.g., "$\boxed{3}$"), parse it
+            if isinstance(answer, str):
+                answer = parse_boxed_answer(answer)
+            # If answer is still None, try other fields
             if answer is None:
                 # Try model_output_full first (for gemini3 image results)
                 model_output_full = data.get('model_output_full', '')
@@ -353,6 +357,8 @@ def process_all_models():
         ('qwen25_7b_ball_paths_batch2', 'Qwen2.5-7B', 'paths', False),
         ('vilasr_ball_paths_batch2', 'ViLaSR', 'paths', True),  # JSONL format
         ('gemini3_image_two_turn_batch2', 'nano_banana_pro', 'paths', False),
+        ('gemini3_ball_paths_batch2', 'Gemini-3-Pro', 'paths', False),
+
     ]
 
     # Process sketch/ball_paths models
@@ -390,6 +396,7 @@ def process_all_models():
         ('gpt5_low_no_sketch_batch2', 'GPT-5-low'),
         ('gpt5_med_no_sketch_batch2', 'GPT-5-med'),
         ('qwen25_7b_no_sketch_batch2', 'Qwen2.5-7B'),
+        ('gemini3_no_sketch_batch2', 'Gemini-3-Pro'),
     ]
 
     for dir_name, model_name in vqa_dirs:

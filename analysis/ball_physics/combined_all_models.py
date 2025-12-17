@@ -126,6 +126,10 @@ def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[
 
             # Parse the answer
             answer = data.get('answer')
+            # If answer is a string (e.g., "$\boxed{3}$"), parse it
+            if isinstance(answer, str):
+                answer = parse_boxed_answer(answer)
+            # If answer is still None, try other fields
             if answer is None:
                 # Try model_output_full first (for gemini3 image results)
                 model_output_full = data.get('model_output_full', '')
@@ -424,6 +428,7 @@ def process_all_models():
         ('qwen25_7b_ball_paths', 'Qwen2.5-7B', 'paths', False),
         ('vilasr_ball_paths', 'ViLaSR', 'paths', True),  # JSONL format
         ('gemini3_image_two_turn', 'nano_banana_pro', 'paths', False),
+        ('gemini3_ball_paths', 'Gemini-3-Pro', 'paths', False),
     ]
 
     # Process sketch/ball_paths models
@@ -483,10 +488,11 @@ def process_all_models():
             all_results.extend(results)
             print(f"    Found {len(results)} results")
 
-    # GPT5-low and Qwen2.5-7B individual JSONs
+    # GPT5-low, Qwen2.5-7B, and Gemini-3-Pro individual JSONs
     individual_json_dirs = [
         ('gpt5_low_no_sketch', 'GPT-5-low'),
         ('qwen25_7b_no_sketch', 'Qwen2.5-7B'),
+        ('gemini3_no_sketch', 'Gemini-3-Pro'),
     ]
 
     for dir_name, model_name in individual_json_dirs:
