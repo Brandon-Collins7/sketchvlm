@@ -127,9 +127,13 @@ def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[
             # Parse the answer
             answer = data.get('answer')
             if answer is None:
-                # Try to parse from model_output if it contains boxed format
-                model_output = data.get('model_output', '')
-                answer = parse_boxed_answer(model_output)
+                # Try model_output_full first (for gemini3 image results)
+                model_output_full = data.get('model_output_full', '')
+                answer = parse_boxed_answer(model_output_full)
+                if answer is None:
+                    # Fallback to model_output
+                    model_output = data.get('model_output', '')
+                    answer = parse_boxed_answer(model_output)
 
             if answer is not None:
                 gold = ground_truth.get(image_name)
@@ -348,6 +352,7 @@ def process_all_models():
         ('gpt5_med_ball_paths_batch2', 'GPT-5-med', 'paths', False),
         ('qwen25_7b_ball_paths_batch2', 'Qwen2.5-7B', 'paths', False),
         ('vilasr_ball_paths_batch2', 'ViLaSR', 'paths', True),  # JSONL format
+        ('gemini3_image_two_turn_batch2', 'nano_banana_pro', 'paths', False),
     ]
 
     # Process sketch/ball_paths models

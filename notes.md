@@ -227,3 +227,12 @@ python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instr
 python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
 
 python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "73,82,90"
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "3,34,36,54,62,65,76,84,94"
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
