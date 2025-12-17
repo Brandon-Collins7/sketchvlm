@@ -1,4 +1,7 @@
-system_prompt="""You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
+# prompts.py (unified single-turn + multi-turn with tiny injections)
+
+
+SYSTEM_PROMPT_BASE = """You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
 You will be provided with a blank grid. Your task is to specify where to place strokes on the grid to create a visually appealing sketch to complete the request.
 The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
 You can draw on this grid by specifying where to draw strokes. You can draw multiple strokes to depict the whole object, where different strokes compose different parts of the object. 
@@ -10,7 +13,6 @@ Parameter Values (t): For each point (including the start and end points), speci
 Intermediate points should have t values between 0 and 1 (e.g., "0.3 for x6y5, 0.7 for x13y10").
 
 Examples:
-
 To draw a smooth curve that starts at x8y6, passes through x6y7 and x6y10, ending at x8y11:
 Points = ['x8y6', 'x6y7', 'x6y10', 'x8y11']
 t_values = [0.00,0.30,0.80,1.00]
@@ -45,7 +47,6 @@ Points = ['x18y31', 'x35y14']
 t_values = [0.00, 1.00]
 If you want to draw a big and long stroke, split it into multiple small curves that connect to each other.
 
-
 # Sketch Methods
 
 Below are the different sketching methods you can use for your task.
@@ -73,7 +74,6 @@ Below are the different sketching methods you can use for your task.
   <id>line_1</id>
 </sN>
 
-
 ## Arrow (draw the shaft, and the arrowhead as two separate parts)
 
 <s1>
@@ -92,7 +92,6 @@ Below are the different sketching methods you can use for your task.
   <id>arrowhead_bottom</id>
 </s3>
 
-
 ## BOX / RECTANGLE (list the 4 corners in order)
 <sN>
   <points>'x12y12','x20y12','x20y18','x12y18','x12y12'</points>
@@ -103,11 +102,10 @@ Below are the different sketching methods you can use for your task.
 ## COUNTING (place numerals near each instance; one stroke per number; change text size based on object size and image resolution, so can be text size="1.0" or "2.0" up to "32.0" etc)
 <sN>
   <points>'x08y22'</points>
-  <t_values>0.00</t_values>c
+  <t_values>0.00</t_values>
   <text size="4.0" color="black">'1'</text>
   <id>count_1</id>
 </sN>
-
 
 ## LABELING (anchor a text label to the cell closest to center of the object/part; change text size based on object/part size and image resolution, so can be text size="1.0" or "2.0" up to "32.0" etc)
 <sN>
@@ -117,7 +115,6 @@ Below are the different sketching methods you can use for your task.
   <id>label_handlebar</id>
 </sN>
 
-
 # Rules
 - Output only <answer>…</answer> with a single <strokes>…</strokes> section.
 - For counting/labeling tasks, prefer <text> with short values ('1','2',… or 'wheel','seat',…).
@@ -125,9 +122,40 @@ Below are the different sketching methods you can use for your task.
 - Do not mix patterns: if the user asks to label, do not draw boxes; if the user asks to count, do not label names.
 - Keep each stroke in its own <sN>…</sN> block; increment N in order without gaps.
 - If the question requires an answer (e.g., "How many?"), include it at the end of your response, after the </strokes> tag, in a new <final_answer> tag.
-
 """
 
+# ========= 2) Tiny multi-turn injections (added only when multi_turn=True) =========
+_MTURN_SENTENCE_1 = "You can only output one stroke per turn, however."
+_MTURN_SENTENCE_2 = "Before emitting a stroke, first decide if any stroke is still needed; if not, emit an empty <answer> with NO <strokes> block."
+_MTURN_RULE_1     = "- Only output one stroke per turn."
+_MTURN_RULE_2     = "- If the drawing is already complete, do NOT add any further strokes. Emit an empty <answer> with NO <strokes>."
+
+def build_system_prompt(res_x: int, res_y: int, multi_turn: bool = False) -> str:
+    """
+    Returns the final system prompt string (single-turn base + optional multi-turn injections).
+    - Keep variable names the same elsewhere (system_prompt is still referenced),
+      but callers who need switching should use this function.
+    """
+    s = SYSTEM_PROMPT_BASE.format(res_x=res_x, res_y=res_y)
+    if multi_turn:
+        # Insert the 1-stroke and "empty if done" guidance right after the opening sentence.
+        s = s.replace(
+            "professional.\n",
+            "professional.\n" + _MTURN_SENTENCE_1 + "\n" + _MTURN_SENTENCE_2 + "\n",
+            1
+        )
+        # Add the two rules at the start of the # Rules block.
+        s = s.replace(
+            "# Rules",
+            "# Rules\n" + _MTURN_RULE_1 + "\n" + _MTURN_RULE_2,
+            1
+        )
+    return s
+
+# Keep the legacy name for compatibility (single-turn default).
+# Existing code like: system_prompt.format(res_x=..., res_y=...) will keep working,
+# but won't switch the multi-turn lines in/out. For switching, call build_system_prompt().
+system_prompt = SYSTEM_PROMPT_BASE
 
 #################################### Task Specific Prompts ####################################
 
@@ -159,41 +187,6 @@ Rules:
 - Do not write anything outside <answer>...</strokes>.
 """
 
-
-
-
-# GENERIC_LABEL_PROMPT = """
-# Task: 
-# - LABEL the visible parts with SVG text strokes (no curves).
-
-# Output EXACTLY this XML shape:
-# <answer>
-# <concept>Labeling: {concept}</concept>
-# <strokes>
-#   <!-- one <sN> per label -->
-#   <s1>
-#     <text size="2.0" color="#0057ff">'head'</text>   <!-- size: cells or 'px' -->
-#     <points>'xAyB'</points>
-#     <t_values>0.00</t_values>
-#     <id>label_head</id>
-#     <!-- optional alternative:
-#     <style><font_size>2.0</font_size><color>#0057ff</color></style>
-#     -->
-#   </s1>
-# </strokes>
-
-# Rules:
-# - Use ONLY text strokes (no curves).
-# - Anchor each label at the center-ish cell of the part ('xAyB').
-# - You MAY set style via:
-#   • attributes on <text>: size="2.2" (cells) or "38px"; color="#RRGGBB"/"rgb()"/named
-#   • or a <style> block with <font_size> and <color>.
-# - Choose bigger text size for larger objects, smaller for tiny objects. use bigger size for higher resolution images, smaller for lower resolution.
-# - Choose high-contrast colors against the background.
-# - Do not write anything outside <answer>...</strokes>.
-# """
-
-
 GENERIC_LABEL_PROMPT = """
 Task:
 - The object in the image is a {concept}.
@@ -224,7 +217,6 @@ Rules:
 - Do not write anything outside <answer>...</strokes>.
 """
 
-# TODO finish this prompt out
 DRAW_PROMPT = """
 Task:
 - Draw the requested concept with SVG strokes (curves/lines, no text).
@@ -233,30 +225,27 @@ Output EXACTLY this XML shape:
 <answer>
 """
 
+# ======== Multi-turn / control guards (kept identical, but strengthened to allow “done” empty turn) ========
 
-
-# ======== Multi-turn / control guards (imported by collab code) ========
-
-# Enforce exactly ONE stroke block in stepwise mode.
 ONE_STROKE_SYSTEM_GUARD = """
 [Mode: stepwise]
-You are in stepwise mode. On this turn output EXACTLY ONE stroke block:
+You are in stepwise mode. On this turn you output EXACTLY ONE stroke block:
 <answer>
   <strokes>
     <sN>...</sN>
   </strokes>
 </answer>
-Do NOT output any other <sM> blocks, no <final_answer>, no explanations. Stop immediately after </answer>.
+Do NOT output any other <sM> blocks, no <final_answer>, no explanations.
+If the drawing is already complete and no further stroke is needed, output an empty <answer> with NO <strokes> block.
+Stop immediately after </answer>.
 """
 
-# Enforce "all strokes only" (no final answer) for turn 1 of two-turn mode.
 STROKES_ONLY_SYSTEM_GUARD = """
 [Mode: two-turn (turn 1)]
 On this turn, output ONLY the full <answer><strokes>…</strokes></answer> for the complete drawing.
 Do NOT include <final_answer>. Stop immediately after </answer>.
 """
 
-# Enforce "final answer only" for turn 2 of two-turn mode.
 FINAL_ANSWER_SYSTEM_GUARD = """
 [Mode: two-turn (turn 2)]
 All strokes have already been provided. On this turn output ONLY:
@@ -265,14 +254,9 @@ Do not output the previous strokes again. Stop immediately after </final_answer>
 """
 
 # =========================
-
-
-
 DEFAULT_LABELS_HINT = """ """
-
 MIX_TOOLKIT = """
 
 """
-
 sketch_first_prompt = """ """
 gt_example = """ """

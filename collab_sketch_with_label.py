@@ -29,12 +29,12 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 import utils
-from prompts import sketch_first_prompt, system_prompt, gt_example, COUNTING_PROMPT, MIX_TOOLKIT, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT
 from prompts import (
-    ONE_STROKE_SYSTEM_GUARD,
-    STROKES_ONLY_SYSTEM_GUARD,
-    FINAL_ANSWER_SYSTEM_GUARD,
+    sketch_first_prompt, system_prompt, gt_example, COUNTING_PROMPT, MIX_TOOLKIT, GENERIC_LABEL_PROMPT, DEFAULT_LABELS_HINT,
+    ONE_STROKE_SYSTEM_GUARD, STROKES_ONLY_SYSTEM_GUARD, FINAL_ANSWER_SYSTEM_GUARD,
+    build_system_prompt,
 )
+
 
 from grid_manager import GridManager
 from llm_adapters import BaseLLMAdapter, GeminiAdapter, make_adapter
@@ -152,6 +152,14 @@ class SketchApp:
         
         self.text_font_family = "Arial"
         self.text_font_scale  = 3.2   # ~3.2 * cell_size (e.g., 12 -> 38.4px). Tweak to taste.
+        
+        
+        #  stroke-color cycling (human-view only) ----
+        self.cycle_stroke_colors = False      # set from CLI later
+        self.save_colored_steps  = False      # set from CLI later
+        self._palette = ["#ff0000","#ff7f00","#ffff00","#00a000","#0000ff","#800080"]  # ROYGBP
+        self._colored_svg = self._svg_root_open()  # parallel SVG just for human-colored composites
+
 
 
         # Routes
@@ -176,7 +184,10 @@ class SketchApp:
     def _sys_prompt_or_none(self):
         if self.no_system_prompt:
             return None
-        return system_prompt.format(res_x=self.res_x, res_y=self.res_y)
+        # Treat “colab”, stepwise, and two-turn as multi-turn prompt mode.
+        multi = bool(getattr(self, "_prompt_multi_turn", False) or self.sketch_mode == "colab")
+        return build_system_prompt(self.res_x, self.res_y, multi_turn=multi)
+
     
     def skip_turn(self):
         """
@@ -282,147 +293,48 @@ class SketchApp:
 
         return keep
 
-    def evaluate_counting_folder(
-        self,
-        src_dir: str = "datasets/biased",
-        outdir: str = "results/biased_eval",
-        max_images: int = None,
-        count_only_text: bool = True,
-    ):
+    def _recolor_svg_group(self, g_block: str, color: str) -> str:
+        """Return a copy of <g ...>...</g> with stroke/fill set to `color` (if present)."""
+        if not color:
+            return g_block
+        # stroke on paths/shapes
+        g2 = re.sub(r'stroke="[^"]+"', f'stroke="{color}"', g_block)
+        # text fill (keep stroke-none on text)
+        g2 = re.sub(r'(<text\b[^>]*\bfill=")[^"]+(")', r'\1'+color+r'\2', g2)
+        # if text has no fill, inject one
+        g2 = re.sub(r'(<text\b(?![^>]*\bfill=)[^>]*)(>)', r'\1 fill="'+color+r'"\2', g2)
+        return g2
+    
+    
+    def _render_svg_to_png_no_b64(self, svg_text: str, out_png: str):
+        over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg_text.encode()))).convert("RGBA")
+        base = getattr(self, "base_canvas_clean", self.base_canvas).convert("RGBA")
+        if over.size != base.size:
+            inner = re.sub(r'^.*?<svg[^>]*>|</svg>\s*$', '', svg_text, flags=re.S)
+            svg_text = (f'<svg width="{base.size[0]}" height="{base.size[1]}" '
+                        f'xmlns="http://www.w3.org/2000/svg">{inner}</svg>')
+            over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg_text.encode()))).convert("RGBA")
+        Image.alpha_composite(base, over).convert("RGB").save(out_png)
+
+    
+    # --- model-view control (original vs re-render) ---
+    def _encode_pil_to_b64(self, pil_img):
+        import io, base64
+        buf = io.BytesIO()
+        pil_img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    def _canvas_b64_for_model(self):
         """
-        Evaluate a folder with paired image + prompt files:
-          datasets/biased/
-            cat.png
-            cat.txt         # e.g., "Count the legs of the horse in the image"
-        Produces the same outputs as evaluate_dataset(): per-item SVG/PNG/JSON,
-        a results.jsonl, and a summary.json (accuracy omitted unless you add gold).
+        In stepwise mode: return the b64 the provider should see this turn.
+        If --stepwise-original-only is on, prefer the raw original; else use last re-render.
         """
-        src = Path(src_dir)
-        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
+        if getattr(self, "stepwise_send_original_only", False):
+            # prefer raw original; fall back to original-with-grid; then to last
+            return getattr(self, "orig_raw_b64", None) or getattr(self, "orig_canvas_b64", None) or self.last_canvas_b64
+        return self.last_canvas_b64
 
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_root = Path(outdir) / ts
-        out_root.mkdir(parents=True, exist_ok=True)
 
-        # Collect images
-        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
-        images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
-        if max_images is not None:
-            images = images[:max_images]
-
-        results = []
-        total = 0
-
-        pbar = tqdm(images, desc="Evaluating (folder)", unit="item") if hasattr(tqdm, "__call__") else images
-
-        for i, img_path in enumerate(pbar):
-            txt_path = img_path.with_suffix(".txt")
-            question = None
-            try:
-                if not txt_path.exists():
-                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
-
-                # 1) Read image + prompt
-                img = Image.open(img_path).convert("RGB")
-                with open(txt_path, "r", encoding="utf-8") as f:
-                    question = f.read().strip()
-
-                # 2) Place background (letterbox to grid, overlay grid)
-                self.set_background_from_pil(img, mode="fit")
-
-                # 3) Build a counting prompt from the question
-                #    (mimics your HF path: extract the "thing" and feed COUNTING_PROMPT)
-                if self.no_system_prompt:
-                    prompt = question  # send exactly the per-image text file contents
-                else:
-                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(object=thing)
-
-                use_stop = not isinstance(self.llm, GeminiAdapter)
-
-                # 4) Single LLM call → full <strokes>...</strokes> XML with numbered <text> labels
-                answer = self.get_response_from_llm(
-                    msg=prompt,
-                    system_message=self._sys_prompt_or_none(),
-                    msg_history=[],
-                    init_canvas_str=self.last_canvas_b64,
-                    seed_mode=self.seed_mode,
-                    gen_mode="generation",
-                    stop_sequences="</answer>" if use_stop else None,
-                )
-
-                # 5) Count predicted items (same logic)
-                pred = self._count_strokes(answer, count_only_text=count_only_text)
-
-                # 6) Save artifacts (same naming scheme as HF eval)
-                raw_path = out_root / f"item_{i:05d}_orig.jpg"
-                img.save(str(raw_path), quality=95)
-
-                svg_path = out_root / f"item_{i:05d}.svg"
-                png_path = out_root / f"item_{i:05d}_annotated.png"
-                self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
-
-                # 7) Per-item JSON (ground_truth omitted; add if you later supply it)
-                row = {
-                    "index": i,
-                    "prompt": question,
-                    "ground_truth": None,           # put your gold here if you add it later
-                    "model_output": answer,
-                    "model_answer": pred,
-                    "correct": None,                # cannot compute without gold
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
-                    "source_image": str(img_path),
-                    "source_prompt": str(txt_path),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(row, jf, indent=2)
-
-                results.append({
-                    "index": i,
-                    "question": question,
-                    "pred_number": pred,
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path)
-                })
-                total += 1
-
-            except Exception as e:
-                total += 1
-                err = {
-                    "index": i,
-                    "prompt": question,
-                    "error": str(e),
-                    "source_image": str(img_path),
-                    "source_prompt": str(txt_path),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(err, jf, indent=2)
-                results.append(err)
-
-        # results.jsonl + summary (no accuracy without gold)
-        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-        summary = {
-            "folder": str(src),
-            "timestamp": ts,
-            "total_items": len(images),
-            "processed": total,
-            "out_root": str(out_root),
-            "notes": "Folder-based counting; no accuracy computed (no ground truth)."
-        }
-        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-
-        print(f"\nSaved to: {out_root}")
-        print(f"Processed: {total}")
-        return summary
 
 
     # ---------- routes ----------
@@ -608,130 +520,6 @@ class SketchApp:
         return redacted
     
     
-    def evaluate_counting_folder_stepwise(
-        self,
-        src_dir: str = "datasets/biased",
-        outdir: str = "results/biased_eval_stepwise",
-        max_images: int = None,
-        max_turns: int = 40,
-        count_only_text: bool = True,
-    ):
-        src = Path(src_dir)
-        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
-
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_root = Path(outdir) / ts
-        out_root.mkdir(parents=True, exist_ok=True)
-
-        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
-        images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
-        if max_images is not None:
-            images = images[:max_images]
-
-        results = []
-        pbar = tqdm(images, desc="Evaluating (stepwise)", unit="item") if hasattr(tqdm, "__call__") else images
-
-        for i, img_path in enumerate(pbar):
-            txt_path = img_path.with_suffix(".txt")
-            question = None
-            try:
-                if not txt_path.exists():
-                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
-
-                img = Image.open(img_path).convert("RGB")
-                with open(txt_path, "r", encoding="utf-8") as f:
-                    question = f.read().strip()
-
-                # 1) Put background/grid first (this sets dynamic grid_size/positions)
-                self.set_background_from_pil(img, mode="fit")  # sets last_canvas_b64
-
-                # 2) NOW start a fresh SVG header that matches the new grid
-                self.all_strokes_svg = self._svg_root_open()
-                self.stroke_counter = 0
-                self.assitant_history = ""
-                self.cur_svg_to_render = "None"
-
-                # 3) Seed counting + stepwise loop
-                self._start_counting_session(question)
-                self.multi_stroke = False
-
-                turns = 0
-                while turns < max_turns:
-                    turns += 1
-                    new_svg = self.predict_next_stroke()
-                    if not new_svg:
-                        break
-                    self.all_strokes_svg += new_svg
-                    self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-
-                    step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
-                    self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
-
-                    delay = getattr(self, "api_delay_sec", 0.0) or 0.0
-                    if delay > 0:
-                        time.sleep(delay)
-
-                # Count & save artifacts
-                final_xml = self.cur_svg_to_render
-                answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', final_xml, flags=re.S)
-                answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
-                pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
-
-                raw_path = out_root / f"item_{i:05d}_orig.jpg"
-                img.save(str(raw_path), quality=95)
-
-                svg_path = out_root / f"item_{i:05d}.svg"
-                with open(svg_path, "w", encoding="utf-8") as f:
-                    f.write(self.cur_svg_to_render)
-
-                png_path = out_root / f"item_{i:05d}_annotated.png"
-                self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
-
-                row = {
-                    "index": i, "prompt": question, "ground_truth": None,
-                    "model_output": answer_xml, "model_answer": pred, "correct": None,
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path), "svg": str(svg_path),
-                    "source_image": str(img_path), "source_prompt": str(txt_path),
-                    "turns": turns,
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(row, jf, indent=2)
-
-                results.append({
-                    "index": i, "question": question, "pred_number": pred, "turns": turns,
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path), "svg": str(svg_path),
-                })
-
-            except Exception as e:
-                err = {
-                    "index": i, "prompt": question, "error": str(e),
-                    "source_image": str(img_path), "source_prompt": str(txt_path),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(err, jf, indent=2)
-                results.append(err)
-
-        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-        summary = {
-            "folder": str(src), "timestamp": ts, "total_items": len(images),
-            "processed": len(results), "out_root": str(out_root),
-            "mode": "stepwise_one_stroke_per_turn",
-            "notes": "Multi-turn counting; no accuracy computed (no ground truth)."
-        }
-        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-        print(f"\nSaved to: {out_root}")
-        print(f"Processed: {len(results)}")
-        return summary
-
-
 
     def get_user_stroke(self):
         try:
@@ -833,9 +621,10 @@ class SketchApp:
         if isinstance(self.llm, GeminiAdapter) and gen_mode == "completion":
             additional_args.pop("stop_sequences", None)
         '''
-        # Do not use stop-sequences with Gemini (causes premature STOP and empties)
-        if isinstance(self.llm, GeminiAdapter) and "stop_sequences" in additional_args:
-            additional_args.pop("stop_sequences", None)
+        #NOTE: this code was causing duplication issue for GEMINI
+        # # Do not use stop-sequences with Gemini (causes premature STOP and empties)
+        # if isinstance(self.llm, GeminiAdapter) and "stop_sequences" in additional_args:
+        #     additional_args.pop("stop_sequences", None)
         
         
         # optional tiny throttle (helps Gemini avoid empty outputs)
@@ -845,6 +634,7 @@ class SketchApp:
 
         # ---- call provider ----
         response = self.call_llm(system_message, other_msg, additional_args)
+        self._last_raw_response = response
         content  = self.llm.extract_text(response)
 
         # ---- extract generated images (Gemini image model) ----
@@ -866,7 +656,6 @@ class SketchApp:
 
         if gen_mode == "completion" and prefill_msg:
             other_msg = other_msg[:-1]
-            content = f"{prefill_msg}{content}"
 
         # ----- NEW LOGGING -----
         # ... after you compute `content` and still inside get_response_from_llm
@@ -1208,6 +997,12 @@ class SketchApp:
             # advance our global stroke count by one
             self.stroke_counter = expected
             expected += 1
+            
+            # maintain a human-colored running SVG alongside model-colored one
+            if self.cycle_stroke_colors:
+                color = self._palette[(self.stroke_counter-1) % len(self._palette)]
+                colored_group = self._recolor_svg_group(svg, color)
+                self._colored_svg += colored_group
 
         return "".join(svgs)
     
@@ -1474,47 +1269,7 @@ class SketchApp:
         self.base_canvas_clean = self.base_canvas.copy()  # pristine background for stepwise + final render
         
         
-    def _extract_label_legend(self, answer_xml: str):
-        legend = []
-        for blk in re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S):
-            m_text = re.search(r"<text[^>]*>\s*'([^']+)'\s*</text>", blk, re.S)
-            m_id   = re.search(r"<id>\s*(.*?)\s*</id>", blk, re.S)
-            if m_text:
-                label = m_text.group(1).strip()
-                font_px, color = self._parse_text_style(blk)
-                legend.append({
-                    "text": label,
-                    "id": (m_id.group(1).strip() if m_id else label),
-                    "font_px": (int(round(font_px)) if font_px else None),
-                    "color": color
-                })
-        return legend
 
-
-        
-    def label_parts(self, concept: str, labels_hint: str = None):
-        """
-        Ask the LLM to emit grid-anchored text labels for visible parts.
-        Returns the raw XML and writes labels.svg / labels_annotated.png.
-        """
-        hint = labels_hint or DEFAULT_LABELS_HINT
-        prompt = GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=hint)
-
-        answer = self.get_response_from_llm(
-            msg=prompt,
-            system_message=self._sys_prompt_or_none(),
-            msg_history=[],
-            init_canvas_str=self.last_canvas_b64,
-            seed_mode=self.seed_mode,
-            gen_mode="generation",
-            stop_sequences=None,  # important for Gemini stability
-        )
-
-        out_root = Path(self.path2save)
-        svg_path = out_root / "labels.svg"
-        png_path = out_root / "labels_annotated.png"
-        self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
-        return answer, str(svg_path), str(png_path)
     
     def _sanitize_color(self, c):
         """Return a safe SVG color string or None."""
@@ -1667,14 +1422,6 @@ class SketchApp:
         s = re.sub(r"<t_values>(.*?)</t_values>", norm_tvals, s, flags=re.S|re.I)
         return s
 
-   
-    def _reset_svg_header(self):
-        self.all_strokes_svg = (
-            f'<svg width="{self.grid_size[0]}" height="{self.grid_size[1]}" '
-            f'xmlns="http://www.w3.org/2000/svg">'
-        )
-
-    
   
 
     def _sha1_bytes(self, b: bytes) -> str:
@@ -1692,468 +1439,7 @@ class SketchApp:
         return "<strokes>" + "".join(blocks) + "</strokes>"
 
         
-        
-    def _start_counting_session(self, question: str):
-        # derive the counted "thing" and seed a counting header (like init_thinking_tags)
-        
-        if self.no_system_prompt:
-            self.input_prompt = question
-            assistant_suffix = self.get_response_from_llm(
-                msg=self.input_prompt,
-                system_message=None,
-                msg_history=[],
-                init_canvas_str=self.last_canvas_b64,
-                seed_mode=self.seed_mode,
-                gen_mode="generation",
-                stop_sequences=None,
-            )
-            self.thinking_tags = assistant_suffix
-            self.update_history(self.thinking_tags)
-            return
-            
-        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", (question or "")).strip() or "object"
-        self.input_prompt = COUNTING_PROMPT.format(object=thing)
-
-        add_args = {"stop_sequences": "<strokes>"}  # will be dropped for Gemini by get_response_from_llm
-        assistant_suffix = self.get_response_from_llm(
-            msg=self.input_prompt,
-            system_message=self._sys_prompt_or_none(),
-            msg_history=[],
-            init_canvas_str=self.last_canvas_b64,
-            seed_mode=self.seed_mode,
-            gen_mode="generation",
-            **add_args
-        )
-        self.thinking_tags = assistant_suffix + "<strokes>"
-        self.update_history(self.thinking_tags)
-
-    def evaluate_dataset_stepwise(
-        self,
-        dataset_id: str = "vikhyatk/CountBenchQA",
-        split: str = "test",
-        outdir: str = "results/hf_eval_stepwise",
-        max_examples: int = None,
-        max_turns: int = 40,
-        count_only_text: bool = True,
-    ):
-        out_root = Path(outdir) / f"{dataset_id.replace('/', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        out_root.mkdir(parents=True, exist_ok=True)
-
-        ds = load_dataset(dataset_id, split=split)
-        results = []
-        pbar = tqdm(ds, desc="Evaluating (stepwise)", unit="item")
-
-        for i, row in enumerate(pbar):
-            if max_examples is not None and i >= max_examples:
-                break
-            question = str(row["question"]).rstrip(" ?").strip()
-            img = row["image"].convert("RGB")
-
-            # 1) Background first (sets dynamic grid)
-            self.set_background_from_pil(img, mode="fit")
-
-            # 2) Header AFTER grid is known
-            self.all_strokes_svg = self._svg_root_open()
-            self.stroke_counter = 0
-            self.assitant_history = ""
-            self.cur_svg_to_render = "None"
-
-            # 3) Stepwise loop
-            self._start_counting_session(question)
-            self.multi_stroke = False
-
-            turns = 0
-            while turns < max_turns:
-                turns += 1
-                svg_chunk = self.predict_next_stroke()
-                if not svg_chunk:
-                    break
-                self.all_strokes_svg += svg_chunk
-                self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-                self._composite_svg_on_base(self.cur_svg_to_render, str(out_root / f"item_{i:05d}_step_{turns:03d}.png"))
-
-            answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
-            answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
-            pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
-
-            raw_path = out_root / f"item_{i:05d}_orig.jpg"
-            img.save(str(raw_path), quality=95)
-            svg_path = out_root / f"item_{i:05d}.svg"
-            with open(svg_path, "w", encoding="utf-8") as f:
-                f.write(self.cur_svg_to_render)
-            png_path = out_root / f"item_{i:05d}_annotated.png"
-            self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
-
-            gold = int(row["number"])
-            row_json = {
-                "index": i, "prompt": question, "ground_truth": gold,
-                "model_output": answer_xml, "model_answer": pred, "correct": (pred == gold),
-                "raw_image": str(raw_path),
-                "grid_image": str(png_path).replace("_annotated", "_grid"),
-                "annotated_image": str(png_path), "svg": str(svg_path),
-            }
-            with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                json.dump(row_json, jf, indent=2)
-            results.append({"index": i, "gold_number": gold, "pred_number": pred, "correct": bool(pred == gold)})
-
-        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results:
-                f.write(json.dumps(r) + "\n")
-        acc = sum(r["correct"] for r in results)/len(results) if results else 0.0
-        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
-            json.dump({"dataset": dataset_id, "split": split, "total": len(results),
-                    "correct": sum(r["correct"] for r in results), "accuracy": acc}, f, indent=2)
-        print(f"\nFinal accuracy: {acc:.3%} ({sum(r['correct'] for r in results)}/{len(results)})")
-        return acc
-
-
     
-    def evaluate_labeling_folder(
-        self,
-        src_dir: str = "datasets/labeling",
-        outdir: str = "results/labeling",
-        concept_mode: str = "filename",     # "filename" or "constant"
-        constant_concept: str = "object",   # used if concept_mode="constant"
-        labels_hint: str = None,
-        max_images: int = None,
-        # NEW:
-        stepwise: bool = False,
-        max_turns: int = 40,
-    ):
-        """
-        Batch-label all images under `src_dir` (non-recursive).
-        If stepwise=False: single-shot (one LLM call).
-        If stepwise=True: one stroke per turn, compositing canvas each turn.
-
-        Saves per-item: *_orig.jpg, *_grid.png, *_annotated.png, *.svg, *.json
-        Also writes results.jsonl and summary.json in out root.
-        """
-        src = Path(src_dir)
-        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
-
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_root = Path(outdir) / ts
-        out_root.mkdir(parents=True, exist_ok=True)
-
-        # collect images
-        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
-        items = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
-        if max_images is not None:
-            items = items[:max_images]
-
-        results = []
-        total = 0
-        total_labels = 0
-
-        pbar = tqdm(items, desc=f"Labeling images ({'stepwise' if stepwise else 'single-shot'})", unit="img") \
-            if hasattr(tqdm, "__call__") else items
-
-        for idx, path in enumerate(pbar):
-            raw_path = out_root / f"item_{idx:05d}_orig.jpg"
-            svg_path = out_root / f"item_{idx:05d}.svg"
-            png_path = out_root / f"item_{idx:05d}_annotated.png"
-
-            try:
-                # 1) load + set background (letterbox + dynamic grid)
-                img = Image.open(path).convert("RGB")
-                self.set_background_from_pil(img, mode="fit")
-                img.save(str(raw_path), quality=95)
-
-                # 2) decide concept
-                if concept_mode == "constant":
-                    concept = constant_concept.strip()
-                else:
-                    stem = path.stem
-                    concept = re.sub(r"[_\-]+", " ", stem).strip() or "object"
-
-                # 3) build prompt (text labels anchored on the grid)
-                hint = labels_hint or DEFAULT_LABELS_HINT
-                base_prompt = GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=hint)
-
-                if not stepwise:
-                    # ---------- SINGLE-SHOT ----------
-                    answer = self.get_response_from_llm(
-                        msg=base_prompt,
-                        system_message=self._sys_prompt_or_none(),
-                        msg_history=[],
-                        init_canvas_str=self.last_canvas_b64,
-                        seed_mode=self.seed_mode,
-                        gen_mode="generation",
-                        stop_sequences=None,  # leave off for Gemini stability
-                    )
-
-                    # render SVG + annotated PNG
-                    self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
-
-                    # extract labels and stats
-                    legend = self._extract_label_legend(answer)
-                    n_labels = len(legend)
-                    total_labels += n_labels
-
-                    row = {
-                        "index": idx,
-                        "filename": str(path),
-                        "concept": concept,
-                        "labels_hint": hint,
-                        "mode": "single_shot",
-                        "turns": None,
-                        "model_output": answer,
-                        "labels": legend,
-                        "num_labels": n_labels,
-                        "raw_image": str(raw_path),
-                        "grid_image": str(png_path).replace("_annotated", "_grid"),
-                        "annotated_image": str(png_path),
-                        "svg": str(svg_path),
-                    }
-                    with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
-                        json.dump(row, jf, indent=2)
-                    results.append(row)
-                    total += 1
-
-                else:
-                    # ---------- STEPWISE (one stroke per turn) ----------
-                    # reset per-sample drawing state
-                    self.all_strokes_svg = self._svg_root_open()
-                    self.stroke_counter = 0
-                    self.assitant_history = ""
-                    self.cur_svg_to_render = "None"
-
-                    # seed a generic session that yields a header and stops before <strokes>
-                    # (keeps the protocol consistent with the UI)
-                    self._start_generic_session(base_prompt)
-                    self.multi_stroke = False  # enforce one <sN> ... </sN> per turn
-
-                    turns = 0
-                    while turns < max_turns:
-                        turns += 1
-                        svg_chunk = self.predict_next_stroke()  # "" if model stopped
-                        if not svg_chunk:
-                            break
-                        self.all_strokes_svg += svg_chunk
-                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-
-                        # composite so the next turn sees updated canvas
-                        step_png = out_root / f"item_{idx:05d}_step_{turns:03d}.png"
-                        self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
-
-                        delay = getattr(self, "api_delay_sec", 0.0) or 0.0
-                        if delay > 0:
-                            time.sleep(delay)
-
-                    # Make a canonical <strokes>…</strokes> string for extraction
-                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
-                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
-
-                    # render final artifacts under standard names
-                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
-
-                    legend = self._extract_label_legend(answer_xml)
-                    n_labels = len(legend)
-                    total_labels += n_labels
-
-                    row = {
-                        "index": idx,
-                        "filename": str(path),
-                        "concept": concept,
-                        "labels_hint": hint,
-                        "mode": "stepwise",
-                        "turns": turns,
-                        "model_output": answer_xml,
-                        "labels": legend,
-                        "num_labels": n_labels,
-                        "raw_image": str(raw_path),
-                        "grid_image": str(png_path).replace("_annotated", "_grid"),
-                        "annotated_image": str(png_path),
-                        "svg": str(svg_path),
-                    }
-                    with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
-                        json.dump(row, jf, indent=2)
-                    results.append(row)
-                    total += 1
-
-                # live progress bar info
-                if hasattr(pbar, "set_postfix"):
-                    pbar.set_postfix(labels=f"{total_labels} total")
-
-            except Exception as e:
-                total += 1
-                err = {
-                    "index": idx,
-                    "filename": str(path),
-                    "error": str(e),
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
-                }
-                with open(out_root / f"item_{idx:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(err, jf, indent=2)
-                results.append(err)
-
-        # results.jsonl + summary
-        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results:
-                f.write(json.dumps(r, ensure_ascii=False) + "\n")
-
-        summary = {
-            "folder": str(src),
-            "timestamp": ts,
-            "total_images": len(items),
-            "processed": total,
-            "total_labels": total_labels,
-            "out_root": str(out_root),
-            "mode": "stepwise" if stepwise else "single_shot",
-        }
-        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-
-        print(f"\nSaved to: {out_root}")
-        print(f"Processed: {total}   Total labels: {total_labels}")
-        return summary
-
-
-
-    def evaluate_dataset(
-        self,
-        dataset_id: str = "vikhyatk/CountBenchQA",
-        split: str = "test",
-        outdir: str = "results/hf_eval",
-        max_examples: int = None,
-        count_only_text: bool = True,
-    ):
-        out_root = Path(outdir) / f"{dataset_id.replace('/', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        out_root.mkdir(parents=True, exist_ok=True)
-
-        ds = load_dataset(dataset_id, split=split)
-        total = 0
-        correct = 0
-        results = []
-
-        # NEW: keep a handle to tqdm so we can set a postfix
-        pbar = tqdm(ds, desc="Evaluating", unit="item")
-        use_postfix = hasattr(pbar, "set_postfix")
-        
-        
-
-        for i, row in enumerate(pbar):
-            if max_examples is not None and i >= max_examples:
-                break
-
-            question = None
-            gold = None
-
-            try:
-                img = row["image"]                  # PIL Image
-                question = str(row["question"]).rstrip(" ?").strip()
-                gold = int(row["number"])
-
-                # 1) background - this will automatically handle dynamic grid sizing
-                self.set_background_from_pil(img, mode="fit")
-
-                # 2) prompt TODO
-                
-                #prompt = sketch_first_prompt.format(concept=question, gt_sketches_str=gt_example)
-                if self.no_system_prompt:
-                    prompt = question  # send exactly the per-image text file contents
-                else:
-                    thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                    prompt = COUNTING_PROMPT.format(object=thing)
-
-
-
-                use_stop = not isinstance(self.llm, GeminiAdapter)
-                
-                # 3) single LLM call
-                answer = self.get_response_from_llm(
-                    msg=prompt,
-                    system_message=self._sys_prompt_or_none(),
-                    msg_history=[],
-                    init_canvas_str=self.last_canvas_b64,
-                    seed_mode=self.seed_mode,
-                    gen_mode="generation",
-                    stop_sequences="</answer>" if use_stop else None,
-                )
-
-                
-
-                # 4) count strokes
-                pred = self._count_strokes(answer, count_only_text=count_only_text)
-
-                # 5) save artifacts
-                raw_path = out_root / f"item_{i:05d}_orig.jpg"
-                row["image"].convert("RGB").save(str(raw_path), quality=95)
-
-                svg_path = out_root / f"item_{i:05d}.svg"
-                png_path = out_root / f"item_{i:05d}_annotated.png"
-                self._render_answer_xml(answer, svg_out=svg_path, png_out=png_path)
-
-                # 6) per-row JSON
-                per_row = {
-                    "index": i,
-                    "prompt": question,
-                    "ground_truth": gold,
-                    "model_output": answer,
-                    "model_answer": pred,
-                    "correct": (pred == gold),
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(per_row, jf, indent=2)
-
-                # 7) tally + results.jsonl row
-                is_correct = int(pred == gold)
-                correct += is_correct
-                total += 1
-
-                results.append({
-                    "index": i,
-                    "question": question,
-                    "gold_number": gold,
-                    "pred_number": pred,
-                    "correct": bool(is_correct),
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path),
-                    "svg": str(svg_path)
-                })
-
-            except Exception as e:
-                total += 1
-                err_row = {
-                    "index": i,
-                    "prompt": question,
-                    "ground_truth": gold,
-                    "error": str(e),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(err_row, jf, indent=2)
-
-                results.append({"index": i, "error": str(e)})
-
-            finally:
-                # NEW: live accuracy update after each row
-                if total:
-                    running_acc = correct / total
-                    if use_postfix:
-                        pbar.set_postfix(acc=f"{running_acc:.3%}", correct=f"{correct}/{total}")
-                    else:
-                        print(f"[{i:05d}] Running accuracy: {running_acc:.3%} ({correct}/{total})", flush=True)
-
-        # Write results & summary
-        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results:
-                f.write(json.dumps(r) + "\n")
-
-        accuracy = (correct / total) if total else 0.0
-        summary = {"dataset": dataset_id, "split": split, "total": total, "correct": correct, "accuracy": accuracy}
-        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-
-        print(f"\nFinal accuracy: {accuracy:.3%}  ({correct}/{total})")
-        return accuracy
 
     def _start_generic_session(self, user_prompt: str):
         """
@@ -2168,7 +1454,7 @@ class SketchApp:
                 msg=self.input_prompt,
                 system_message=None,           # no system
                 msg_history=[],
-                init_canvas_str=self.last_canvas_b64,
+                init_canvas_str=self._canvas_b64_for_model(),
                 seed_mode=self.seed_mode,
                 gen_mode="generation",
                 stop_sequences=None,           # don’t force a <strokes>-based stop
@@ -2194,7 +1480,7 @@ class SketchApp:
             msg=self.input_prompt,
             system_message=self._sys_prompt_or_none(),
             msg_history=[],
-            init_canvas_str=self.last_canvas_b64,
+            init_canvas_str=self._canvas_b64_for_model(),
             seed_mode=self.seed_mode,
             gen_mode="generation",
             **add_args
@@ -2327,15 +1613,23 @@ class SketchApp:
                 # Background first
                 self.set_background_from_pil(img, mode="fit")
                 img.save(str(raw_path), quality=95)
+                
+                self.orig_raw_b64 = self._encode_pil_to_b64(img)
+                self.orig_canvas_b64 = self._encode_pil_to_b64(self.base_canvas)
+
 
                 # Header AFTER grid
                 self.all_strokes_svg = self._svg_root_open()
                 self.stroke_counter = 0
                 self.assitant_history = ""
                 self.cur_svg_to_render = "None"
+                self._colored_svg = self._svg_root_open()
+                self.explanations = []
 
                 if stepwise: #MULTI-TURN MODE
                     self._start_generic_session(seed_prompt)
+                    self._prompt_multi_turn = True
+
                     
                     base_sys = self._sys_prompt_or_none() or ""
                     sys_with_one = (sys_count if counting else sys_label if labeling else base_sys) + "\n" + ONE_STROKE_SYSTEM_GUARD
@@ -2349,19 +1643,34 @@ class SketchApp:
                         turns += 1
                         
                         context_xml = self._canon_strokes_context()
-                        context_block = f"\n\n[Context so far]\n{context_xml}" if context_xml else ""
-                        user_msg = self.input_prompt + context_block
+                        context_parts = []
+
+                        # (A) Strokes context (skip when --stepwise-vision-only)
+                        if not getattr(self, "stepwise_vision_only", False):
+                            if context_xml:
+                                context_parts.append("\n\n[Context so far]\n" + context_xml)
+
+                        # (B) Explanations context (include when --stepwise-explanations)
+                        if getattr(self, "stepwise_explanations", False) and self.explanations:
+                            context_parts.append("\n\n[Explanation so far]\n" + "\n".join(self.explanations))
+
+                        user_msg = self.input_prompt + "".join(context_parts)
+
+
 
                         use_stop = not isinstance(self.llm, GeminiAdapter)
                         stop_seq = f"</s{expected_s}>"
+                        
+                        prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
+                        
                         answer_raw = self.get_response_from_llm(
                             msg=user_msg,
                             system_message=sys_with_one,
                             msg_history=[],
-                            init_canvas_str=self.last_canvas_b64,   # updated raster w/ previous overlays
+                            init_canvas_str=self._canvas_b64_for_model(),   # updated raster w/ previous overlays
                             seed_mode=self.seed_mode,
                             gen_mode="completion",
-                            prefill_msg=self.assitant_history.strip(),
+                            prefill_msg=prefill,
                             stop_sequences=stop_seq if use_stop else None,
                             previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
                         )
@@ -2383,7 +1692,33 @@ class SketchApp:
                         #     # fallback — accept any <sK>…</sK> and retag to expected_s
                         #     m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
                         
+                        # If the model tries to give the final answer prematurely, skip strokes phase
+                        if "<final_answer" in (full_text or ""):
+                            svg_chunk = ""   # force the no-stroke path below
+                        else:
+                            m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
+                            svg_chunk = m_blk.group(1) if m_blk else ""
+
+                        
                         svg_chunk = m_blk.group(1) if m_blk else ""
+                        
+                        
+                        # --- NEW: extract natural-language explanation outside the <sN>...</sN> block
+                        explanation_this_turn = ""
+                        if isinstance(full_text, str) and full_text.strip():
+                            if m_blk:
+                                explanation_this_turn = (full_text[:m_blk.start()] + full_text[m_blk.end():]).strip()
+                            else:
+                                # no <sN> block found; treat the whole reply as explanation (we'll break on no stroke)
+                                explanation_this_turn = full_text.strip()
+
+                            # strip code fences or leftover XML wrappers
+                            explanation_this_turn = re.sub(r"```.*?```", "", explanation_this_turn, flags=re.S).strip()
+
+                        # persist if non-empty
+                        if explanation_this_turn:
+                            self.explanations.append(explanation_this_turn)
+
 
                         # Thread response id to the next turn (Responses API)
                         meta = self.llm.response_metadata(getattr(self, "_last_raw_response", None) or answer_raw)
@@ -2401,6 +1736,14 @@ class SketchApp:
 
                         # Convert model XML → actual SVG <g>/<path>/<text>…
                         svg = self.parse_model_to_svg(blk_fixed)
+                        
+                        
+                        # keep a human-colored copy in parallel
+                        if self.cycle_stroke_colors:
+                            color = self._palette[(expected_s-1) % len(self._palette)]
+                            colored_group = self._recolor_svg_group(svg, color)
+                            self._colored_svg += colored_group
+
 
                         # Append to the running SVG and advance our stroke counter
                         self.all_strokes_svg += svg
@@ -2415,6 +1758,14 @@ class SketchApp:
                         with open(step_png, "rb") as fh:
                             step_bytes = fh.read()
                         self.last_canvas_b64 = base64.b64encode(step_bytes).decode("utf-8")
+                        
+                        
+                        # ---- Human-colored step copy (do NOT update last_canvas_b64)
+                        if self.save_colored_steps and self.cycle_stroke_colors:
+                            step_png_color = out_root / f"item_{i:05d}_step_{turns:03d}_color.png"
+                            colored_svg_full = self._colored_svg + "</svg>"
+                            self._render_svg_to_png_no_b64(colored_svg_full, str(step_png_color))
+
 
                         
                         # Build the same strokes context we included in the prompt
@@ -2432,6 +1783,15 @@ class SketchApp:
                         # Provider’s raw assistant text snapshot for this turn
                         turn_text = getattr(self, "_last_assistant_text", None)
 
+                        # prove what we sent in (original vs re-render)
+                        if getattr(self, "stepwise_send_original_only", False):
+                            sent_file = str(raw_path)
+                            with open(raw_path, "rb") as _rb:
+                                sent_bytes = _rb.read()
+                        else:
+                            sent_file = str(step_png)
+                            sent_bytes = step_bytes
+
                         turn_trace.append({
                             "turn": turns,
                             "s_no": expected_s,
@@ -2439,21 +1799,24 @@ class SketchApp:
                             "assistant_text": turn_text,
                             "step_png": str(step_png),
                             "request_input": turn_input_dbg,
-
-                            # NEW: prove what we sent in
                             "sent_canvas": {
-                                "file": str(step_png),
-                                "sha1": self._sha1_bytes(step_bytes),
-                                "bytes": len(step_bytes),
+                                "file": sent_file,
+                                "sha1": self._sha1_bytes(sent_bytes),
+                                "bytes": len(sent_bytes),
                             },
                             "sent_svg_context": {
                                 "sha1": ctx_sha1,
                                 "chars": len(context_xml),
-                                "preview": ctx_preview,  # first 200 chars for readability
+                                "preview": ctx_preview,
                             },
                             "stop_sequences": f"</s{expected_s}>",
                             "request_preview": turn_request,
+                            "omitted_strokes_context": bool(getattr(self, "stepwise_vision_only", False)),
+                            "explanation": explanation_this_turn,
+                            "explanations_so_far": ("\n".join(self.explanations) if self.explanations else ""),
+
                         })
+
 
 
                         delay = getattr(self, "api_delay_sec", 0.0) or 0.0
@@ -2480,6 +1843,14 @@ class SketchApp:
                     else:
                         # Nothing drawn: still produce an annotated image from whatever we have
                         self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+                    
+                    
+                    # ---- final human-colored PNG (parallel artifact)
+                    if self.save_colored_steps and self.cycle_stroke_colors:
+                        final_colored_png = png_path.with_name(png_path.stem.replace("_annotated", "_annotated_color") + png_path.suffix)
+                        colored_svg_full = self._colored_svg + "</svg>"
+                        self._render_svg_to_png_no_b64(colored_svg_full, str(final_colored_png))
+
 
                     #  Extract final text answer
                     # 3) ANSWER PHASE (one extra call): ask ONLY for <final_answer>…</final_answer>
@@ -2492,26 +1863,36 @@ class SketchApp:
                     )
 
                     context_xml = self._canon_strokes_context()
-                    msg = (
-                        self.input_prompt
-                        + "\n\n[Context]\nCurrent strokes so far (machine-readable):\n"
-                        + context_xml
-                        + final_answer_guard
-                    )
+                    context_parts = []
+
+                    # (A) Strokes (respect --stepwise-vision-only)
+                    if not getattr(self, "stepwise_vision_only", False):
+                        if context_xml:
+                            context_parts.append("\n\n[Context]\nCurrent strokes so far (machine-readable):\n" + context_xml)
+
+                    # (B) Explanations (respect --stepwise-explanations)
+                    if getattr(self, "stepwise_explanations", False) and self.explanations:
+                        context_parts.append("\n\n[Explanation so far]\n" + "\n".join(self.explanations))
+
+                    msg = self.input_prompt + "".join(context_parts) + final_answer_guard
+
+
 
                     use_stop = not isinstance(self.llm, GeminiAdapter)
                     
                     base_sys = self._sys_prompt_or_none() or ""
                     sys_with_ans_guard = (sys_count if counting else base_sys) + "\n" + FINAL_ANSWER_SYSTEM_GUARD
+                    
+                    prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
 
                     answer_phase_raw = self.get_response_from_llm(
                         msg=msg,
                         system_message=sys_with_ans_guard,   # ← enforce answer-only at system level
                         msg_history=[],
-                        init_canvas_str=self.last_canvas_b64,
+                        init_canvas_str=self._canvas_b64_for_model(),
                         seed_mode=self.seed_mode,
                         gen_mode="completion",
-                        prefill_msg=self.assitant_history.strip(),
+                        prefill_msg=prefill,
                         stop_sequences="</final_answer>" if use_stop else None,
                         previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
 )
@@ -2519,6 +1900,21 @@ class SketchApp:
 
                     answer_request = getattr(self, "_last_redacted_request", None)
                     final_ans = self._extract_final_answer_any(answer_phase_raw, self.cur_svg_to_render, context_xml)
+
+                    # reflect which image the model actually saw for the answer call
+                    if getattr(self, "stepwise_send_original_only", False):
+                        sent_file = str(raw_path)
+                        with open(raw_path, "rb") as _rb:
+                            sent_bytes = _rb.read()
+                    else:
+                        # when no strokes, we may not have step_bytes; fall back to raw
+                        if turns > 0:
+                            sent_file = str(out_root / f"item_{i:05d}_step_{turns:03d}.png")
+                            sent_bytes = step_bytes
+                        else:
+                            sent_file = str(raw_path)
+                            with open(raw_path, "rb") as _rb:
+                                sent_bytes = _rb.read()
 
                     turn_trace.append({
                         "turn": "final_answer",
@@ -2528,9 +1924,9 @@ class SketchApp:
                         "final_answer": final_ans,
                         "step_png": str(out_root / f"item_{i:05d}_step_{turns:03d}.png") if turns > 0 else str(raw_path),
                         "sent_canvas": {
-                            "file": str(out_root / f"item_{i:05d}_step_{turns:03d}.png") if turns > 0 else str(raw_path),
-                            "sha1": self._sha1_bytes(step_bytes if turns > 0 else open(raw_path, "rb").read()),
-                            "bytes": (len(step_bytes) if turns > 0 else os.path.getsize(raw_path)),
+                            "file": sent_file,
+                            "sha1": self._sha1_bytes(sent_bytes),
+                            "bytes": len(sent_bytes),
                         },
                         "sent_svg_context": {
                             "sha1": self._sha1_bytes(context_xml.encode("utf-8")),
@@ -2539,10 +1935,18 @@ class SketchApp:
                         },
                         "stop_sequences": "</final_answer>",
                         "request_preview": answer_request,
+                        "omitted_strokes_context": bool(getattr(self, "stepwise_vision_only", False)),
+                        "explanations_so_far": ("\n".join(self.explanations) if self.explanations else ""),
+
+
                     })
+
 
                 elif two_turn: #TWO TURN MODE
                     self._start_generic_session(seed_prompt)
+                    
+                    self._prompt_multi_turn = True
+
                     base_sys = self._sys_prompt_or_none() or ""
 
                     # ---------- TURN 1: strokes only ----------
@@ -2609,6 +2013,8 @@ class SketchApp:
                     text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
 
                 else:  # ONE TURN MODE
+                    self._prompt_multi_turn = False
+
                     if self.no_system_prompt:
                         use_stop = not isinstance(self.llm, GeminiAdapter)
                         # no system -> prepend counting template into the user msg (like --count-dir raw mode)
@@ -2681,6 +2087,8 @@ class SketchApp:
                     "provider_debug": getattr(self, "_last_provider_debug", None),
                     "request_preview": getattr(self, "_last_redacted_request", None),
                     
+                    "explanations": self.explanations,
+                    
                     "grid_config": {
                         "adaptive_grid": self.grid_manager.adaptive_grid,
                         "cell_size": self.grid_manager.cell_size,
@@ -2688,6 +2096,7 @@ class SketchApp:
                         "res_y": self.grid_manager.res_y,
                         "grid_size_px": self.grid_manager.grid_size,  # (width, height)
                     },
+                    
                     "cell_pixel_map": self.grid_manager.positions,  # already a dict: {'x1y1': (px, py), ...}
                     "generated_images": generated_image_paths,  # Gemini image model outputs
                     # Reasoning from two-turn image generation (Gemini)
@@ -2703,19 +2112,42 @@ class SketchApp:
                 })
 
             except Exception as e:
+                # build error record with full context so you can debug formatting/parsing issues
                 err = {
-                    "index": i, "prompt": prompt_from_txt,
-                    "mode": "stepwise" if stepwise else "single_shot",
+                    "index": i,
+                    "prompt": prompt_from_txt,
+                    "mode": "stepwise" if stepwise else ("two_turn" if two_turn else "single_shot"),
                     "turns": (turns if stepwise else None),
                     "error": str(e),
                     "raw_image": str(raw_path),
                     "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path), "svg": str(svg_path),
-                    "source_image": str(img_path), "source_prompt": str(txt_path),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+
+                    # NEW: preserve what the model actually returned (even if it was malformed)
+                    "model_output_full": getattr(self, "_last_assistant_text", None),
+                    "provider_debug": getattr(self, "_last_provider_debug", None),
+                    "request_preview": getattr(self, "_last_redacted_request", None),
+
+                    # If we collected any turns before crashing, keep that too
+                    "turn_trace": locals().get("turn_trace", []),
                 }
+
+                # Optional but handy: write a sidecar raw dump for fast inspection
+                try:
+                    raw_txt = getattr(self, "_last_assistant_text", None)
+                    if raw_txt:
+                        with open(out_root / f"item_{i:05d}_raw.txt", "w", encoding="utf-8") as tf:
+                            tf.write(raw_txt)
+                except Exception:
+                    pass
+
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(err, jf, indent=2)
                 results.append(err)
+
 
         with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
             for r in results:
@@ -2735,158 +2167,7 @@ class SketchApp:
         return summary
 
 
-    def evaluate_tallyqa(
-        self,
-        json_path: str = "TallyQA_dataset/test_sample_500.json",
-        vg_root: str = "data",
-        outdir: str = "results/tallyqa_eval",
-        stepwise: bool = False,
-        max_examples: int = None,
-        max_turns: int = 40,
-        count_only_text: bool = True,
-    ):
-        src_json = Path(json_path)
-        assert src_json.exists(), f"File not found: {json_path}"
-
-        with open(src_json, "r", encoding="utf-8") as f:
-            items = json.load(f)
-
-        if max_examples is not None:
-            items = items[:max_examples]
-
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_root = Path(outdir) / ts
-        out_root.mkdir(parents=True, exist_ok=True)
-
-        results, correct, total = [], 0, 0
-        use_postfix = hasattr(tqdm, "set_postfix")
-        pbar = tqdm(range(len(items)), desc=f"TallyQA ({'stepwise' if stepwise else 'single-shot'})", unit="item") \
-            if hasattr(tqdm, "__call__") else range(len(items))
-
-        for i in pbar:
-            row = items[i]
-            question = str(row.get("question", "")).rstrip(" ?").strip()
-            gold = int(row.get("answer"))
-            rel_img = Path(row.get("image", ""))
-            img_path = Path(vg_root) / rel_img
-
-            raw_path = out_root / f"item_{i:05d}_orig.jpg"
-            svg_path = out_root / f"item_{i:05d}.svg"
-            png_path = out_root / f"item_{i:05d}_annotated.png"
-
-            turns = 0
-            try:
-                if not img_path.exists():
-                    raise FileNotFoundError(f"Image not found: {img_path}")
-
-                img = Image.open(img_path).convert("RGB")
-
-                # Background first (sets dynamic grid)
-                self.set_background_from_pil(img, mode="fit")
-                img.save(str(raw_path), quality=95)
-
-                # Header AFTER grid
-                self.all_strokes_svg = self._svg_root_open()
-                self.stroke_counter = 0
-                self.assitant_history = ""
-                self.cur_svg_to_render = "None"
-
-                if stepwise:
-                    self._start_counting_session(question)
-                    self.multi_stroke = False
-
-                    while turns < max_turns:
-                        turns += 1
-                        chunk = self.predict_next_stroke()
-                        if not chunk:
-                            break
-                        self.all_strokes_svg += chunk
-                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
-                        step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
-                        self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
-
-                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render, flags=re.S)
-                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
-
-                else:
-                    
-                    if self.no_system_prompt:
-                        prompt = question  # send exactly the per-image text file contents
-                    else:
-                        thing = re.sub(r"^[Hh]ow many\s+|\s+are there.*$", "", question).strip() or "object"
-                        prompt = COUNTING_PROMPT.format(object=thing)
-
-                    use_stop = not isinstance(self.llm, GeminiAdapter)
-                    answer = self.get_response_from_llm(
-                        msg=prompt,
-                        system_message=self._sys_prompt_or_none(),
-                        msg_history=[],
-                        init_canvas_str=self.last_canvas_b64,
-                        seed_mode=self.seed_mode,
-                        gen_mode="generation",
-                        stop_sequences="</answer>" if use_stop else None,
-                    )
-                    answer_xml = self._canon_strokes(answer)
-
-                self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
-
-                pred = self._count_strokes(answer_xml, count_only_text=count_only_text)
-                is_correct = int(pred == gold)
-                correct += is_correct
-                total += 1
-
-                row_json = {
-                    "index": i, "question": question, "ground_truth": gold,
-                    "model_output": answer_xml, "model_answer": pred,
-                    "correct": bool(is_correct), "issimple": bool(row.get("issimple", False)),
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path), "svg": str(svg_path),
-                    "source_image": str(img_path),
-                    "question_id": int(row.get("question_id", -1)), "image_id": int(row.get("image_id", -1)),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(row_json, jf, indent=2)
-
-                results.append({"index": i, "gold_number": gold, "pred_number": pred, "correct": bool(is_correct)})
-                if use_postfix:
-                    pbar.set_postfix(acc=f"{(correct/max(total,1)):.3%}", correct=f"{correct}/{total}")
-
-            except Exception as e:
-                total += 1
-                err = {
-                    "index": i, "question": question, "ground_truth": gold, "error": str(e),
-                    "raw_image": str(raw_path),
-                    "grid_image": str(png_path).replace("_annotated", "_grid"),
-                    "annotated_image": str(png_path), "svg": str(svg_path),
-                    "source_image": str(img_path),
-                }
-                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
-                    json.dump(err, jf, indent=2)
-                results.append(err)
-
-        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
-            for r in results:
-                f.write(json.dumps(r) + "\n")
-
-        accuracy = (correct / total) if total else 0.0
-        summary = {
-            "dataset": "TallyQA",
-            "json_path": str(src_json),
-            "vg_root": str(Path(vg_root).resolve()),
-            "timestamp": ts,
-            "total": total, "correct": correct, "accuracy": accuracy,
-            "mode": "stepwise" if stepwise else "single_shot",
-            "notes": "Counting via grid-anchored labels; pred is # of <text> strokes if count_only_text."
-        }
-        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
-            json.dump(summary, f, indent=2)
-
-        print(f"\nSaved to: {out_root}")
-        print(f"Final accuracy: {accuracy:.3%}  ({correct}/{total})")
-        return accuracy
-
-
+    
 
 
 
@@ -2912,7 +2193,6 @@ if __name__ == '__main__':
     parser.add_argument("--deterministic", action="store_true", help="Set temperature=0 and top_k=1 (if supported).")
     parser.add_argument("--max-tokens", type=int, default=3000)
     
-    parser.add_argument("--eval-dataset", type=str, help="HF dataset id, e.g. vikhyatk/CountBenchQA")
     parser.add_argument("--eval-split", type=str, default="test")
     parser.add_argument("--max-examples", type=int, default=None)
     parser.add_argument("--outdir", type=str, default="results/hf_eval")
@@ -2956,25 +2236,13 @@ if __name__ == '__main__':
                         help="Run one stroke per turn (stepwise). Otherwise single-shot.")
     parser.add_argument("--mixed-max-turns", type=int, default=40,
                         help="Max turns (strokes) per image in stepwise mode")
-    parser.add_argument("--tallyqa-json", type=str,
-        help="Path to TallyQA json (e.g., TallyQA_dataset/test_sample_500.json)")
     parser.add_argument("--vg-root", type=str, default="data",
         help="Root folder containing VG_100K/ and VG_100K_2/ (default: data)")
-    parser.add_argument("--tallyqa-outdir", type=str, default="results/tallyqa_eval",
-        help="Output root for TallyQA evaluation")
-    parser.add_argument("--tallyqa-stepwise", action="store_true",
-        help="Run TallyQA one stroke per turn (stepwise)")
-    parser.add_argument("--tallyqa-max-turns", type=int, default=40,
-        help="Max turns in stepwise TallyQA")
+
     # --- RAW (grid-free) baselines ---
-    parser.add_argument("--raw-tallyqa-json", type=str,
-        help="Path to TallyQA json for raw eval (no grid/toolkit).")
+
     parser.add_argument("--raw-vg-root", type=str, default="data",
         help="Root for VG_100K / VG_100K_2 for raw TallyQA.")
-    parser.add_argument("--raw-hf-dataset", type=str,
-        help="HF dataset id for raw CountBench eval (e.g., vikhyatk/CountBenchQA).")
-    parser.add_argument("--raw-hf-split", type=str, default="test",
-        help="Split for raw CountBench eval.")
     parser.add_argument("--raw-mix-dir", type=str,
         help="Folder with paired image+.txt prompts for raw mixed eval.")
     parser.add_argument("--raw-outdir", type=str, default="results/raw_eval",
@@ -3026,6 +2294,24 @@ if __name__ == '__main__':
         help="When set, prepend a counting header and treat mixed items as counting tasks.")
     parser.add_argument("--mixed-labeling", action="store_true",
     help="When set, use the labeling template in mixed eval (like --mixed-counting).")
+    parser.add_argument("--cycle-stroke-colors", action="store_true",
+                        help="Cycle stroke hues per turn (human-view only: red→orange→yellow→green→blue→purple).")
+    parser.add_argument("--save-colored-steps", action="store_true",
+                        help="If set, save *_step_XXX_color.png and *_annotated_color.png with cycled colors.")
+    parser.add_argument("--stepwise-original-only", action="store_true",
+    help="Stepwise mode: always send the original image back to the model each turn (no re-rendered overlays).")
+    parser.add_argument(
+    "--stepwise-vision-only",
+    action="store_true",
+    help="Stepwise: send only the updated image back to the model (no text stroke history)."
+)
+    parser.add_argument(
+    "--stepwise-explanations",
+    action="store_true",
+    help="In stepwise mode, capture a natural-language explanation each turn and send it back. "
+         "Works with --stepwise-vision-only (sends explanation but not text strokes)."
+)
+
 
 
     args = parser.parse_args()
@@ -3080,19 +2366,16 @@ if __name__ == '__main__':
     if args.deterministic:
         app.seed_mode = "deterministic"
         
-    
-    if args.tallyqa_json:
-        app.evaluate_tallyqa(
-            json_path=args.tallyqa_json,
-            vg_root=args.vg_root,
-            outdir=args.tallyqa_outdir,
-            stepwise=args.tallyqa_stepwise,
-            max_examples=args.max_examples,
-            max_turns=args.tallyqa_max_turns,
-            count_only_text=args.count_only_text
-        )
-        raise SystemExit(0)
+        
+    app.cycle_stroke_colors = args.cycle_stroke_colors
+    app.save_colored_steps  = args.save_colored_steps
 
+    app.stepwise_send_original_only = args.stepwise_original_only
+    app.stepwise_vision_only = args.stepwise_vision_only
+
+    app.stepwise_explanations = args.stepwise_explanations
+
+        
     
     # If --mixed-dir is provided, run mixed folder eval and exit
     if args.mixed_dir:
@@ -3113,67 +2396,5 @@ if __name__ == '__main__':
         
         raise SystemExit(0)
 
-    
-    if args.eval_stepwise:
-        app.evaluate_dataset_stepwise(
-            dataset_id=args.eval_dataset or "vikhyatk/CountBenchQA",
-            split=args.eval_split,
-            outdir=args.outdir or "results/hf_eval_stepwise",
-            max_examples=args.max_examples,
-            count_only_text=args.count_only_text
-        )
-        raise SystemExit(0)
-
-        
-    # If --count-stepwise-dir is provided, run stepwise counting and exit
-    if args.count_stepwise_dir:
-        app.evaluate_counting_folder_stepwise(
-            src_dir=args.count_stepwise_dir,
-            outdir=args.count_stepwise_outdir,
-            max_images=args.max_examples,
-            max_turns=args.count_stepwise_max_turns,
-            count_only_text=args.count_only_text
-        )
-        raise SystemExit(0)
-
-    
-    
-    # If --count-dir is provided, run folder counting eval and exit
-    if args.count_dir:
-        app.evaluate_counting_folder(
-            src_dir=args.count_dir,
-            outdir=args.count_outdir,
-            max_images=args.max_examples,
-            count_only_text=args.count_only_text
-        )
-        raise SystemExit(0)
-
-        
-    # If --eval-dataset is provided, run batch mode and exit
-    if args.eval_dataset:
-        app.evaluate_dataset(
-            dataset_id=args.eval_dataset,
-            split=args.eval_split,
-            outdir=args.outdir,
-            max_examples=args.max_examples,
-            count_only_text=args.count_only_text
-        )
-        raise SystemExit(0)  # do not start Flask in batch mode
-    
-    # If --label-dir is provided, run folder labeling and exit
-    if args.label_dir:
-        app.evaluate_labeling_folder(
-            src_dir=args.label_dir,
-            outdir=args.label_outdir,
-            concept_mode=args.concept_mode,
-            constant_concept=args.concept,
-            labels_hint=args.labels_hint,
-            max_images=args.max_images,
-            stepwise=args.label_stepwise,          # NEW
-            max_turns=args.label_max_turns,        # NEW
-        )
-        raise SystemExit(0)
-
-    
 
     app.run(hostname, ip_address)

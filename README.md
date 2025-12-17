@@ -27,7 +27,7 @@ python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir path/to/d
 python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
 ### Gemini 2.5 Pro
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro-preview --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
 ### Gemini 2.5 Flash
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
