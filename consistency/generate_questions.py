@@ -1,0 +1,236 @@
+import os
+import json
+import re
+import argparse
+from pathlib import Path
+from typing import List, Dict
+
+
+# Standard prompts for consistency checking
+GENERAL_PROMPT = "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\n"
+BALL_DROP_PROMPT = "The image is a physics simulation of a ball being dropped. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Please respond with what bucket the **annotation shows** the ball will fall into. Please note that it is not your job to determine if the annotation is correct or not, just to extract the answer from the annotation. Your final answer must be formatted as \"$\\boxed{bucket number}$\". For example, if the ball will fall into bucket 2, respond with \"$\\boxed{2}$\". If the annotation does not show the ball falling into any bucket, respond with \"$\\boxed{none}$\". If the the annotation shows that the ball will fall into multiple different buckets, answer with \"$\\boxed{multiple}$\"."
+
+
+def extract_answer_from_response(response_text: str) -> str:
+    """
+    Extract answer from model response.
+    Tries multiple patterns: <answer> tags, <final_answer> tags, or last number.
+
+    Args:
+        response_text: The full model output
+
+    Returns:
+        Extracted answer as string, or empty string if not found
+    """
+    if not response_text or response_text.strip() == '':
+        return ''
+
+    # Try to extract from <answer> tags first
+    answer_match = re.search(r'<answer>\s*(.*?)\s*</answer>', response_text, re.IGNORECASE | re.DOTALL)
+    if answer_match:
+        return answer_match.group(1).strip()
+
+    # Try <final_answer> tags
+    final_answer_match = re.search(r'<final_answer>\s*(.*?)\s*</final_answer>', response_text, re.IGNORECASE | re.DOTALL)
+    if final_answer_match:
+        return final_answer_match.group(1).strip()
+
+    # Try to find "The answer is: X" pattern
+    answer_is_match = re.search(r'(?:the answer is|answer:)\s*[:]*\s*(\d+|[A-Za-z]+)', response_text, re.IGNORECASE)
+    if answer_is_match:
+        return answer_is_match.group(1).strip()
+
+    # Fallback: try to extract last number in the text
+    numbers = re.findall(r'\b\d+\b', response_text)
+    if numbers:
+        return numbers[-1]
+
+    return ''
+
+
+def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = False) -> List[Dict[str, str]]:
+    """
+    Gather SketchVLM results from a directory with item_*.json files.
+
+    Args:
+        base_dir: Directory containing item_*.json files
+        model: Model name
+        use_generated: If True, use generated image instead of annotated (for nano_banana format)
+
+    Returns:
+        List of dictionaries containing image_path, prompt, model_answer, and extracted_answer fields
+    """
+    entries = []
+    base_path = Path(base_dir)
+
+    # Find all item JSON files
+    json_files = sorted(base_path.glob('item_*.json'))
+
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            # Get the image path
+            item_name = json_file.stem  # e.g., 'item_00000'
+
+            if use_generated:
+                # nano_banana format: use generated image
+                # Try item_XXXXX_generated_0.jpeg first, then .png
+                image_path = base_path / f"{item_name}_generated_0.jpeg"
+                if not image_path.exists():
+                    image_path = base_path / f"{item_name}_generated_0.png"
+            else:
+                # Regular SketchVLM format: use annotated image
+                image_path = base_path / f"{item_name}_annotated.png"
+
+            # Get model output and answer
+            model_answer = data.get('model_output_full', data.get('model_output', ''))
+            extracted_answer = data.get('answer', '')
+
+            # If no extracted answer in JSON, try to extract it
+            if not extracted_answer:
+                extracted_answer = extract_answer_from_response(model_answer)
+
+            entry = {
+                'image_path': str(image_path),
+                'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                'model_answer': model_answer,
+                'extracted_answer': extracted_answer,
+                'model': model,
+                'item_index': data.get('index', None)
+            }
+            entries.append(entry)
+
+        except Exception as e:
+            print(f"Warning: Could not process {json_file}: {e}")
+            continue
+
+    return entries
+
+
+def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only: bool = False) -> List[Dict[str, str]]:
+    """
+    Gather all image file paths from sample directories and extract model answers.
+    Automatically detects SketchVLM format (item_*.json) or ThinkMorph/ViLaSR format (sample_*/images/).
+
+    Args:
+        base_dir: Base directory containing sample folders
+        model: Model name (e.g., 'thinkmorph', 'gpt4', etc.)
+        last_image_only: If True, only use the last image in each sample
+
+    Returns:
+        List of dictionaries containing image_path, prompt, model_answer, and extracted_answer fields
+    """
+    base_path = Path(base_dir)
+
+    # Detect directory structure
+    # SketchVLM format: has item_*.json files in the base directory
+    if list(base_path.glob('item_*.json')):
+        # Check if it's nano_banana format (has generated images)
+        has_generated = bool(list(base_path.glob('*_generated_*.jpeg')) or list(base_path.glob('*_generated_*.png')))
+        if has_generated:
+            print("Detected nano_banana format (item_*.json with generated images)")
+            return gather_sketchvlm_results(base_dir, model, use_generated=True)
+        else:
+            print("Detected SketchVLM format (item_*.json files)")
+            return gather_sketchvlm_results(base_dir, model, use_generated=False)
+
+    # ThinkMorph/ViLaSR format: has sample_* subdirectories
+    entries = []
+
+    # Find all sample directories
+    sample_dirs = sorted([d for d in base_path.iterdir() if d.is_dir() and d.name.startswith('sample_')])
+
+    for sample_dir in sample_dirs:
+        images_dir = sample_dir / 'images'
+
+        if not images_dir.exists():
+            continue
+
+        # Extract model answer from text_data.json
+        text_data_file = sample_dir / 'text_data.json'
+        model_answer = ''
+
+        if text_data_file.exists():
+            try:
+                with open(text_data_file, 'r') as f:
+                    data = json.load(f)
+
+                # Extract answer - try text_outputs first (ThinkMorph format), then response (ViLaSR format)
+                text_outputs = data.get('text_outputs', [])
+                if text_outputs:
+                    model_answer = '\n'.join(text_outputs)
+                elif 'response' in data:
+                    model_answer = data.get('response', '')
+                else:
+                    model_answer = ''
+            except Exception as e:
+                print(f"Warning: Could not read {text_data_file}: {e}")
+                model_answer = ''
+
+        # Find all image files (png, jpg, jpeg)
+        image_files = sorted(images_dir.glob('*.png')) + \
+                     sorted(images_dir.glob('*.jpg')) + \
+                     sorted(images_dir.glob('*.jpeg'))
+
+        # If last_image_only is True, only keep the last image
+        if last_image_only and image_files:
+            image_files = [image_files[-1]]
+
+        # Extract the actual answer from model output
+        extracted_answer = extract_answer_from_response(model_answer)
+
+        for image_path in image_files:
+            entry = {
+                'image_path': str(image_path),
+                'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                'model_answer': model_answer,
+                'extracted_answer': extracted_answer,
+                'model': model
+            }
+            entries.append(entry)
+
+    return entries
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Generate questions JSON from model results')
+    parser.add_argument('--model', type=str, default='thinkmorph',
+                       help='Model name (default: thinkmorph)')
+    parser.add_argument('--base-dir', type=str,
+                       default='/Users/log/Github/sketchvlm/results/mix_eval/vpct/vpct_thinkmorph',
+                       help='Base directory containing sample folders')
+    parser.add_argument('--output-dir', type=str,
+                       default='/Users/log/Github/sketchvlm/consistency',
+                       help='Base output directory (will create source_data/ subdirectory)')
+    parser.add_argument('--last-image-only', action='store_true',
+                       help='Only use the last image in each sample')
+
+    args = parser.parse_args()
+
+    # Create source_data directory
+    source_data_dir = os.path.join(args.output_dir, 'source_data')
+    os.makedirs(source_data_dir, exist_ok=True)
+
+    # Output JSON file path
+    output_file = os.path.join(source_data_dir, f'image_questions_{args.model}.json')
+
+    print(f"Model: {args.model}")
+    print(f"Scanning directory: {args.base_dir}")
+    print(f"Last image only: {args.last_image_only}")
+    entries = gather_image_paths(args.base_dir, args.model, args.last_image_only)
+    print(f"Found {len(entries)} images")
+
+    # Write to JSON file
+    with open(output_file, 'w') as f:
+        json.dump(entries, f, indent=2)
+
+    print(f"Saved to: {output_file}")
+    print(f"\nSample entry:")
+    if entries:
+        print(json.dumps(entries[0], indent=2))
+
+
+if __name__ == '__main__':
+    main()
