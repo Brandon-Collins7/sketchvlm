@@ -201,3 +201,109 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa
 
 #multi-turn
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --tallyqa-stepwise --tallyqa-max-turns 40 --max-examples 200 --count-only-text --api-delay 4
+
+
+
+# Open Router
+
+Providers for Qwen2.5-VL 7B Instruct
+Hyperbolic is the only provider for this model
+
+
+
+
+python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/vpct_ball_drop_vqa --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/vpct_ball_drop_sketch --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+
+
+
+python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "73,82,90"
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "3,34,36,54,62,65,76,84,94"
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-preview --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-preview --mixed-dir datasets/second_batch_ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-preview --mixed-dir datasets/ball_number --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-preview --mixed-dir datasets/second_batch_ball_number --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+
+
+  python3 /Users/log/Github/sketchvlm/report_vpct_ball_drop_compare.py \
+    --gt-root /Users/log/Github/sketchvlm/datasets/vpct-1 \
+    --raw-dir /Users/log/Github/sketchvlm/results/mix_eval/vpct/vpct_qwen25vl_7b_sketch \
+    --grid-dir /Users/log/Github/sketchvlm/results/mix_eval/vpct_qwen25vl_7b_sketch \
+    --out /Users/log/Github/sketchvlm/analysis/vpct/report_sketch_qwen25vl_7b.html \
+    --raw-fallback-last-number
+
+```
+python consistency/process_with_openrouter.py \
+--input consistency/image_questions_thinkmorph.json \
+--output consistency/consistency_results_thinkmorph.json 
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/image_questions_vilasr.json \
+--output consistency/consistency_results_vilasr.json 
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/image_questions_geminipro3.json \
+--output consistency/judge_output/consistency_results_geminipro3.json 
+
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/gemini3_image_two_turn_batch2.json \
+--output consistency/judge_output/gemini3_image_two_turn_batch2.json 
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/gemini3_image_two_turn_batch1.json \
+--output consistency/judge_output/gemini3_image_two_turn_batch1.json 
+
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/gemini3_ball_paths_batch2.json \
+--output consistency/judge_output/gemini3_ball_paths_batch2.json 
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/gemini3_ball_paths_batch1.json \
+--output consistency/judge_output/gemini3_ball_paths_batch1.json 
+
+python consistency/calculate_consistency.py --judge-dir consistency/judge_output 
+
+
+
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/vpct_thinkmorph.json \
+--output consistency/judge_output/vpct_thinkmorph.json 
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/vpct_vilasr.json \
+--output consistency/judge_output/vpct_vilasr.json 
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/vpct_geminipro3.json \
+--output consistency/judge_output/vpct_geminipro3.json 
+
+```
+

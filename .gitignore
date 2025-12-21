@@ -16,3 +16,6 @@ analysis/line_visualizations/*.html
 analysis/line_visualizations/*_comparison.png
 
 results/mix_eval/*
+
+# HTML files
+*.html

@@ -637,6 +637,23 @@ class SketchApp:
         self._last_raw_response = response
         content  = self.llm.extract_text(response)
 
+        # ---- extract generated images (Gemini image model) ----
+        self._last_generated_images = []
+        if hasattr(self.llm, "extract_images"):
+            gen_images = self.llm.extract_images(response)
+            self._last_generated_images = gen_images
+            if self.path2save and gen_images:
+                for idx, img_data_url in enumerate(gen_images):
+                    # img_data_url is like "data:image/png;base64,..."
+                    if img_data_url.startswith("data:"):
+                        header, b64_data = img_data_url.split(",", 1)
+                        ext = "png" if "png" in header else "jpeg"
+                        img_bytes = base64.b64decode(b64_data)
+                        img_path = f"{self.path2save}/generated_image_{idx}.{ext}"
+                        with open(img_path, "wb") as f:
+                            f.write(img_bytes)
+                        print(f"[IMAGE GEN] Saved generated image to: {img_path}")
+
         if gen_mode == "completion" and prefill_msg:
             other_msg = other_msg[:-1]
 
@@ -2037,8 +2054,19 @@ class SketchApp:
 
                 total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
                 text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
-                
-                
+
+                # Save generated images (Gemini image model)
+                generated_image_paths = []
+                for idx, img_data_url in enumerate(getattr(self, "_last_generated_images", []) or []):
+                    if img_data_url.startswith("data:"):
+                        header, b64_data = img_data_url.split(",", 1)
+                        ext = "png" if "png" in header else "jpeg"
+                        img_bytes = base64.b64decode(b64_data)
+                        gen_img_path = out_root / f"item_{i:05d}_generated_{idx}.{ext}"
+                        with open(gen_img_path, "wb") as f:
+                            f.write(img_bytes)
+                        generated_image_paths.append(str(gen_img_path))
+                        print(f"[IMAGE GEN] Saved: {gen_img_path}")
 
                 row = {
                     "index": i, "prompt": prompt_from_txt,
@@ -2070,7 +2098,10 @@ class SketchApp:
                     },
                     
                     "cell_pixel_map": self.grid_manager.positions,  # already a dict: {'x1y1': (px, py), ...}
-
+                    "generated_images": generated_image_paths,  # Gemini image model outputs
+                    # Reasoning from two-turn image generation (Gemini)
+                    "reasoning_image_gen": getattr(self.llm, "_last_image_gen_reasoning_turn1", None),
+                    "reasoning_text_answer": getattr(self.llm, "_last_image_gen_reasoning_turn2", None),
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(row, jf, indent=2)
@@ -2157,7 +2188,7 @@ class SketchApp:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SketchAgent (Claude, GPT, Gemini, or Qwen3)")
-    parser.add_argument("--llm", choices=["claude", "gpt", "gemini", "qwen3"], required=True, help="Which provider to use.")
+    parser.add_argument("--llm", choices=["claude", "gpt", "gemini", "qwen3", "openrouter"], required=True, help="Which provider to use.")
     parser.add_argument("--model", type=str, default=None, help="Model id (e.g., claude-3-5-sonnet-20240620, o3, or gemini-2.5-pro).")
     parser.add_argument("--deterministic", action="store_true", help="Set temperature=0 and top_k=1 (if supported).")
     parser.add_argument("--max-tokens", type=int, default=3000)

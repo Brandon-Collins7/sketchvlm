@@ -59,10 +59,12 @@ def generate_html(csv_path, output_path):
     model_dirs = {
         'Gemini-2.5-Flash': base_path / 'gemini_25_flash_ball_paths',
         'Gemini-2.5-Pro': base_path / 'gemini_25_pro_ball_paths',
+        'Gemini-3-Pro': base_path / 'gemini3_ball_paths',
         'GPT-5-low': base_path / 'gpt5_low_ball_paths',
         'GPT-5-med': base_path / 'gpt5_med_ball_paths',
         'Qwen-235B': base_path / 'qwen3_235b_thinking_ball_paths',
         'Qwen-8B': base_path / 'qwen3_8b_thinking_ball_paths',
+        'nano_banana_pro': base_path / 'gemini3_image_two_turn',
     }
 
     for model_name, model_dir in model_dirs.items():
@@ -94,10 +96,12 @@ def generate_html(csv_path, output_path):
 
     # Model definitions
     models = [
-        'Gemini-2.5-Flash',
-        'Gemini-2.5-Pro',
-        'GPT-5-low',
+        'Gemini-3-Pro',
         'GPT-5-med',
+        'GPT-5-low',
+        'Gemini-2.5-Pro',
+        'Gemini-2.5-Flash',
+        'nano_banana_pro',
         'Qwen-235B',
         'Qwen-8B',
     ]

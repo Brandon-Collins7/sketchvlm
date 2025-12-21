@@ -12,9 +12,20 @@ from typing import Dict, List, Tuple, Optional
 
 
 def parse_boxed_answer(text: str) -> Optional[int]:
-    r"""Extract answer from $\boxed{...}$ or \boxed{...} or \(\boxed{...}\) format."""
+    r"""Extract answer from $\boxed{...}$ or \boxed{...} or \(\boxed{...}\) or <answer> format."""
     if not text:
         return None
+
+    # Try <answer> tags first (for ViLaSR)
+    answer_match = re.search(r'<answer>\s*(\d+|none)\s*</answer>', text, re.IGNORECASE)
+    if answer_match:
+        content = answer_match.group(1).strip().lower()
+        if content == 'none':
+            return 0
+        try:
+            return int(content)
+        except ValueError:
+            return None
 
     # Look for various boxed patterns
     # Try $\boxed{...}$ first
@@ -115,10 +126,18 @@ def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[
 
             # Parse the answer
             answer = data.get('answer')
+            # If answer is a string (e.g., "$\boxed{3}$"), parse it
+            if isinstance(answer, str):
+                answer = parse_boxed_answer(answer)
+            # If answer is still None, try other fields
             if answer is None:
-                # Try to parse from model_output if it contains boxed format
-                model_output = data.get('model_output', '')
-                answer = parse_boxed_answer(model_output)
+                # Try model_output_full first (for gemini3 image results)
+                model_output_full = data.get('model_output_full', '')
+                answer = parse_boxed_answer(model_output_full)
+                if answer is None:
+                    # Fallback to model_output
+                    model_output = data.get('model_output', '')
+                    answer = parse_boxed_answer(model_output)
 
             if answer is not None:
                 gold = ground_truth.get(image_name)
@@ -135,6 +154,130 @@ def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[
                         'correct': int(answer) == gold,
                         'boxed_answer': boxed_answer,
                         'model_output': full_output
+                    })
+        except Exception as e:
+            print(f"Error processing {json_file}: {e}")
+
+    return results
+
+
+def process_jsonl_results(jsonl_file: Path, model_name: str, result_type: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process ViLaSR results from a JSONL file."""
+    results = []
+
+    if not jsonl_file.exists():
+        return results
+
+    try:
+        with open(jsonl_file, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                try:
+                    data = json.loads(line.strip())
+
+                    # Extract image name from image_path
+                    image_path = data.get('image_path', [])
+                    if isinstance(image_path, list) and len(image_path) > 0:
+                        image_name = Path(image_path[0]).name
+                    else:
+                        image_name = Path(image_path).name
+
+                    # Parse the answer from model_output
+                    model_output = data.get('model_output', '')
+                    answer = parse_boxed_answer(model_output)
+
+                    if answer is not None:
+                        gold = ground_truth.get(image_name)
+                        if gold is not None:
+                            boxed_answer = extract_boxed_text(model_output)
+                            results.append({
+                                'image': image_name,
+                                'model': model_name,
+                                'type': result_type,
+                                'prediction': int(answer),
+                                'gold': gold,
+                                'correct': int(answer) == gold,
+                                'boxed_answer': boxed_answer,
+                                'model_output': model_output
+                            })
+                except json.JSONDecodeError as e:
+                    print(f"    Warning: Error decoding JSON at line {line_num}: {e}")
+                    continue
+                except Exception as e:
+                    print(f"    Warning: Error processing line {line_num}: {e}")
+                    continue
+
+    except Exception as e:
+        print(f"  Error reading {jsonl_file}: {e}")
+
+    return results
+
+
+def process_thinkmorph_results(model_dir: Path, model_name: str, ground_truth: Dict[str, int]) -> List[Dict]:
+    """Process ThinkMorph results from directories with text_data.json files.
+
+    ThinkMorph has a unique structure where each result is in a directory named
+    like 'sample_YYYYMMDD_HHMMSS_run_b2_XXX' and contains a text_data.json file.
+    The run name (e.g., run_b2_XXX) must be extracted from the directory name.
+    """
+    results = []
+
+    if not model_dir.exists():
+        return results
+
+    # Process all sample directories
+    for sample_dir in sorted(model_dir.iterdir()):
+        if not sample_dir.is_dir():
+            continue
+
+        # Extract run name from directory name
+        # Pattern: sample_YYYYMMDD_HHMMSS_<run_name>
+        # e.g., sample_20251203_182246_run_b2_001 -> run_b2_001
+        dir_name = sample_dir.name
+        parts = dir_name.split('_')
+
+        # Find the index where 'run' starts
+        run_idx = None
+        for i, part in enumerate(parts):
+            if part == 'run':
+                run_idx = i
+                break
+
+        if run_idx is None:
+            continue
+
+        # Extract run name (everything from 'run' onwards)
+        run_name = '_'.join(parts[run_idx:])
+        image_name = run_name + '.png'
+
+        # Look for text_data.json
+        json_file = sample_dir / 'text_data.json'
+        if not json_file.exists():
+            continue
+
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            # Extract answer from text_outputs
+            text_outputs = data.get('text_outputs', [])
+            model_output = '\n'.join(text_outputs) if text_outputs else ''
+
+            # Parse the boxed answer
+            answer = parse_boxed_answer(model_output)
+
+            if answer is not None:
+                gold = ground_truth.get(image_name)
+                if gold is not None:
+                    boxed_answer = extract_boxed_text(model_output)
+                    results.append({
+                        'image': image_name,
+                        'model': model_name,
+                        'type': 'paths',
+                        'prediction': int(answer),
+                        'gold': gold,
+                        'correct': int(answer) == gold,
+                        'boxed_answer': boxed_answer,
+                        'model_output': model_output
                     })
         except Exception as e:
             print(f"Error processing {json_file}: {e}")
@@ -207,21 +350,40 @@ def process_all_models():
     # Define models to process
     models_config = [
         # Sketch (ball_paths) models
-        ('gemini_25_flash_ball_paths_batch2', 'Gemini-2.5-Flash', 'paths'),
-        ('gemini_25_pro_ball_paths_batch2', 'Gemini-2.5-Pro', 'paths'),
-        ('gpt5_low_ball_paths_batch2', 'GPT-5-low', 'paths'),
-        ('gpt5_med_ball_paths_batch2', 'GPT-5-med', 'paths'),
+        ('gemini_25_flash_ball_paths_batch2', 'Gemini-2.5-Flash', 'paths', False),
+        ('gemini_25_pro_ball_paths_batch2', 'Gemini-2.5-Pro', 'paths', False),
+        ('gpt5_low_ball_paths_batch2', 'GPT-5-low', 'paths', False),
+        ('gpt5_med_ball_paths_batch2', 'GPT-5-med', 'paths', False),
+        ('qwen25_7b_ball_paths_batch2', 'Qwen2.5-7B', 'paths', False),
+        ('vilasr_ball_paths_batch2', 'ViLaSR', 'paths', True),  # JSONL format
+        ('gemini3_image_two_turn_batch2', 'nano_banana_pro', 'paths', False),
+        ('gemini3_ball_paths_batch2', 'Gemini-3-Pro', 'paths', False),
+
     ]
 
     # Process sketch/ball_paths models
     print("\nProcessing sketch (ball_paths) results...")
-    for dir_name, model_name, _ in models_config:
+    for dir_name, model_name, result_type, is_jsonl in models_config:
         model_dir = batch2_dir / dir_name
         if model_dir.exists() and model_dir.is_dir():
             print(f"  Processing {model_name}...")
-            results = process_sketch_results(model_dir, model_name, ground_truth)
+            if is_jsonl:
+                # Process JSONL file
+                jsonl_file = model_dir / 'results.jsonl'
+                results = process_jsonl_results(jsonl_file, model_name, result_type, ground_truth)
+            else:
+                # Process individual JSON files
+                results = process_sketch_results(model_dir, model_name, ground_truth)
             all_results.extend(results)
             print(f"    Found {len(results)} results")
+
+    # Process ThinkMorph (special handling due to different directory structure)
+    thinkmorph_dir = batch2_dir / "thinkmorph_ball_paths_batch2"
+    if thinkmorph_dir.exists():
+        print(f"  Processing ThinkMorph...")
+        results = process_thinkmorph_results(thinkmorph_dir, "ThinkMorph", ground_truth)
+        all_results.extend(results)
+        print(f"    Found {len(results)} results")
 
     # Process direct_vqa models
     print("\nProcessing direct_vqa results...")
@@ -233,6 +395,8 @@ def process_all_models():
         ('gemini_25_pro_no_sketch_batch_2', 'Gemini-2.5-Pro'),
         ('gpt5_low_no_sketch_batch2', 'GPT-5-low'),
         ('gpt5_med_no_sketch_batch2', 'GPT-5-med'),
+        ('qwen25_7b_no_sketch_batch2', 'Qwen2.5-7B'),
+        ('gemini3_no_sketch_batch2', 'Gemini-3-Pro'),
     ]
 
     for dir_name, model_name in vqa_dirs:

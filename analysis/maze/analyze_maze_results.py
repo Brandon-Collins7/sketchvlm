@@ -5,13 +5,16 @@ This script evaluates model accuracy on maze path validation tasks, broken down 
 
 Example usage:
     python3 analysis/maze/analyze_maze_results.py \
-        "gemini25_flash:gemini25_flash:Flash (Sketch)" \
-        "gemini25_pro:gemini25_pro:Pro (Sketch)" \
-        "direct_vqa:gemini25_pro:Pro (Direct VQA)"
+        ":gemini3_pro:Gemini-3-Pro (Sketch)" \
+        "direct_vqa:gemini3_pro:Gemini-3-Pro (Direct VQA)" \
+        ":gemini25_flash:Gemini-2.5-Flash (Sketch)" \
+        "direct_vqa:gemini25_flash:Gemini-2.5-Flash (Direct VQA)" \
+        ":gemini25_pro:Gemini-2.5-Pro (Sketch)" \
+        "direct_vqa:gemini25_pro:Gemini-2.5-Pro (Direct VQA)"
 
     For index-based evaluation:
     python3 analysis/maze/analyze_maze_results.py --index-mode \
-        "gemini25_pro:gemini25_pro:Pro (Sketch)"
+        ":gemini3_pro:Gemini-3-Pro (Sketch)"
 """
 
 import json
@@ -89,6 +92,30 @@ def extract_answer_from_response(response_text: str) -> str:
                 return 'valid'
         return 'unknown'
 
+    # Try <answer> tags (for ViLaSR)
+    answer_match = re.search(r'<answer>\s*(.*?)\s*</answer>',
+                            response_text, re.IGNORECASE | re.DOTALL)
+    if answer_match:
+        answer_text = answer_match.group(1).strip()
+        if 'valid' in answer_text.lower():
+            if 'invalid' in answer_text.lower():
+                return 'invalid'
+            else:
+                return 'valid'
+        return 'unknown'
+
+    # Try \boxed{} format (for ViLaSR)
+    boxed_match = re.search(r'\$?\\boxed\{(.*?)\}\$?',
+                           response_text, re.IGNORECASE | re.DOTALL)
+    if boxed_match:
+        answer_text = boxed_match.group(1).strip()
+        if 'valid' in answer_text.lower():
+            if 'invalid' in answer_text.lower():
+                return 'invalid'
+            else:
+                return 'valid'
+        return 'unknown'
+
     # Fallback: check last 30 characters
     last_chars = response_text[-30:].lower()
     if 'invalid' in last_chars:
@@ -160,6 +187,266 @@ def extract_index_answer_from_response(response_text: str) -> Union[int, str]:
         return 'valid'
 
     return 'unknown'
+
+
+def analyze_jsonl_file(jsonl_path: Path, expected_answer: Union[str, int], maze_to_path_length: Dict[str, int],
+                       index_mode: bool = False) -> Dict:
+    """
+    Analyze a JSONL file (for ViLaSR results).
+
+    Args:
+        jsonl_path: Path to JSONL file
+        expected_answer: The expected answer ('valid', 'invalid', or for index mode: 'valid' or int)
+        maze_to_path_length: Mapping of maze_id to path_length
+        index_mode: If True, use index-based evaluation (extract numeric indices or 'valid')
+
+    Returns:
+        Dictionary with analysis results
+    """
+    results = {
+        'total': 0,
+        'correct': 0,
+        'incorrect': 0,
+        'unknown': 0,
+        'expected_answer': expected_answer,
+        'details': [],
+        'by_path_length': defaultdict(lambda: {'total': 0, 'correct': 0, 'incorrect': 0, 'unknown': 0})
+    }
+
+    if not jsonl_path.exists():
+        return results
+
+    try:
+        with open(jsonl_path, 'r') as f:
+            for line_num, line in enumerate(f, 1):
+                try:
+                    data = json.loads(line.strip())
+
+                    # Extract maze_id from image_path
+                    image_path = data.get('image_path', [])
+                    if isinstance(image_path, list) and len(image_path) > 0:
+                        source_image = image_path[0]
+                    else:
+                        source_image = image_path
+
+                    maze_id = extract_maze_id(source_image)
+                    path_length = maze_to_path_length.get(maze_id, None)
+
+                    # Get the model's output
+                    model_output = data.get('model_output', '')
+
+                    # In index mode, get ground truth from the dataset metadata.json
+                    if index_mode:
+                        if 'valid' in str(jsonl_path):
+                            gt_answer = 'valid'
+                        else:
+                            if path_length is not None:
+                                metadata_path = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v2/path_length_{path_length}/{maze_id}/metadata.json')
+                                if metadata_path.exists():
+                                    with open(metadata_path, 'r') as meta_file:
+                                        metadata = json.load(meta_file)
+                                        gt_answer = metadata.get('incorrect_paths', {}).get('substitution', {}).get('modified_index')
+                                else:
+                                    gt_answer = None
+                            else:
+                                gt_answer = None
+
+                        extracted_answer = extract_index_answer_from_response(model_output)
+                    else:
+                        gt_answer = expected_answer
+                        extracted_answer = extract_answer_from_response(model_output)
+
+                    # Determine correctness
+                    is_correct = (extracted_answer == gt_answer)
+                    is_unknown = (extracted_answer == 'unknown')
+
+                    # Update overall stats
+                    results['total'] += 1
+                    if is_unknown:
+                        results['unknown'] += 1
+                    elif is_correct:
+                        results['correct'] += 1
+                    else:
+                        results['incorrect'] += 1
+
+                    # Update path length stats
+                    if path_length is not None:
+                        results['by_path_length'][path_length]['total'] += 1
+                        if is_unknown:
+                            results['by_path_length'][path_length]['unknown'] += 1
+                        elif is_correct:
+                            results['by_path_length'][path_length]['correct'] += 1
+                        else:
+                            results['by_path_length'][path_length]['incorrect'] += 1
+
+                    results['details'].append({
+                        'file': f'line_{line_num}',
+                        'expected': gt_answer,
+                        'extracted': extracted_answer,
+                        'correct': is_correct,
+                        'unknown': is_unknown,
+                        'maze_id': maze_id,
+                        'path_length': path_length
+                    })
+
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON at line {line_num}: {e}")
+                    results['total'] += 1
+                    results['unknown'] += 1
+                    results['details'].append({
+                        'file': f'line_{line_num}',
+                        'expected': expected_answer if not index_mode else 'N/A',
+                        'extracted': 'error',
+                        'correct': False,
+                        'unknown': True,
+                        'error': str(e),
+                        'maze_id': None,
+                        'path_length': None
+                    })
+
+    except Exception as e:
+        print(f"Error reading {jsonl_path}: {e}")
+
+    return results
+
+
+def analyze_thinkmorph_directory(dir_path: Path, expected_answer: Union[str, int], maze_to_path_length: Dict[str, int],
+                                  index_mode: bool = False) -> Dict:
+    """
+    Analyze ThinkMorph results from directories with text_data.json files.
+
+    ThinkMorph has a unique structure where each result is in a directory named
+    like 'sample_YYYYMMDD_HHMMSS_maze_XXX_HASH' and contains a text_data.json file.
+
+    Args:
+        dir_path: Path to directory containing sample subdirectories
+        expected_answer: The expected answer ('valid', 'invalid')
+        maze_to_path_length: Mapping of maze_id to path_length
+        index_mode: If True, use index-based evaluation
+
+    Returns:
+        Dictionary with analysis results
+    """
+    results = {
+        'total': 0,
+        'correct': 0,
+        'incorrect': 0,
+        'unknown': 0,
+        'expected_answer': expected_answer,
+        'details': [],
+        'by_path_length': defaultdict(lambda: {'total': 0, 'correct': 0, 'incorrect': 0, 'unknown': 0})
+    }
+
+    if not dir_path.exists():
+        return results
+
+    # Process all sample directories
+    for sample_dir in sorted(dir_path.iterdir()):
+        if not sample_dir.is_dir() or not sample_dir.name.startswith('sample_'):
+            continue
+
+        # Extract maze_id from directory name
+        # Pattern: sample_YYYYMMDD_HHMMSS_maze_XXX_HASH
+        # e.g., sample_20251203_185642_maze_100_fbcdb0b4 -> maze_100_fbcdb0b4
+        dir_name = sample_dir.name
+        parts = dir_name.split('_')
+
+        # Find the index where 'maze' starts
+        maze_idx = None
+        for i, part in enumerate(parts):
+            if part == 'maze':
+                maze_idx = i
+                break
+
+        if maze_idx is None:
+            continue
+
+        # Extract maze_id (everything from 'maze' onwards)
+        maze_id = '_'.join(parts[maze_idx:])
+        path_length = maze_to_path_length.get(maze_id, None)
+
+        # Look for text_data.json
+        json_file = sample_dir / 'text_data.json'
+        if not json_file.exists():
+            continue
+
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            # Extract answer from text_outputs
+            text_outputs = data.get('text_outputs', [])
+            model_output = '\n'.join(text_outputs) if text_outputs else ''
+
+            # Get ground truth
+            if index_mode:
+                if '_valid' in str(dir_path):
+                    gt_answer = 'valid'
+                else:
+                    if path_length is not None:
+                        metadata_path = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v2/path_length_{path_length}/{maze_id}/metadata.json')
+                        if metadata_path.exists():
+                            with open(metadata_path, 'r') as meta_file:
+                                metadata = json.load(meta_file)
+                                gt_answer = metadata.get('incorrect_paths', {}).get('substitution', {}).get('modified_index')
+                        else:
+                            gt_answer = None
+                    else:
+                        gt_answer = None
+                extracted_answer = extract_index_answer_from_response(model_output)
+            else:
+                gt_answer = expected_answer
+                extracted_answer = extract_answer_from_response(model_output)
+
+            # Determine correctness
+            is_correct = (extracted_answer == gt_answer)
+            is_unknown = (extracted_answer == 'unknown')
+
+            # Update overall stats
+            results['total'] += 1
+            if is_unknown:
+                results['unknown'] += 1
+            elif is_correct:
+                results['correct'] += 1
+            else:
+                results['incorrect'] += 1
+
+            # Update path length stats
+            if path_length is not None:
+                results['by_path_length'][path_length]['total'] += 1
+                if is_unknown:
+                    results['by_path_length'][path_length]['unknown'] += 1
+                elif is_correct:
+                    results['by_path_length'][path_length]['correct'] += 1
+                else:
+                    results['by_path_length'][path_length]['incorrect'] += 1
+
+            results['details'].append({
+                'file': sample_dir.name,
+                'expected': gt_answer,
+                'extracted': extracted_answer,
+                'correct': is_correct,
+                'unknown': is_unknown,
+                'maze_id': maze_id,
+                'path_length': path_length
+            })
+
+        except Exception as e:
+            print(f"Error processing {json_file}: {e}")
+            results['total'] += 1
+            results['unknown'] += 1
+            results['details'].append({
+                'file': sample_dir.name,
+                'expected': expected_answer if not index_mode else 'N/A',
+                'extracted': 'error',
+                'correct': False,
+                'unknown': True,
+                'error': str(e),
+                'maze_id': maze_id,
+                'path_length': path_length
+            })
+
+    return results
 
 
 def analyze_directory(dir_path: Path, expected_answer: Union[str, int], maze_to_path_length: Dict[str, int],
@@ -547,14 +834,25 @@ def main():
         sys.exit(1)
 
     # Parse configurations
+    # Format: parent_dir:model_name:label[:format]
+    # format can be: jsonl, thinkmorph, or omitted (default JSON files)
     configs = []
     for arg in args:
         parts = arg.split(':')
-        if len(parts) != 3:
+        if len(parts) == 3:
+            # Standard format: parent_dir:model_name:label
+            configs.append(tuple(parts + ['json']))  # Add format='json'
+        elif len(parts) == 4:
+            fmt = parts[3].lower()
+            if fmt in ['jsonl', 'thinkmorph', 'json']:
+                configs.append(tuple(parts[:3] + [fmt]))
+            else:
+                print(f"Error: Invalid format '{fmt}'. Expected: json, jsonl, or thinkmorph")
+                sys.exit(1)
+        else:
             print(f"Error: Invalid config format: {arg}")
-            print("Expected format: parent_dir:model_name:label")
+            print("Expected format: parent_dir:model_name:label or parent_dir:model_name:label:[json|jsonl|thinkmorph]")
             sys.exit(1)
-        configs.append(tuple(parts))
 
     # Build maze to path length mapping
     print("Building maze to path length mapping...")
@@ -577,16 +875,7 @@ def main():
     # Analyze all configurations
     all_results = []
 
-    for parent_dir, model_name, label in configs:
-        # Define paths
-        invalid_dir = base_path / parent_dir / f'{model_name}_invalid'
-        valid_dir = base_path / parent_dir / f'{model_name}_valid'
-
-        # For index mode, check if parent_dir is empty (direct subdirectories of index/)
-        if index_mode and parent_dir == '':
-            invalid_dir = base_path / f'{model_name}_invalid'
-            valid_dir = base_path / f'{model_name}_valid'
-
+    for parent_dir, model_name, label, fmt in configs:
         print("=" * 80)
         if index_mode:
             print(f"{label} - Maze Path Index Identification Analysis")
@@ -595,17 +884,70 @@ def main():
         print("=" * 80)
         print()
 
-        # Analyze invalid directory
-        if index_mode:
-            print("Analyzing INVALID subdirectory (ground truth: numeric index)...")
-        else:
-            print("Analyzing INVALID subdirectory (should answer 'invalid')...")
-        invalid_results = analyze_directory(invalid_dir, 'invalid' if not index_mode else None,
-                                           maze_to_path_length, index_mode=index_mode)
+        if fmt == 'jsonl':
+            # JSONL format - analyze single JSONL files
+            if parent_dir == '':
+                invalid_jsonl = base_path / f'{model_name}_invalid' / 'results.jsonl'
+                valid_jsonl = base_path / f'{model_name}_valid' / 'results.jsonl'
+            else:
+                invalid_jsonl = base_path / parent_dir / f'{model_name}_invalid' / 'results.jsonl'
+                valid_jsonl = base_path / parent_dir / f'{model_name}_valid' / 'results.jsonl'
 
-        # Analyze valid directory (should answer "valid")
-        print("Analyzing VALID subdirectory (should answer 'valid')...")
-        valid_results = analyze_directory(valid_dir, 'valid', maze_to_path_length, index_mode=index_mode)
+            # Analyze invalid JSONL
+            if index_mode:
+                print("Analyzing INVALID JSONL file (ground truth: numeric index)...")
+            else:
+                print("Analyzing INVALID JSONL file (should answer 'invalid')...")
+            invalid_results = analyze_jsonl_file(invalid_jsonl, 'invalid' if not index_mode else None,
+                                                maze_to_path_length, index_mode=index_mode)
+
+            # Analyze valid JSONL
+            print("Analyzing VALID JSONL file (should answer 'valid')...")
+            valid_results = analyze_jsonl_file(valid_jsonl, 'valid', maze_to_path_length, index_mode=index_mode)
+
+        elif fmt == 'thinkmorph':
+            # ThinkMorph format - analyze directories with text_data.json files
+            if parent_dir == '':
+                invalid_dir = base_path / f'{model_name}_invalid'
+                valid_dir = base_path / f'{model_name}_valid'
+            else:
+                invalid_dir = base_path / parent_dir / f'{model_name}_invalid'
+                valid_dir = base_path / parent_dir / f'{model_name}_valid'
+
+            # Analyze invalid directory
+            if index_mode:
+                print("Analyzing INVALID ThinkMorph directory (ground truth: numeric index)...")
+            else:
+                print("Analyzing INVALID ThinkMorph directory (should answer 'invalid')...")
+            invalid_results = analyze_thinkmorph_directory(invalid_dir, 'invalid' if not index_mode else None,
+                                                           maze_to_path_length, index_mode=index_mode)
+
+            # Analyze valid directory
+            print("Analyzing VALID ThinkMorph directory (should answer 'valid')...")
+            valid_results = analyze_thinkmorph_directory(valid_dir, 'valid', maze_to_path_length, index_mode=index_mode)
+
+        else:
+            # Standard JSON format - analyze directories of JSON files
+            # Define paths
+            invalid_dir = base_path / parent_dir / f'{model_name}_invalid'
+            valid_dir = base_path / parent_dir / f'{model_name}_valid'
+
+            # For index mode, check if parent_dir is empty (direct subdirectories of index/)
+            if index_mode and parent_dir == '':
+                invalid_dir = base_path / f'{model_name}_invalid'
+                valid_dir = base_path / f'{model_name}_valid'
+
+            # Analyze invalid directory
+            if index_mode:
+                print("Analyzing INVALID subdirectory (ground truth: numeric index)...")
+            else:
+                print("Analyzing INVALID subdirectory (should answer 'invalid')...")
+            invalid_results = analyze_directory(invalid_dir, 'invalid' if not index_mode else None,
+                                               maze_to_path_length, index_mode=index_mode)
+
+            # Analyze valid directory (should answer "valid")
+            print("Analyzing VALID subdirectory (should answer 'valid')...")
+            valid_results = analyze_directory(valid_dir, 'valid', maze_to_path_length, index_mode=index_mode)
 
         # Store results for plotting
         all_results.append((label, invalid_results, valid_results))

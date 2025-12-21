@@ -170,10 +170,11 @@ def load_raw_jsonl(jsonl_path: Path, raw_fallback_last_number: bool = False) -> 
     """
     JSONL raw loader.
 
-    We map by the basename of a file field (file/image/source_image) and try:
+    We map by the basename of a file field (file/image/source_image/image_path) and try:
       1) "answer" (if present)
-      2) parsed_int / parsed_label / raw_text (legacy jsonl schema)
-      3) (optional) last integer in model_output_full if answer is null
+      2) Extract from <answer>X</answer> in model_output field
+      3) parsed_int / parsed_label / raw_text (legacy jsonl schema)
+      4) (optional) last integer in model_output_full if answer is null
     """
     out: Dict[str,Dict[str,Any]] = {}
     for ln in jsonl_path.read_text(encoding="utf-8").splitlines():
@@ -185,12 +186,24 @@ def load_raw_jsonl(jsonl_path: Path, raw_fallback_last_number: bool = False) -> 
         except Exception:
             continue
 
-        f = (j.get("file") or j.get("image") or j.get("source_image") or "").replace("\\","/")
+        # Handle image_path which might be a list
+        image_field = j.get("file") or j.get("image") or j.get("source_image") or j.get("image_path")
+        if isinstance(image_field, list):
+            image_field = image_field[0] if image_field else ""
+        f = str(image_field or "").replace("\\","/")
         basename = Path(f).name
         if not SIM_IMG_RE.search(basename):
             continue
 
         pred = _to_int_123(j.get("answer"))
+
+        # Try to extract from <answer>X</answer> in model_output
+        if pred is None:
+            model_output = j.get("model_output") or ""
+            if isinstance(model_output, str) and model_output.strip():
+                answer_match = re.search(r"<answer>(\d+)</answer>", model_output, re.I)
+                if answer_match:
+                    pred = _to_int_123(answer_match.group(1))
 
         if pred is None:
             pred0 = j.get("parsed_int")
@@ -199,7 +212,7 @@ def load_raw_jsonl(jsonl_path: Path, raw_fallback_last_number: bool = False) -> 
             else:
                 pred = _to_int_123(pred0)
 
-        raw_text = str(j.get("raw_text") or "")
+        raw_text = str(j.get("raw_text") or j.get("model_output") or "")
         mo_full = j.get("model_output_full") or j.get("model_out_full") or ""
         if pred is None and raw_fallback_last_number and isinstance(mo_full, str) and mo_full.strip():
             last_int = _extract_last_int_token(mo_full)
@@ -256,6 +269,102 @@ def _extract_last_bucket_from_output(text: str) -> Optional[int]:
     return iv if iv in (1, 2, 3) else None
 
 
+def load_thinkmorph_vilasr_dir(results_dir: Path, jsonl_path: Optional[Path] = None) -> Dict[str,Dict[str,Any]]:
+    """
+    Custom loader for thinkmorph and vilasr results that use text_data.json in subdirectories.
+
+    Directory structure:
+    - sample_TIMESTAMP_sim_XXX_initial/ (thinkmorph)
+      OR sample_TIMESTAMP/ (vilasr - mapped via results.jsonl)
+      - text_data.json (contains response or text_outputs with <answer>X</answer>)
+      - images/
+        - image_0.png (annotated image)
+    """
+    out: Dict[str,Dict[str,Any]] = {}
+
+    # Build a mapping from sample_dir to sim basename if JSONL is provided
+    sample_dir_to_basename: Dict[str, str] = {}
+    if jsonl_path and jsonl_path.exists():
+        for ln in jsonl_path.read_text(encoding="utf-8").splitlines():
+            ln = ln.strip()
+            if not ln:
+                continue
+            try:
+                j = json.loads(ln)
+            except Exception:
+                continue
+
+            # Get image path and sample_dir
+            image_field = j.get("file") or j.get("image") or j.get("source_image") or j.get("image_path")
+            if isinstance(image_field, list):
+                image_field = image_field[0] if image_field else ""
+            f = str(image_field or "").replace("\\", "/")
+            basename = Path(f).name
+
+            sample_dir = j.get("sample_dir", "")
+            if sample_dir and SIM_IMG_RE.search(basename):
+                # Normalize sample_dir (remove ./ prefix and path components)
+                sample_dir_name = Path(sample_dir).name
+                sample_dir_to_basename[sample_dir_name] = basename
+
+    # Find all subdirectories with pattern sample_*
+    for subdir in sorted(results_dir.glob("sample_*")):
+        if not subdir.is_dir():
+            continue
+
+        # Try to extract sim number from directory name (thinkmorph style)
+        match = re.search(r"sim_(\d+)_initial", subdir.name, re.I)
+        if match:
+            sim_num = match.group(1)
+            basename = f"sim_{sim_num}_initial.png"
+        # Otherwise use the mapping from JSONL (vilasr style)
+        elif subdir.name in sample_dir_to_basename:
+            basename = sample_dir_to_basename[subdir.name]
+        else:
+            # Skip directories we can't map
+            continue
+
+        # Read text_data.json
+        text_data_path = subdir / "text_data.json"
+        if not text_data_path.exists():
+            continue
+
+        try:
+            j = json.loads(text_data_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        # Extract answer from <answer>X</answer> tag
+        pred = None
+        raw_text = ""
+
+        # For thinkmorph: text_outputs is a list
+        if "text_outputs" in j and isinstance(j["text_outputs"], list):
+            # Concatenate all text outputs
+            raw_text = "\n".join(str(t) for t in j["text_outputs"])
+        # For vilasr: response is a string
+        elif "response" in j:
+            raw_text = str(j.get("response", ""))
+
+        # Extract <answer>X</answer>
+        if raw_text:
+            answer_match = re.search(r"<answer>(\d+)</answer>", raw_text, re.I)
+            if answer_match:
+                pred = _to_int_123(answer_match.group(1))
+
+        # Look for annotated image
+        annot_path = None
+        images_dir = subdir / "images"
+        if images_dir.exists():
+            for img_file in sorted(images_dir.glob("image_*.png")):
+                annot_path = img_file
+                break
+
+        out[basename] = {"pred": pred, "annot": annot_path, "orig": None, "raw_text": raw_text}
+
+    return out
+
+
 def load_grid_dir(grid_dir: Path) -> Dict[str,Dict[str,Any]]:
     out: Dict[str,Dict[str,Any]] = {}
     for jf in sorted(grid_dir.glob("item_*.json")):
@@ -296,10 +405,15 @@ def load_grid_dir(grid_dir: Path) -> Dict[str,Dict[str,Any]]:
     return out
 
 
-def build_report(gt_root: Path, raw_source: Dict[str,Dict[str,Any]], grid_dir: Path, out_html: Path, thumb_width: int = 520) -> None:
+def build_report(gt_root: Path, raw_source: Dict[str,Dict[str,Any]], grid_dir: Path, out_html: Path, thumb_width: int = 520, use_thinkmorph_vilasr: bool = False, jsonl_path: Optional[Path] = None) -> None:
     gt_map = load_gt(gt_root)
     raw_map = raw_source
-    grid_map = load_grid_dir(grid_dir)
+
+    # Use custom loader for thinkmorph/vilasr if specified
+    if use_thinkmorph_vilasr:
+        grid_map = load_thinkmorph_vilasr_dir(grid_dir, jsonl_path=jsonl_path)
+    else:
+        grid_map = load_grid_dir(grid_dir)
 
     def sort_key(name: str):
         m = SIM_IMG_RE.search(name)
@@ -486,6 +600,8 @@ def main():
     ap.add_argument("--thumb-width", type=int, default=520)
     ap.add_argument("--raw-fallback-last-number", action="store_true",
                    help="If raw 'answer' is null/invalid, extract the last integer token from model_output_full (greedy).")
+    ap.add_argument("--use-thinkmorph-vilasr", action="store_true",
+                   help="Use custom loader for thinkmorph/vilasr directory structure (text_data.json in subdirectories).")
     args = ap.parse_args()
 
     if args.raw_jsonl and args.raw_dir:
@@ -496,11 +612,13 @@ def main():
     if args.raw_jsonl:
         raw_map = load_raw_jsonl(args.raw_jsonl, raw_fallback_last_number=args.raw_fallback_last_number)
         raw_src_label = args.raw_jsonl.as_posix()
+        jsonl_for_mapping = args.raw_jsonl
     else:
         raw_map = load_raw_dir(args.raw_dir, raw_fallback_last_number=args.raw_fallback_last_number)
         raw_src_label = args.raw_dir.as_posix()
+        jsonl_for_mapping = None
 
-    build_report(args.gt_root, raw_map, args.grid_dir, args.out, thumb_width=args.thumb_width)
+    build_report(args.gt_root, raw_map, args.grid_dir, args.out, thumb_width=args.thumb_width, use_thinkmorph_vilasr=args.use_thinkmorph_vilasr, jsonl_path=jsonl_for_mapping)
 
 if __name__ == "__main__":
     main()
