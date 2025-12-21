@@ -294,7 +294,7 @@ def generate_html(data: list, output_file: str):
 def main():
     parser = argparse.ArgumentParser(description='Generate combined HTML visualization for all models')
     parser.add_argument('--judge-dir', type=str,
-                       default='consistency/judge_output',
+                       default='consistency/judge_output/gemini3_flash_judge',
                        help='Directory containing judge output JSON files')
     parser.add_argument('--output', type=str,
                        default='consistency/html_output/all_models.html',

@@ -133,12 +133,51 @@ def generate_html(data: list, output_file: str):
 
 def main():
     parser = argparse.ArgumentParser(description='Generate simple single-page HTML visualization')
-    parser.add_argument('--input', type=str, required=True, help='Input JSON file')
+    parser.add_argument('--input', type=str, help='Input JSON file')
+    parser.add_argument('--input-dir', type=str, help='Input directory containing JSON files')
     parser.add_argument('--output', type=str, default=None, help='Output HTML file (default: auto-generated in html_output/)')
 
     args = parser.parse_args()
 
-    # Auto-generate output path if not provided
+    # Check that either --input or --input-dir is provided
+    if not args.input and not args.input_dir:
+        parser.error('Either --input or --input-dir must be provided')
+
+    if args.input and args.input_dir:
+        parser.error('Cannot specify both --input and --input-dir')
+
+    # Process directory
+    if args.input_dir:
+        input_dir = Path(args.input_dir)
+        if not input_dir.exists() or not input_dir.is_dir():
+            print(f"Error: {args.input_dir} is not a valid directory")
+            return
+
+        json_files = sorted(input_dir.glob('*.json'))
+        if not json_files:
+            print(f"No JSON files found in {args.input_dir}")
+            return
+
+        print(f"Found {len(json_files)} JSON files to process")
+
+        for json_file in json_files:
+            print(f"\nProcessing: {json_file.name}")
+
+            # Auto-generate output path
+            html_output_dir = input_dir.parent.parent / 'html_output'
+            html_output_dir.mkdir(exist_ok=True)
+            output_file = str(html_output_dir / f'{json_file.stem}.html')
+
+            try:
+                with open(json_file, 'r') as f:
+                    data = json.load(f)
+                generate_html(data, output_file)
+            except Exception as e:
+                print(f"Error processing {json_file.name}: {e}")
+
+        return
+
+    # Process single file
     if args.output is None:
         # Extract model name from input file path
         input_path = Path(args.input)

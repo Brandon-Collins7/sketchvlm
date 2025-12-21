@@ -49,7 +49,7 @@ def encode_image_to_base64(image_path: str) -> str:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 
-def call_openrouter_api(image_path: str, prompt: str, api_key: str, model: str = "qwen/qwen3-vl-235b-a22b-instruct") -> Dict:
+def call_openrouter_api(image_path: str, prompt: str, api_key: str, model: str) -> Dict:
     """
     Call OpenRouter API with image and prompt.
 
@@ -115,7 +115,7 @@ def call_openrouter_api(image_path: str, prompt: str, api_key: str, model: str =
             }
         ],
         "provider": {
-            "order": ["alibaba"],
+            "order": ["google-ai-studio"],
             "allow_fallbacks": False
         }
     }
@@ -236,8 +236,8 @@ def main():
                        help='Input JSON file from generate_questions.py')
     parser.add_argument('--output', type=str, default=None,
                        help='Output JSON file for results (default: auto-generated in judge_output/)')
-    parser.add_argument('--model', type=str, default='qwen/qwen3-vl-235b-a22b-instruct',
-                       help='Model identifier (default: qwen/qwen3-vl-235b-a22b-instruct)')
+    parser.add_argument('--model', type=str, default='google/gemini-3-flash-preview',
+                       help='Model identifier (default)')
     parser.add_argument('--start-index', type=int, default=0,
                        help='Index to start processing from (for resuming)')
 

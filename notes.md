@@ -288,4 +288,22 @@ python consistency/process_with_openrouter.py \
 
 python consistency/calculate_consistency.py --judge-dir consistency/judge_output 
 
+
+
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/vpct_thinkmorph.json \
+--output consistency/judge_output/vpct_thinkmorph.json 
+
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/vpct_vilasr.json \
+--output consistency/judge_output/vpct_vilasr.json 
+
+python consistency/process_with_openrouter.py \
+--input consistency/source_data/vpct_geminipro3.json \
+--output consistency/judge_output/vpct_geminipro3.json 
+
 ```
+
