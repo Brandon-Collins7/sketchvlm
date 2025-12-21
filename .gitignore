@@ -17,5 +17,5 @@ analysis/line_visualizations/*_comparison.png
 
 results/mix_eval/*
 
-# Consistency HTML output
-consistency/html_output/
+# HTML files
+*.html
