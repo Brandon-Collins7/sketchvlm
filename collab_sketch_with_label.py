@@ -89,6 +89,11 @@ class SketchApp:
         max_cell_px: int = 64,
         no_grid: bool = False,
         no_system_prompt: bool = False,
+        prompt_origin: str = "bottom_left",
+        # NEW: allow overriding coordinate-space / canvas resolution.
+        # For your no-grid coord trials, set these to 1000/1000.
+        res_x: Optional[int] = None,
+        res_y: Optional[int] = None,
     ):
         self.app = Flask(__name__)
         self.session_id = str(uuid.uuid4())
@@ -117,13 +122,27 @@ class SketchApp:
         
         self.cell_size = self.grid_manager.cell_size
         
+        #origin is sometimes bottom left, sometimes top left
+        self.prompt_origin = (prompt_origin or "bottom_left").strip().lower()
+        
         # Backward compatibility properties
-        self.res = res
-        self.res_x = res
-        self.res_y = res
-        self.num_cells = res
-        self.cell_size = cell_size
-        self.grid_size = grid_size
+        # NOTE: res_x/res_y are used by the system prompt and (in no-grid mode)
+        # define the coordinate-space / canvas size.
+        self.res_x = int(res_x) if res_x is not None else int(res)
+        self.res_y = int(res_y) if res_y is not None else int(res)
+        self.res = max(self.res_x, self.res_y)
+        self.num_cells = self.res
+        self.cell_size = int(cell_size)
+        self.grid_size = tuple(grid_size)
+
+        # If we're in no-grid mode and the caller provided res_x/res_y, treat
+        # that as the canvas size. This makes the (0..res_x, 0..res_y) coordinate
+        # system line up with pixels, with origin at top-left.
+        if self.no_grid and (res_x is not None or res_y is not None):
+            self.grid_size = (self.res_x, self.res_y)
+            # cell_size isn't meaningful without a grid, but some code
+            # uses it for defaults; keep it sane.
+            self.cell_size = 1
         
         # Initialize default grid
         self.init_canvas_grid = self.grid_manager.grid_image
@@ -186,7 +205,11 @@ class SketchApp:
             return None
         # Treat “colab”, stepwise, and two-turn as multi-turn prompt mode.
         multi = bool(getattr(self, "_prompt_multi_turn", False) or self.sketch_mode == "colab")
-        return build_system_prompt(self.res_x, self.res_y, multi_turn=multi)
+        return build_system_prompt(
+            self.res_x, self.res_y,
+            multi_turn=multi,
+            prompt_origin=args.prompt_origin,
+        )
 
     
     def skip_turn(self):
@@ -637,6 +660,9 @@ class SketchApp:
         self._last_raw_response = response
         content  = self.llm.extract_text(response)
 
+        if gen_mode == "completion" and prefill_msg:
+            other_msg = other_msg[:-1]
+        
         # ---- extract generated images (Gemini image model) ----
         self._last_generated_images = []
         if hasattr(self.llm, "extract_images"):
@@ -747,10 +773,46 @@ class SketchApp:
         
         strokes_list_str, t_values_str = utils.parse_xml_string(all_sketch, res=self.res)
         strokes_list, t_values = ast.literal_eval(strokes_list_str), ast.literal_eval(t_values_str)
-        all_control_points = utils.get_control_points(strokes_list, t_values, self.positions)
-        sketch_text_svg = utils.format_svg(all_control_points, dim=self.grid_size, stroke_width=self.stroke_width)
+
+        # In --no-grid coord mode, tokens 'xNyM' are treated as pixel coordinates
+        # in a top-left origin canvas of size (res_x,res_y) (matching base_canvas).
+        if self.no_grid and (not self.positions):
+            W, H = self.base_canvas.size
+            def _tok_to_xy(tok: str):
+                m = re.search(r"x(-?\d+)y(-?\d+)", str(tok))
+                if not m:
+                    return None
+                x = int(m.group(1))
+                y = int(m.group(2))
+                # Accept either 0-based [0..res] or 1-based [1..res]
+                if x >= 1 and x <= self.res_x:
+                    x = x - 1
+                if y >= 1 and y <= self.res_y:
+                    y = y - 1
+                x = max(0, min(x, W - 1))
+                y = max(0, min(y, H - 1))
+                return [float(x), float(y)]
+
+            all_control_points = []
+            for stroke_tokens, stroke_tvals in zip(strokes_list, t_values):
+                pts = []
+                for tok in stroke_tokens:
+                    xy = _tok_to_xy(tok)
+                    if xy is not None:
+                        pts.append(xy)
+                if not pts:
+                    continue
+                cps = utils.estimate_bezier_control_points(pts, stroke_tvals)
+                all_control_points.append(cps)
+
+            sketch_text_svg = utils.format_svg(all_control_points, dim=(W, H), stroke_width=self.stroke_width)
+        else:
+            all_control_points = utils.get_control_points(strokes_list, t_values, self.positions)
+            sketch_text_svg = utils.format_svg(all_control_points, dim=self.grid_size, stroke_width=self.stroke_width)
+
         with open(f"{self.path2save}/sketch.svg", "w") as svg_file:
             svg_file.write(sketch_text_svg)
+            
         cairosvg.svg2png(url=f"{self.path2save}/sketch.svg", write_to=f"static/entire_sketch.png", background_color="white")
         return jsonify({"status": "success", "message": "Sketch drawn!"})
 
@@ -845,11 +907,25 @@ class SketchApp:
             if not pts:
                 raise ValueError(f"Text stroke s{stroke_no} has no valid xAyB point")
             gx, gy = pts[0]
+            
             key = f"x{int(gx)}y{int(gy)}"
-            if key not in self.positions:
-                raise ValueError(f"Text stroke s{stroke_no} uses out-of-grid cell {key}")
 
-            cx, cy = self.positions[key]
+            if self.no_grid:
+                # Treat text anchor as coord-space point scaled onto the original image
+                W, H = self.grid_size
+                if self.res_x <= 0 or self.res_y <= 0:
+                    raise ValueError("No-grid mode requires --res-x and --res-y > 0")
+
+                cx_coord = max(0.0, min(float(self.res_x), float(gx)))
+                cy_coord = max(0.0, min(float(self.res_y), float(gy)))
+
+                cx = (cx_coord / float(self.res_x)) * float(W - 1)
+                cy = (cy_coord / float(self.res_y)) * float(H - 1)
+            else:
+                if key not in self.positions:
+                    raise ValueError(f"Text stroke s{stroke_no} uses out-of-grid cell {key}")
+                cx, cy = self.positions[key]
+
 
             # style overrides
             font_px_override, color_override = self._parse_text_style(stroke_model)
@@ -869,6 +945,70 @@ class SketchApp:
                 f'font-size="{font_px}" fill="{fill_color}">{text_val}</text>'
                 f'</g>'
             )
+
+
+        # ================================================================
+        # No-grid coordinate strokes (top-left origin)
+        # ================================================================
+        # In your coord trial (--no-grid with --res-x/--res-y set), we expect:
+        #   <points>(x0,y0),(x1,y1),...</points>
+        # and interpret them in a 0..res_x by 0..res_y space with origin at
+        # the TOP-LEFT. We scale to the current canvas size.
+        if self.no_grid and self.grid_size == (self.res_x, self.res_y) and self.res_x > 0 and self.res_y > 0:
+            m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S | re.I)
+            if not m_ptblk:
+                raise ValueError(f"Stroke s{stroke_no} missing <points>")
+
+            pts_text = m_ptblk.group(1)
+            # tolerate: (500,105),(500,431)  or 500,105 500,431  or [500,105]
+            coord_re = re.compile(r"\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?")
+            coords = [(float(a), float(b)) for a, b in coord_re.findall(pts_text)]
+            if not coords:
+                # If the model accidentally used xNyM format here, fall through
+                # to the grid-based parser below.
+                coords = None
+
+            if coords:
+                # t-values
+                m_t = re.search(r"<t_values>(.*?)</t_values>", stroke_model, re.S | re.I)
+                if m_t:
+                    raw = m_t.group(1).strip().strip("[]")
+                    parts = [p.strip() for p in raw.split(",") if p.strip()]
+                    try:
+                        t_values = [float(p) for p in parts]
+                    except Exception:
+                        t_values = []
+                else:
+                    t_values = []
+
+                n = len(coords)
+                if not t_values or len(t_values) != n:
+                    if n <= 1:
+                        t_values = [0.0, 1.0]
+                    elif n == 2:
+                        t_values = [0.0, 1.0]
+                    else:
+                        t_values = [i/(n-1) for i in range(n)]
+
+                # scale coords -> pixels; clamp into the canvas.
+                W, H = self.grid_size
+                sx = (W - 1) / float(self.res_x) if self.res_x else 1.0
+                sy = (H - 1) / float(self.res_y) if self.res_y else 1.0
+                sampled_points = []
+                for x, y in coords:
+                    px = max(0.0, min(float(W - 1), x * sx))
+                    py = max(0.0, min(float(H - 1), y * sy))
+                    sampled_points.append([px, py])  # (x,y) order for SVG
+
+                group = utils.estimate_bezier_control_points(sampled_points, t_values)
+                return utils.format_svg_single_stroke(
+                    group,
+                    dim=self.grid_size,
+                    stroke_width=self.stroke_width,
+                    stroke_counter=stroke_no,
+                    group_id=stroke_label,
+                    stroke_color=stroke_color,
+                )
 
 
         # Bounding Box Support
@@ -912,6 +1052,57 @@ class SketchApp:
 
 
         # (no rectangle) → fall through to your EXISTING Bezier/path code unchanged
+        
+        
+        
+        # ================================================================
+        # NO-GRID + xNyM TOKENS (coords in [0..res_x]x[0..res_y], scaled to image px)
+        # ================================================================
+        if self.no_grid:
+            m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S)
+            if not m_ptblk:
+                raise ValueError(f"Stroke s{stroke_no} missing <points>")
+
+            pts = re.findall(r"x(\d+)y(\d+)", m_ptblk.group(1))
+            if pts:
+                W, H = self.grid_size  # actual image pixel size
+                if self.res_x <= 0 or self.res_y <= 0:
+                    raise ValueError("No-grid mode requires --res-x and --res-y > 0")
+
+                sampled_points = []
+                for gx, gy in pts:
+                    # clamp in coordinate space
+                    cx = max(0.0, min(float(self.res_x), float(gx)))
+                    cy = max(0.0, min(float(self.res_y), float(gy)))
+
+                    # scale into pixel space (top-left origin)
+                    px = (cx / float(self.res_x)) * float(W - 1)
+                    py = (cy / float(self.res_y)) * float(H - 1)
+                    sampled_points.append([px, py])
+
+                # t-values
+                m_t = re.search(r"<t_values>(.*?)</t_values>", stroke_model, re.S)
+                if m_t:
+                    raw = m_t.group(1).strip().strip("[]")
+                    t_values = [float(p) for p in raw.split(",") if p.strip()]
+                else:
+                    t_values = []
+
+                n = len(sampled_points)
+                if not t_values or len(t_values) != n:
+                    t_values = [i / (n - 1) if n > 1 else 0.0 for i in range(n)]
+
+                group = utils.estimate_bezier_control_points(sampled_points, t_values)
+                return utils.format_svg_single_stroke(
+                    group,
+                    dim=self.grid_size,
+                    stroke_width=self.stroke_width,
+                    stroke_counter=stroke_no,
+                    group_id=stroke_label,
+                    stroke_color=stroke_color,
+                )
+
+
 
 
         # ----- default: curve/path stroke (unchanged) -----
@@ -1245,26 +1436,72 @@ class SketchApp:
 
     def set_background_from_pil(self, pil_img: Image.Image, mode: str = "fit", bgcolor=(255, 255, 255)):
         """Public helper used by batch eval to mimic an uploaded image."""
+
+        # -------- no-grid coord mode --------
+        # If --no-grid is enabled and the app was configured with an explicit
+        # (res_x,res_y) canvas, we *do not* use the GridManager's header offsets.
+        # Instead we resize the raw image to exactly fill the canvas and interpret
+        # model coordinates directly in this top-left pixel space.
+        if self.no_grid and self.res_x > 0 and self.res_y > 0:
+            # NO-GRID coordinate mode:
+            # - Keep the original image pixel size (do NOT resize).
+            # - Interpret model coordinates in a virtual [0..res_x]x[0..res_y] space,
+            #   and scale them onto this image elsewhere (parse_model_to_svg).
+            img_rgb = ImageOps.exif_transpose(pil_img).convert("RGB")
+
+            # Make downstream SVG/overlay use the true image pixel dimensions.
+            self.grid_size = img_rgb.size
+
+            # No grid cell centers are used in this mode.
+            self.positions = {}
+
+            self._set_base_canvas(img_rgb)
+            self.base_canvas_clean = self.base_canvas.copy()
+            return
+
         if self.dynamic_grid:
-            # Recompute grid, place the raw image, then *conditionally* overlay
-            self.grid_manager.update_grid_for_image(pil_img, self.show_full_grid)
-            placed = self.grid_manager.place_image_at_bottom_left(pil_img, bgcolor)
-            composited = placed if self.no_grid else self.grid_manager.overlay_grid(placed)
-            
-            # Update backward compatibility properties
-            self.res_x = self.grid_manager.res_x
-            self.res_y = self.grid_manager.res_y
-            self.res = max(self.res_x, self.res_y)
-            self.num_cells = max(self.res_x, self.res_y)
-            self.grid_size = self.grid_manager.grid_size
-            self.init_canvas_grid = self.grid_manager.grid_image
-            self.positions = self.grid_manager.positions
+            # Dynamic-grid mode. For --no-grid coordinate trials we must NOT
+            # place the image into a larger grid canvas (which changes the pixel
+            # size and introduces offsets). Instead, keep the original image
+            # size and render strokes proportionally onto it.
+            if self.no_grid:
+                composited = pil_img.convert("RGB")
+                self.grid_size = composited.size
+                self.init_canvas_grid = None
+                self.positions = {}
+                # NOTE: keep self.res_x/self.res_y as the user-provided coordinate space
+            else:
+                # Recompute grid, place the raw image, then overlay the grid
+                self.grid_manager.update_grid_for_image(pil_img, self.show_full_grid)
+                placed = self.grid_manager.place_image_at_bottom_left(pil_img, bgcolor)
+                composited = self.grid_manager.overlay_grid(placed)
+
+                # Update backward compatibility properties
+                self.res_x = self.grid_manager.res_x
+                self.res_y = self.grid_manager.res_y
+                self.res = max(self.res_x, self.res_y)
+                self.num_cells = max(self.res_x, self.res_y)
+                self.grid_size = self.grid_manager.grid_size
+                self.init_canvas_grid = self.grid_manager.grid_image
+                self.positions = self.grid_manager.positions
         else:
             # Fall back to old method for static grids
-            self._update_grid_for_image(pil_img)
-            placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
-            composited = placed if self.no_grid else self._overlay_grid(placed)
-            
+            #
+            # IMPORTANT for --no-grid coordinate trials:
+            #   Do NOT resize the input image to the grid canvas. We keep the original
+            #   pixel size so that strokes (in a 0..res_x / 0..res_y coordinate space)
+            #   are overlaid proportionally on the original image.
+            if self.no_grid:
+                composited = pil_img.convert("RGB")
+                # Ensure downstream SVG/PNG composition uses the true image dimensions.
+                self.grid_size = composited.size
+                # No grid => no grid-cell lookup map.
+                self.positions = {}
+            else:
+                self._update_grid_for_image(pil_img)
+                placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
+                composited = self._overlay_grid(placed)
+                    
         self._set_base_canvas(composited)
         self.base_canvas_clean = self.base_canvas.copy()  # pristine background for stepwise + final render
         
@@ -1487,6 +1724,10 @@ class SketchApp:
         )
 
         # Store the header and open the strokes section
+        # ROBUSTNESS: If model ignored instruction and output strokes, extract just the header
+        if "<strokes>" in assistant_suffix:
+            # Model output everything - extract just what comes before <strokes>
+            assistant_suffix = assistant_suffix.split("<strokes>")[0]
         self.thinking_tags = assistant_suffix + "<strokes>"
         self.update_history(self.thinking_tags)
         
@@ -1658,8 +1899,22 @@ class SketchApp:
 
 
 
-                        use_stop = not isinstance(self.llm, GeminiAdapter)
-                        stop_seq = f"</s{expected_s}>"
+                        # Native Gemini doesn't use per-stroke stop sequences - it uses </answer> (the default)
+                        # and naturally generates one stroke at a time through prefill continuation.
+                        # OpenRouter Gemini should behave the same way.
+                        from llm_adapters import OpenRouterAdapter
+                        
+                        # Check if we're using any kind of Gemini
+                        is_gemini = isinstance(self.llm, GeminiAdapter)
+                        is_openrouter_gemini = (isinstance(self.llm, OpenRouterAdapter) and 
+                                               "gemini" in (getattr(self.llm, "model", "") or "").lower())
+                        
+                        # For any Gemini (native or OpenRouter), use None to get default </answer> stop
+                        # For other models (GPT, Claude), use specific </sN> stop sequences
+                        if is_gemini or is_openrouter_gemini:
+                            stop_seq = None  # Will default to </answer>
+                        else:
+                            stop_seq = f"</s{expected_s}>"
                         
                         prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
                         
@@ -1671,7 +1926,7 @@ class SketchApp:
                             seed_mode=self.seed_mode,
                             gen_mode="completion",
                             prefill_msg=prefill,
-                            stop_sequences=stop_seq if use_stop else None,
+                            stop_sequences=stop_seq,  # Already None for Gemini, or </sN> for others
                             previous_response_id=prev_resp_id,      # <-- thread GPT-5 reasoning session
                         )
 
@@ -1688,17 +1943,15 @@ class SketchApp:
                         full_text = self._normalize_listish_blocks(full_text or "")
                         m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
                         
-                        # if not m_blk:
-                        #     # fallback — accept any <sK>…</sK> and retag to expected_s
-                        #     m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
+                        #NOTE: Needed for the gemini one stroke only in multiturn image mode?
+                        if not m_blk:
+                            # fallback — accept any <sK>…</sK> and retag to expected_s
+                            m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
                         
                         # If the model tries to give the final answer prematurely, skip strokes phase
                         if "<final_answer" in (full_text or ""):
                             svg_chunk = ""   # force the no-stroke path below
-                        else:
-                            m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
-                            svg_chunk = m_blk.group(1) if m_blk else ""
-
+                            
                         
                         svg_chunk = m_blk.group(1) if m_blk else ""
                         
@@ -1722,8 +1975,9 @@ class SketchApp:
 
                         # Thread response id to the next turn (Responses API)
                         meta = self.llm.response_metadata(getattr(self, "_last_raw_response", None) or answer_raw)
+                        #NOTE: try making this NONE to see if GPT is "cheating from seeing text in session even if we don't send it"
                         prev_resp_id = (meta or {}).get("response_id")
-                        
+                        prev_resp_id = None
                         
                         
                         if not svg_chunk:
@@ -2054,7 +2308,7 @@ class SketchApp:
 
                 total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
                 text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
-
+                
                 # Save generated images (Gemini image model)
                 generated_image_paths = []
                 for idx, img_data_url in enumerate(getattr(self, "_last_generated_images", []) or []):
@@ -2067,7 +2321,7 @@ class SketchApp:
                             f.write(img_bytes)
                         generated_image_paths.append(str(gen_img_path))
                         print(f"[IMAGE GEN] Saved: {gen_img_path}")
-
+                
                 row = {
                     "index": i, "prompt": prompt_from_txt,
                     "mode": "stepwise" if stepwise else ("two_turn" if two_turn else "single_shot"),
@@ -2102,6 +2356,7 @@ class SketchApp:
                     # Reasoning from two-turn image generation (Gemini)
                     "reasoning_image_gen": getattr(self.llm, "_last_image_gen_reasoning_turn1", None),
                     "reasoning_text_answer": getattr(self.llm, "_last_image_gen_reasoning_turn2", None),
+
                 }
                 with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
                     json.dump(row, jf, indent=2)
@@ -2286,6 +2541,16 @@ if __name__ == '__main__':
     
     parser.add_argument("--no-grid", action="store_true",
                        help="Do NOT draw/overlay the grid; send the raw image only.")
+
+    # --- NEW: fixed coordinate-space size (useful for no-grid coord trials) ---
+    # Example: --no-grid --res-x 1000 --res-y 1000
+    # When used together with --no-grid, the input image is resized to (res_x,res_y)
+    # and model points in <points> can be numeric coordinates like (500,105).
+    parser.add_argument("--res-x", type=int, default=None,
+                        help="Override coordinate/canvas width (e.g., 1000).")
+    parser.add_argument("--res-y", type=int, default=None,
+                        help="Override coordinate/canvas height (e.g., 1000).")
+    
     parser.add_argument("--no-system-prompt", action="store_true",
                        help="Do NOT send the system prompt or task prompt. The model only receives the per-sample text file.")
     parser.add_argument("--two-turn", action="store_true",
@@ -2310,6 +2575,12 @@ if __name__ == '__main__':
     action="store_true",
     help="In stepwise mode, capture a natural-language explanation each turn and send it back. "
          "Works with --stepwise-vision-only (sends explanation but not text strokes)."
+)
+    parser.add_argument(
+    "--prompt-origin",
+    choices=["bottom_left", "top_left"],
+    default="bottom_left",
+    help="Select how the system prompt describes the origin for xNyM tokens.",
 )
 
 
@@ -2358,6 +2629,9 @@ if __name__ == '__main__':
         max_cell_px=args.max_cell_px,
         no_grid=args.no_grid,
         no_system_prompt=args.no_system_prompt,
+        prompt_origin=args.prompt_origin,
+        res_x=args.res_x,
+        res_y=args.res_y,
     )
 
     app.api_delay_sec = args.api_delay
