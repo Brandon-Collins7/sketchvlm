@@ -305,5 +305,47 @@ python consistency/process_with_openrouter.py \
 --input consistency/source_data/vpct_geminipro3.json \
 --output consistency/judge_output/vpct_geminipro3.json 
 
+
 ```
 
+# Overall Instructions
+You will be shown two images: the original and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
+
+**Logic consistency**
+Do the drawn lines make some sort of logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow _extremely_ unrealistic physics? The score should be based on the scale of 1 - 5
+
+1) The sketch makes absolutely no logical sense.
+2) The sketch has some critical flaws that breaks the logic of the sketch.
+3) The sketch contains multiple logical errors.
+4) The sketch contains a minor logical error.
+5) The sketch contains zero logical errors.
+
+**Ease of communication**
+Would it be reasonable for another person to view the sketch and easily understand what the original drawer was thinking? For example, if image is dominated by sketches to the point where it is hard to understand the intent of the annannotator or hard to view the unannotated image, that would be considered detrimental. 
+
+1) The sketch is extremely difficult to understand and does not communicate the annotator’s intent.
+2) The sketch is hard to understand and communicates the intent poorly due to major clarity issues (e.g., clutter, ambiguity, missing cues).
+3) The sketch is somewhat understandable but has multiple clarity issues that make the intent unclear.
+4) The sketch is mostly easy to understand, with only a minor clarity issue.
+5) The sketch is immediately clear and easy to understand.
+
+# Output Format
+You should follow this output format EXACTLY with no other output:
+
+<example_format>
+{reasoning for logical consistency score}
+Logical Consistency Score: {integer from 1 - 5}
+
+{reasoning for ease of communication score}
+Ease of Communication Score: {integer from 1 - 5}
+</example_format>
+
+# Example Output
+
+<example_1>
+The drawing contains multiple errors. The ball path clips through one of the platforms, but it is a minor issue as the path of the ball still makes sense. Additionally, the ball path defies gravity and begins to momentarily float straight upwards for no logical reason. The minor error combined with the critical error results in a logical score of 2/5
+Logical Consistency Score: 5
+
+The sketch is easy to understand. Even though the logic is flawed, it is easy to see how the ball path was traced. The sketch is not overly complicated and also has an arrow to indicate direction. The final resting spot of the ball is also clearly marked. It is unlikely that someone would have a hard time understanding the drawing. 
+Ease of Communication Score: {integer from 1 - 5}
+</example_1>

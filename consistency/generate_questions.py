@@ -11,6 +11,33 @@ GENERAL_PROMPT = "You are given an image that another AI model has annotated. Yo
 BALL_DROP_PROMPT = "The image is a physics simulation of a ball being dropped. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Please respond with what bucket the **annotation shows** the ball will fall into. Please note that it is not your job to determine if the annotation is correct or not, just to extract the answer from the annotation. Your final answer must be formatted as \"$\\boxed{bucket number}$\". For example, if the ball will fall into bucket 2, respond with \"$\\boxed{2}$\". If the annotation does not show the ball falling into any bucket, respond with \"$\\boxed{none}$\". If the the annotation shows that the ball will fall into multiple different buckets, answer with \"$\\boxed{multiple}$\"."
 
 
+BALL_QUALITY = """# Overall Instructions
+You will be shown two images: the original image and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
+
+**Logic consistency**
+Do the drawn lines make some sort of logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow _extremely_ unrealistic physics? The score should be based on the scale of 1 - 5
+
+1) The sketch makes absolutely no logical sense.
+2) The sketch has some critical flaws that breaks the logic of the sketch.
+3) The sketch contains multiple logical errors.
+4) The sketch contains a minor logical error.
+5) The sketch contains zero logical errors.
+
+# Output Format
+You should follow this output format EXACTLY with no other output:
+
+{reasoning for logical consistency score}
+Logical Consistency Score: {integer from 1 - 5}
+
+# Example Output
+
+<example_1>
+The drawing contains multiple errors. The ball path clips through one of the platforms, but it is a minor issue as the path of the ball still makes sense. Additionally, the ball path defies gravity and begins to momentarily float straight upwards for no logical reason. The minor error combined with the critical error results in a logical score of 2/5
+Logical Consistency Score: 5
+</example_1>
+"""
+
+
 def extract_answer_from_response(response_text: str) -> str:
     """
     Extract answer from model response.
