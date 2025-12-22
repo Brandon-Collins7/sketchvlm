@@ -267,7 +267,11 @@ def get_control_points(strokes_all, t_values_all, cells_to_pixels_map):
         t_values = t_values_all[j]
         sampled_points = []
         for cell in sampled_cells:
-            y,x = cells_to_pixels_map[cell]
+            # Be tolerant to tokens coming in as "'x12y34'" or with whitespace.
+            key = str(cell).strip()
+            if (len(key) >= 2) and ((key[0] == "'" and key[-1] == "'") or (key[0] == '"' and key[-1] == '"')):
+                key = key[1:-1].strip()
+            y, x = cells_to_pixels_map[key]
             sampled_points.append([y,x])
         points_lst = estimate_bezier_control_points(sampled_points, t_values)
         net_points.append(points_lst)
@@ -277,7 +281,10 @@ def get_control_points(strokes_all, t_values_all, cells_to_pixels_map):
 def get_control_points_single_stroke(strokes_all, t_values_all, cells_to_pixels_map):
     sampled_points = []
     for cell in strokes_all:
-        y,x = cells_to_pixels_map[cell]
+        key = str(cell).strip()
+        if (len(key) >= 2) and ((key[0] == "'" and key[-1] == "'") or (key[0] == '"' and key[-1] == '"')):
+            key = key[1:-1].strip()
+        y, x = cells_to_pixels_map[key]
         sampled_points.append([y,x])
     points_lst = estimate_bezier_control_points(sampled_points, t_values_all)
     return points_lst
