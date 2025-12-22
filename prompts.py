@@ -3,7 +3,7 @@
 
 SYSTEM_PROMPT_BASE = """You are an expert artist specializing in drawing sketches that are visually appealing, expressive, and professional.
 You will be provided with a blank grid. Your task is to specify where to place strokes on the grid to create a visually appealing sketch to complete the request.
-The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').
+The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. The top left is the origin. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y{res_y}', the cell to its right is 'x2y{res_y}').
 You can draw on this grid by specifying where to draw strokes. You can draw multiple strokes to depict the whole object, where different strokes compose different parts of the object. 
 To draw a stroke on the grid, you need to specify the following:
 Starting Point: Specify the starting point by giving the grid location (e.g., 'x1y1' for column 1, row 1).
@@ -124,19 +124,30 @@ Below are the different sketching methods you can use for your task.
 - If the question requires an answer (e.g., "How many?"), include it at the end of your response, after the </strokes> tag, in a new <final_answer> tag.
 """
 
+
+# Allow origin change (from top-left to bottom-left)
+SYSTEM_PROMPT_BASE_BOTTOM_LEFT_ORIGIN = SYSTEM_PROMPT_BASE.replace(
+    "The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. The top left is the origin. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y{res_y}', the cell to its right is 'x2y{res_y}').",
+    "The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').",
+)
+
+
 # ========= 2) Tiny multi-turn injections (added only when multi_turn=True) =========
 _MTURN_SENTENCE_1 = "You can only output one stroke per turn, however."
 _MTURN_SENTENCE_2 = "Before emitting a stroke, first decide if any stroke is still needed; if not, emit an empty <answer> with NO <strokes> block."
 _MTURN_RULE_1     = "- Only output one stroke per turn."
 _MTURN_RULE_2     = "- If the drawing is already complete, do NOT add any further strokes. Emit an empty <answer> with NO <strokes>."
 
-def build_system_prompt(res_x: int, res_y: int, multi_turn: bool = False) -> str:
+def build_system_prompt(res_x: int, res_y: int, multi_turn: bool = False, prompt_origin: str = "bottom_left") -> str:
     """
     Returns the final system prompt string (single-turn base + optional multi-turn injections).
     - Keep variable names the same elsewhere (system_prompt is still referenced),
       but callers who need switching should use this function.
     """
-    s = SYSTEM_PROMPT_BASE.format(res_x=res_x, res_y=res_y)
+    
+    base = SYSTEM_PROMPT_BASE if prompt_origin == "top_left" else SYSTEM_PROMPT_BASE_BOTTOM_LEFT_ORIGIN
+    s = base.format(res_x=res_x, res_y=res_y)
+
     if multi_turn:
         # Insert the 1-stroke and "empty if done" guidance right after the opening sentence.
         s = s.replace(
