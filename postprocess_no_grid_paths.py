@@ -7,7 +7,9 @@ Goal:
 - Read each item_XXXXX.json in a results folder (results/mix_eval/...)
 - Parse the model's raw text field (prefers "model_raw_text", falls back to "model_output_full")
   to extract:
-    1) a polyline path expressed as "(x,y)->(x,y), (x,y)->(x,y) ..."
+    1) a polyline path near the end as a SEQUENCE OF POINTS:
+         (x,y) -> (x,y) -> (x,y) ...
+       (commas/newlines/arrows all allowed between points)
     2) the final answer formatted as \boxed{1|2|3}
 - Render the extracted path as colored line segments on top of the ORIGINAL image.
   (Color cycle: red -> orange -> yellow -> green -> blue -> purple -> repeat)
@@ -22,13 +24,11 @@ Typical use:
   python postprocess_no_grid_paths.py --results-dir results/mix_eval/20251221_131636 --inplace
 or:
   python postprocess_no_grid_paths.py --results-dir results/mix_eval/20251221_132640 --outdir results/mix_eval/20251221_132640_no_grid_post
-  python postprocess_no_grid_paths.py --results-dir results/mix_eval/20251221_134211 --outdir results/mix_eval/20251221_134211_no_grid_post
-
+  python postprocess_no_grid_paths.py --results-dir results/mix_eval/20251221_134211 --outdir results/mix_eval/20251221_134211_no_grid_post_6
 """
 
 import argparse
 import json
-import os
 import re
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -45,13 +45,26 @@ COLORS = [
     (128, 0, 128),     # purple
 ]
 
-
+# Explicit segment pattern: (x1,y1)->(x2,y2)
 SEG_RE = re.compile(
-    r"\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)\s*->\s*\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)",
+    r"\$?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)\$?\s*->\s*\$?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)\$?",
+    re.IGNORECASE
+)
+
+# Coordinate pair, optional $...$ wrapper
+COORD_RE = re.compile(
+    r"\$?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*\)\$?",
     re.IGNORECASE
 )
 
 BOX_RE = re.compile(r"\\boxed\s*\{\s*([123])\s*\}", re.IGNORECASE)
+
+# Allowed "glue" between consecutive points in a path sequence
+# (must contain ONLY delimiters/whitespace)
+BETWEEN_OK_RE = re.compile(
+    r"^\s*(?:,|\s|->|→|\\rightarrow|\r|\n)+\s*$",
+    re.IGNORECASE
+)
 
 
 def clamp(v: float, lo: float, hi: float) -> float:
@@ -62,7 +75,19 @@ def clamp(v: float, lo: float, hi: float) -> float:
     return v
 
 
+def parse_boxed_answer(text: str) -> Optional[str]:
+    if not text:
+        return None
+    matches = BOX_RE.findall(text)
+    return matches[-1] if matches else None
+
+
 def parse_segments(text: str) -> List[Tuple[float, float, float, float]]:
+    """
+    Parse explicit segments like:
+      (a,b)->(c,d), (c,d)->(e,f) ...
+    Not the main path method anymore, but kept as a fallback.
+    """
     if not text:
         return []
     segs = []
@@ -72,13 +97,80 @@ def parse_segments(text: str) -> List[Tuple[float, float, float, float]]:
     return segs
 
 
-def parse_boxed_answer(text: str) -> Optional[str]:
+def points_to_segments(pts: List[Tuple[float, float]]) -> List[Tuple[float, float, float, float]]:
+    segs: List[Tuple[float, float, float, float]] = []
+    for (x1, y1), (x2, y2) in zip(pts, pts[1:]):
+        segs.append((x1, y1, x2, y2))
+    return segs
+
+
+def extract_final_point_sequence(text: str) -> List[Tuple[float, float, float, float]]:
+    """
+    Robustly extract the FINAL point-sequence near the end of the output.
+
+    Strategy:
+    - Find the last \boxed{...} (if present). Use a window before it; else use end of text.
+    - Find all coordinate pairs in that window.
+    - Build runs where the text between consecutive pairs contains only delimiters:
+        commas, arrows, whitespace/newlines, \\rightarrow, unicode arrows
+    - Pick the LAST run with the MOST points (ties broken by later run).
+    - Convert points to segments.
+
+    This correctly handles:
+      **Path:**
+      (500, 80) -> (500, 260) -> (620, 280) -> ...
+    and also cases with commas/newlines.
+    """
     if not text:
-        return None
-    m = BOX_RE.search(text)
-    if not m:
-        return None
-    return m.group(1)
+        return []
+
+    # Normalize arrow tokens for the "between" test
+    t = text.replace("→", "->").replace("\\rightarrow", "->")
+
+    # Choose an end position near the answer
+    box_iter = list(BOX_RE.finditer(t))
+    end_pos = box_iter[-1].start() if box_iter else len(t)
+
+    # Window before the answer (tuneable)
+    window_start = max(0, end_pos - 1500)
+    window = t[window_start:end_pos]
+
+    # Collect coordinate matches with spans
+    matches = list(COORD_RE.finditer(window))
+    if len(matches) < 2:
+        return []
+
+    # Convert match -> point + span
+    pts = []
+    for m in matches:
+        x, y = m.group(1), m.group(2)
+        pts.append((float(x), float(y), m.start(), m.end()))
+
+    # Build runs of consecutive points where the "between text" is only delimiters
+    best_run_pts: List[Tuple[float, float]] = []
+    curr_run_pts: List[Tuple[float, float]] = [(pts[0][0], pts[0][1])]
+
+    for i in range(1, len(pts)):
+        prev_end = pts[i - 1][3]
+        curr_start = pts[i][2]
+        between = window[prev_end:curr_start]
+
+        if BETWEEN_OK_RE.match(between):
+            curr_run_pts.append((pts[i][0], pts[i][1]))
+        else:
+            # finalize current run
+            if len(curr_run_pts) >= len(best_run_pts):
+                best_run_pts = curr_run_pts
+            curr_run_pts = [(pts[i][0], pts[i][1])]
+
+    # finalize last run
+    if len(curr_run_pts) >= len(best_run_pts):
+        best_run_pts = curr_run_pts
+
+    if len(best_run_pts) < 2:
+        return []
+
+    return points_to_segments(best_run_pts)
 
 
 def map_to_px(x: float, y: float, w: int, h: int) -> Tuple[float, float]:
@@ -144,16 +236,20 @@ def main():
     for jp in json_files:
         obj = load_json(jp)
 
-        # Prefer model_raw_text, but keep compatibility with your existing schema
         raw_text = obj.get("model_raw_text")
         if raw_text is None:
             raw_text = obj.get("model_output_full") or ""
 
-        segs = parse_segments(raw_text)
+        # 1) Primary: extract the final point-sequence near the end
+        segs = extract_final_point_sequence(raw_text)
+
+        # 2) Fallback: explicit (x,y)->(x,y) segments anywhere
+        if not segs:
+            segs = parse_segments(raw_text)
+
         ans = parse_boxed_answer(raw_text)
 
         # Load original image to draw on:
-        # Prefer source_image path if it exists locally; otherwise fall back to saved raw_image.
         src_img_path = obj.get("source_image")
         if src_img_path and Path(src_img_path).exists():
             img_path = Path(src_img_path)
@@ -161,7 +257,6 @@ def main():
             img_path = Path(obj.get("raw_image", ""))
 
         if not img_path.exists():
-            # Can't render, but still store answer/segment count
             obj["answer"] = ans
             obj["num_segments"] = len(segs)
             save_json(out_dir / jp.name, obj)
@@ -170,15 +265,12 @@ def main():
         img = Image.open(img_path).convert("RGB")
         ann = draw_segments_on_image(img, segs, width=args.line_width)
 
-        # Determine annotated output filename
         ann_name = Path(obj.get("annotated_image", "")).name
         if not ann_name:
             ann_name = jp.stem + "_annotated.png"
         ann_out = out_dir / ann_name
         ann.save(ann_out)
 
-        # Copy raw/orig/grid filenames forward as-is; just update annotated_image path to the new location
-        # (keep Windows-style slashes out of the new path; use forward slashes for portability)
         obj["answer"] = ans
         obj["num_segments"] = len(segs)
         obj["annotated_image"] = str(ann_out).replace("\\", "/")
