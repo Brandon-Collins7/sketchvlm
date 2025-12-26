@@ -789,9 +789,9 @@ class SketchApp:
                     x = x - 1
                 if y >= 1 and y <= self.res_y:
                     y = y - 1
-                x = max(0, min(x, W - 1))
-                y = max(0, min(y, H - 1))
-                return [float(x), float(y)]
+                    
+                px, py = self._coord_to_px_no_grid(float(x), float(y))
+                return [px, py]
 
             all_control_points = []
             for stroke_tokens, stroke_tvals in zip(strokes_list, t_values):
@@ -861,6 +861,34 @@ class SketchApp:
         return cur_user_input_stroke
 
     import html  # top of file
+    
+    
+    def _coord_to_px_no_grid(self, cx: float, cy: float):
+        """
+        Map model coordinates in virtual [0..res_x]x[0..res_y] into actual image pixels (W,H).
+        Honors self.prompt_origin:
+        - top_left:  y increases downward
+        - bottom_left: y increases upward
+        """
+        W, H = self.grid_size
+        if self.res_x <= 0 or self.res_y <= 0:
+            raise ValueError("No-grid mode requires --res-x and --res-y > 0")
+
+        # clamp in coord space
+        cx = max(0.0, min(float(self.res_x), float(cx)))
+        cy = max(0.0, min(float(self.res_y), float(cy)))
+
+        # scale into pixel space
+        px = (cx / float(self.res_x)) * float(W - 1)
+
+        if (self.prompt_origin or "bottom_left").lower() == "top_left":
+            py = (cy / float(self.res_y)) * float(H - 1)
+        else:
+            # bottom_left: flip y
+            py = (1.0 - (cy / float(self.res_y))) * float(H - 1)
+
+        return px, py
+
 
     def parse_model_to_svg(self, stroke_model: str):
         
@@ -916,11 +944,7 @@ class SketchApp:
                 if self.res_x <= 0 or self.res_y <= 0:
                     raise ValueError("No-grid mode requires --res-x and --res-y > 0")
 
-                cx_coord = max(0.0, min(float(self.res_x), float(gx)))
-                cy_coord = max(0.0, min(float(self.res_y), float(gy)))
-
-                cx = (cx_coord / float(self.res_x)) * float(W - 1)
-                cy = (cy_coord / float(self.res_y)) * float(H - 1)
+                cx, cy = self._coord_to_px_no_grid(float(gx), float(gy))
             else:
                 if key not in self.positions:
                     raise ValueError(f"Text stroke s{stroke_no} uses out-of-grid cell {key}")
@@ -1076,10 +1100,9 @@ class SketchApp:
                     cy = max(0.0, min(float(self.res_y), float(gy)))
 
                     # scale into pixel space (top-left origin)
-                    px = (cx / float(self.res_x)) * float(W - 1)
-                    py = (cy / float(self.res_y)) * float(H - 1)
+                    px, py = self._coord_to_px_no_grid(float(gx), float(gy))
                     sampled_points.append([px, py])
-
+                    
                 # t-values
                 m_t = re.search(r"<t_values>(.*?)</t_values>", stroke_model, re.S)
                 if m_t:
