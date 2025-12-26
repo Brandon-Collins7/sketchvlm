@@ -8,6 +8,17 @@
   - prompts.py - LLM prompts and templates
 
 
+# Better Setup for Gemini-3-Pro
+
+--no-grid --res-x 1000 --res-y 1000
+
+--res-x determines number of cells on x-axis (columns)
+--res-y determines number of cells on y-axis (rows)
+
+Ex:
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-preview --mixed-dir datasets/vpct_ball_drop --max-tokens 20000 --no-grid --res-x 1000 --res-y 1000 --prompt-origin top_left
+
 # Run with Specific Model 
 
 ## GPT-5
