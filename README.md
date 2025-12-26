@@ -25,7 +25,9 @@ python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir path/to/d
 
 ### Gemini 3.0 Pro
 python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
 python collab_sketch_with_label.py --llm gemini --model gemini-3-pro-preview --count-dir datasets/sanity_check/pixmo_count/validation_filtered/503 --count-outdir results/sanity_check_pixmo_count_validation_filtered_gemini-3-pro-preview_single_turn_sketchvlm_no_grid/503 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --api-delay 20 --max-tokens 20000 --no-grid
+
 python collab_sketch_with_label.py     --llm gemini     --model gemini-3-pro-preview     --count-dir datasets/sanity_check/pixmo_count/validation_filtered/503     --count-outdir results/sanity_check_pixmo_count_validation_filtered_gemini-3-pro-preview_single_turn_sketchvlm/503     --adaptive-grid     --target-cols 50     --target-rows 50     --min-cell-px 20     --api-delay 20     --max-tokens 20000
 
 ### Gemini 2.5 Pro
