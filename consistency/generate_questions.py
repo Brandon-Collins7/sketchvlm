@@ -37,6 +37,33 @@ Logical Consistency Score: 5
 </example_1>
 """
 
+MAZE_QUALITY = """# Overall Instructions
+You will be shown two images: the original image and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
+
+**Quality Checks**
+Do the drawn lines make some sort of logical sense? For example, does drawn path clip through any of the static environment? Does the sketch contain additional moves that are not in the path? Does the drawn sketch contradict the given text path? If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
+
+1) The sketch makes absolutely no logical sense.
+2) The sketch has some critical flaws that breaks the logic of the sketch.
+3) The sketch contains multiple logical errors.
+4) The sketch contains a minor error.
+5) The sketch contains zero errors.
+
+# Output Format
+You should follow this output format EXACTLY with no other output:
+
+{reasoning for quality score}
+Quality Score: {integer from 1 - 5}
+
+# Example Output
+
+<example_1>
+The drawing contains multiple errors. The drawn path goes up, up, left instead of up, up, right. This contradicts the given text path. Additionally, the end of the drawn path slightly clips through the solid black wall. The minor error combined with the critical error results in a logical score of 2/5.
+
+Quality Score: 5
+</example_1>
+"""
+
 GEMINI_3_SECOND_TURN = """You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.
 
 You are given the start frame of a physics simulation. A ball is dropped from the top of the screen and falls due to gravity. The ball can roll off the lines or the walls in the image. The bouncing of the ball is relatively minor and realistic for normal gravity. Nothing in the image will move besides the ball. Predict which bucket will eventually catch the ball. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Draw the path that the ball will take. Please also respond with what bucket the ball will fall into. Your final answer must be formatted as "$\boxed{bucket number}$". For example, if the ball will fall into bucket 2, respond with "$\boxed{2}$"."""

@@ -333,6 +333,103 @@ def process_direct_vqa_individual_json(model_dir: Path, model_name: str, ground_
     return results
 
 
+def load_gemini3_nb_results_with_mapping(json_file: Path, gemini3_dir: Path,
+                                         ground_truth: Dict[str, int]) -> List[Dict]:
+    """
+    Load Gemini-3-Pro consistency check results and map them to original images.
+
+    Args:
+        json_file: Path to batch2_gemini3_pro_nb_results.json
+        gemini3_dir: Path to gemini3_image_two_turn_batch2 directory with original results
+        ground_truth: Ground truth dictionary
+
+    Returns:
+        List of result dictionaries
+    """
+    if not json_file.exists():
+        print(f"Warning: {json_file} not found")
+        return []
+
+    try:
+        with open(json_file, 'r') as f:
+            nb_data = json.load(f)
+    except Exception as e:
+        print(f"Error loading {json_file}: {e}")
+        return []
+
+    # Build mapping from item index to original image name
+    index_to_image = {}
+
+    if gemini3_dir.exists():
+        for item_file in sorted(gemini3_dir.glob("item_*.json")):
+            try:
+                with open(item_file, 'r') as f:
+                    item_data = json.load(f)
+
+                # Extract item index from filename
+                match = re.search(r'item_(\d+)\.json', item_file.name)
+                if not match:
+                    continue
+
+                item_idx = int(match.group(1))
+
+                # Get source image name
+                source_image = item_data.get('source_image', '')
+                if source_image:
+                    image_name = Path(source_image).name
+                    index_to_image[item_idx] = image_name
+            except Exception as e:
+                print(f"Error processing {item_file}: {e}")
+                continue
+
+    # Now process the consistency check results
+    results = []
+
+    for item in nb_data:
+        # Skip failed items
+        if not item.get('success', False):
+            continue
+
+        # Get the index
+        item_idx = item.get('index')
+        if item_idx is None:
+            continue
+
+        # Get the response
+        response = item.get('consistency_check_response', '')
+        if not response:
+            continue
+
+        # Parse the answer
+        answer = parse_boxed_answer(response)
+        if answer is None:
+            continue
+
+        # Map to original image
+        image_name = index_to_image.get(item_idx)
+        if not image_name:
+            continue
+
+        # Get ground truth
+        gold = ground_truth.get(image_name)
+        if gold is None:
+            continue
+
+        boxed_answer = extract_boxed_text(response)
+        results.append({
+            'image': image_name,
+            'model': 'Gemini-3-Pro-NB',
+            'type': 'paths',
+            'prediction': int(answer),
+            'gold': gold,
+            'correct': int(answer) == gold,
+            'boxed_answer': boxed_answer,
+            'model_output': response
+        })
+
+    return results
+
+
 def process_all_models():
     """Process all models in batch2 directory."""
     base_dir = Path(__file__).parent.parent.parent
@@ -384,6 +481,14 @@ def process_all_models():
         results = process_thinkmorph_results(thinkmorph_dir, "ThinkMorph", ground_truth)
         all_results.extend(results)
         print(f"    Found {len(results)} results")
+
+    # Process Gemini-3-Pro consistency check results
+    print(f"  Processing Gemini-3-Pro-NB (consistency check)...")
+    gemini3_nb_json = batch2_dir / "batch2_gemini3_pro_nb_results.json"
+    gemini3_orig_dir = batch2_dir / "gemini3_image_two_turn_batch2"
+    results = load_gemini3_nb_results_with_mapping(gemini3_nb_json, gemini3_orig_dir, ground_truth)
+    all_results.extend(results)
+    print(f"    Found {len(results)} results")
 
     # Process direct_vqa models
     print("\nProcessing direct_vqa results...")

@@ -340,6 +340,202 @@ def plot_reasoning_comparison(accuracy_df: pd.DataFrame, output_dir: Path):
     plt.close()
 
 
+def load_gemini3_nb_results(json_file: Path, gt_dict: Dict[str, int], lines_dict: Dict[str, int]) -> pd.DataFrame:
+    """
+    Load Gemini-3-Pro consistency check results from a JSON file.
+
+    Args:
+        json_file: Path to the batch1_gemini3_pro_nb_results.json file
+        gt_dict: Ground truth dictionary
+        lines_dict: Number of lines dictionary
+
+    Returns:
+        DataFrame with columns: image, type, reasoning, prediction, gold, num_lines, correct
+    """
+    if not json_file.exists():
+        print(f"Warning: {json_file} not found")
+        return pd.DataFrame()
+
+    try:
+        with open(json_file, 'r') as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Error loading {json_file}: {e}")
+        return pd.DataFrame()
+
+    rows = []
+
+    for item in data:
+        # Skip failed items
+        if not item.get('success', False):
+            continue
+
+        # Extract image name from image_path
+        image_path = item.get('image_path', '')
+        if not image_path:
+            continue
+
+        # The image_path points to the annotated image, we need to extract the original run name
+        # Pattern: .../gemini3_image_two_turn/item_00123_generated_0.jpeg
+        # We need to map this back to the original image name
+        # The 'index' field should correspond to the item number
+
+        # Try to get the source image from the original path structure
+        # For now, we'll extract from the item index - we need to map this to actual image names
+        # Let's look at the consistency_check_response to extract the answer
+
+        response = item.get('consistency_check_response', '')
+        if not response:
+            continue
+
+        # Parse the boxed answer from the response
+        prediction = parse_bucket(response)
+        if prediction is None:
+            continue
+
+        # Now we need to figure out which image this corresponds to
+        # The best way is to use the index and map it to the sorted list of images
+        # But we don't have that mapping here. Let's try to extract from image_path
+
+        # Alternative: extract the item number and use it as an index
+        # Pattern: item_00123_generated_0.jpeg -> index 123
+        match = re.search(r'item_(\d+)_generated', image_path)
+        if not match:
+            continue
+
+        item_idx = int(match.group(1))
+
+        # We need to map this index to the actual image name
+        # This is tricky without knowing the order. Let's store the index for now
+        # and we'll need to create a mapping based on the gemini3_image_two_turn results
+
+        # For now, skip this approach and instead look at what the original gemini3_image_two_turn
+        # directory contains to build the mapping
+
+        # Actually, let me check if there's a simpler way - looking at the JSON structure,
+        # we might need to load the original gemini3_image_two_turn results to get the mapping
+
+        # Let's just store what we have for now and we'll fix the image mapping
+        rows.append({
+            'item_index': item_idx,
+            'image_path': image_path,
+            'prediction': prediction,
+            'response': response
+        })
+
+    if not rows:
+        return pd.DataFrame()
+
+    # Create temporary dataframe
+    temp_df = pd.DataFrame(rows)
+
+    # We need to map item indices to actual image names
+    # This requires loading the gemini3_image_two_turn results
+    # For now, return empty DataFrame and we'll implement proper mapping
+
+    return pd.DataFrame()
+
+
+def load_gemini3_nb_results_with_mapping(json_file: Path, gemini3_dir: Path,
+                                         gt_dict: Dict[str, int], lines_dict: Dict[str, int],
+                                         reasoning_level: str = 'low') -> pd.DataFrame:
+    """
+    Load Gemini-3-Pro consistency check results and map them to original images.
+
+    Args:
+        json_file: Path to batch1_gemini3_pro_nb_results.json
+        gemini3_dir: Path to gemini3_image_two_turn directory with original results
+        gt_dict: Ground truth dictionary
+        lines_dict: Number of lines dictionary
+        reasoning_level: Reasoning level (default: 'low')
+
+    Returns:
+        DataFrame with columns: image, type, reasoning, prediction, gold, num_lines, correct
+    """
+    if not json_file.exists():
+        print(f"Warning: {json_file} not found")
+        return pd.DataFrame()
+
+    try:
+        with open(json_file, 'r') as f:
+            nb_data = json.load(f)
+    except Exception as e:
+        print(f"Error loading {json_file}: {e}")
+        return pd.DataFrame()
+
+    # Build mapping from item index to original image name
+    index_to_image = {}
+
+    if gemini3_dir.exists():
+        for item_file in sorted(gemini3_dir.glob("item_*.json")):
+            try:
+                with open(item_file, 'r') as f:
+                    item_data = json.load(f)
+
+                # Extract item index from filename
+                match = re.search(r'item_(\d+)\.json', item_file.name)
+                if not match:
+                    continue
+
+                item_idx = int(match.group(1))
+
+                # Get source image name
+                source_image = item_data.get('source_image', '')
+                if source_image:
+                    image_name = Path(source_image).name
+                    index_to_image[item_idx] = image_name
+            except Exception as e:
+                print(f"Error processing {item_file}: {e}")
+                continue
+
+    # Now process the consistency check results
+    rows = []
+
+    for item in nb_data:
+        # Skip failed items
+        if not item.get('success', False):
+            continue
+
+        # Get the index
+        item_idx = item.get('index')
+        if item_idx is None:
+            continue
+
+        # Get the response
+        response = item.get('consistency_check_response', '')
+        if not response:
+            continue
+
+        # Parse the answer
+        prediction = parse_bucket(response)
+        if prediction is None:
+            continue
+
+        # Map to original image
+        image_name = index_to_image.get(item_idx)
+        if not image_name:
+            continue
+
+        # Get ground truth
+        gold = gt_dict.get(image_name)
+        num_lines = lines_dict.get(image_name)
+
+        if gold is None:
+            continue
+
+        rows.append({
+            'image': image_name,
+            'type': 'paths',
+            'reasoning': reasoning_level,
+            'prediction': prediction,
+            'gold': gold,
+            'num_lines': num_lines,
+            'correct': (prediction == gold)
+        })
+
+    return pd.DataFrame(rows)
+
+
 def plot_per_line_breakdown(df: pd.DataFrame, output_dir: Path):
     """
     Create a plot showing accuracy breakdown by number of lines for each method.
@@ -472,6 +668,17 @@ def main():
         if not df.empty:
             all_dfs.append(df)
             print(f"    Loaded {len(df)} samples")
+
+    # Load Gemini-3-Pro consistency check results
+    print("\nLoading Gemini-3-Pro (nano_banana) consistency check results...")
+    batch1_dir = base_dir / "results" / "mix_eval" / "ball_paths" / "batch1"
+    gemini3_nb_json = batch1_dir / "batch1_gemini3_pro_nb_results.json"
+    gemini3_orig_dir = batch1_dir / "gemini3_image_two_turn"
+
+    df = load_gemini3_nb_results_with_mapping(gemini3_nb_json, gemini3_orig_dir, gt_dict, lines_dict, 'low')
+    if not df.empty:
+        all_dfs.append(df)
+        print(f"  Loaded {len(df)} Gemini-3-Pro consistency check samples")
 
     # Combine all results
     if not all_dfs:
