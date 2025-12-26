@@ -49,7 +49,7 @@ def encode_image_to_base64(image_path: str) -> str:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
 
-def call_openrouter_api(image_path: str, prompt: str, api_key: str, model: str) -> Dict:
+def call_openrouter_api(image_path: str, prompt: str, api_key: str, model: str, original_image_path: str = None) -> Dict:
     """
     Call OpenRouter API with image and prompt.
 
@@ -95,23 +95,40 @@ def call_openrouter_api(image_path: str, prompt: str, api_key: str, model: str) 
         "Content-Type": "application/json"
     }
 
+    # Build content array
+    content = [
+        {
+            "type": "text",
+            "text": prompt
+        }
+    ]
+
+    # Add original image if provided
+    if original_image_path and os.path.exists(original_image_path):
+        base64_original = encode_image_to_base64(original_image_path)
+        original_ext = Path(original_image_path).suffix.lower()
+        original_mime = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}.get(original_ext, 'image/png')
+        content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:{original_mime};base64,{base64_original}"
+            }
+        })
+
+    # Add main image
+    content.append({
+        "type": "image_url",
+        "image_url": {
+            "url": f"data:{mime_type};base64,{base64_image}"
+        }
+    })
+
     payload = {
         "model": model,
         "messages": [
             {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:{mime_type};base64,{base64_image}"
-                        }
-                    }
-                ]
+                "content": content
             }
         ],
         "provider": {
@@ -184,7 +201,8 @@ def process_entries(input_file: str, output_file: str, api_key: str, model: str,
             image_path=entry['image_path'],
             prompt=entry['prompt'],
             api_key=api_key,
-            model=model
+            model=model,
+            original_image_path=entry.get('original_image_path')
         )
 
         # Create output entry

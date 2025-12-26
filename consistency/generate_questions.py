@@ -15,7 +15,7 @@ BALL_QUALITY = """# Overall Instructions
 You will be shown two images: the original image and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
 
 **Logic consistency**
-Do the drawn lines make some sort of logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow _extremely_ unrealistic physics? The score should be based on the scale of 1 - 5
+Do the drawn lines make some sort of logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow _extremely_ unrealistic physics? If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
 
 1) The sketch makes absolutely no logical sense.
 2) The sketch has some critical flaws that breaks the logic of the sketch.
@@ -36,6 +36,10 @@ The drawing contains multiple errors. The ball path clips through one of the pla
 Logical Consistency Score: 5
 </example_1>
 """
+
+GEMINI_3_SECOND_TURN = """You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.
+
+You are given the start frame of a physics simulation. A ball is dropped from the top of the screen and falls due to gravity. The ball can roll off the lines or the walls in the image. The bouncing of the ball is relatively minor and realistic for normal gravity. Nothing in the image will move besides the ball. Predict which bucket will eventually catch the ball. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Draw the path that the ball will take. Please also respond with what bucket the ball will fall into. Your final answer must be formatted as "$\boxed{bucket number}$". For example, if the ball will fall into bucket 2, respond with "$\boxed{2}$"."""
 
 
 def extract_answer_from_response(response_text: str) -> str:
@@ -107,9 +111,18 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
                 image_path = base_path / f"{item_name}_generated_0.jpeg"
                 if not image_path.exists():
                     image_path = base_path / f"{item_name}_generated_0.png"
+
+                # Also get original image path
+                original_image_path = base_path / f"{item_name}_orig.jpg"
+                if not original_image_path.exists():
+                    original_image_path = base_path / f"{item_name}_orig.png"
             else:
                 # Regular SketchVLM format: use annotated image
                 image_path = base_path / f"{item_name}_annotated.png"
+                # Also get original image path for quality evaluation
+                original_image_path = base_path / f"{item_name}_orig.jpg"
+                if not original_image_path.exists():
+                    original_image_path = base_path / f"{item_name}_orig.png"
 
             # Get model output and answer
             model_answer = data.get('model_output_full', data.get('model_output', ''))
@@ -121,12 +134,19 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
 
             entry = {
                 'image_path': str(image_path),
-                'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                'prompt': BALL_QUALITY,
+                # 'prompt': GEMINI_3_SECOND_TURN,
                 'model_answer': model_answer,
                 'extracted_answer': extracted_answer,
                 'model': model,
                 'item_index': data.get('index', None)
             }
+
+            # Add original image path if it exists
+            if original_image_path and original_image_path.exists():
+                entry['original_image_path'] = str(original_image_path)
+
             entries.append(entry)
 
         except Exception as e:
@@ -159,6 +179,7 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
         if has_generated:
             print("Detected nano_banana format (item_*.json with generated images)")
             return gather_sketchvlm_results(base_dir, model, use_generated=True)
+            # return gather_sketchvlm_results(base_dir, model, use_generated=False)
         else:
             print("Detected SketchVLM format (item_*.json files)")
             return gather_sketchvlm_results(base_dir, model, use_generated=False)
@@ -208,14 +229,72 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
         # Extract the actual answer from model output
         extracted_answer = extract_answer_from_response(model_answer)
 
+        # For ThinkMorph and ViLaSR, extract run ID to get original image
+        original_image_path = None
+        if 'thinkmorph' in str(base_path).lower():
+            sample_name = sample_dir.name
+            if 'run_b' in sample_name:
+                # Batch2 format: run_b2_001
+                parts = sample_name.split('_')
+                for i, part in enumerate(parts):
+                    if part.startswith('run'):
+                        run_id = '_'.join(parts[i:i+3])  # run_b2_001
+                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/second_batch_ball_path') / f'{run_id}.png'
+                        if dataset_path.exists():
+                            original_image_path = dataset_path
+                        break
+            elif 'run_' in sample_name:
+                # Batch1 format: run_001 or run_001_1
+                parts = sample_name.split('_')
+                for i, part in enumerate(parts):
+                    if part.startswith('run'):
+                        # Try run_001_1 format (3 parts) first, then run_001 (2 parts)
+                        if i+2 < len(parts) and parts[i+2].isdigit():
+                            run_id = '_'.join(parts[i:i+3])  # run_001_1
+                        else:
+                            run_id = '_'.join(parts[i:i+2])  # run_001
+                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/ball_path') / f'{run_id}.png'
+                        if dataset_path.exists():
+                            original_image_path = dataset_path
+                        break
+        elif 'vilasr' in str(base_path).lower():
+            # For ViLaSR, read results.jsonl to map sample_dir to run_id
+            results_file = base_path / 'results.jsonl'
+            if results_file.exists():
+                try:
+                    with open(results_file, 'r') as f:
+                        for line in f:
+                            data = json.loads(line)
+                            if data.get('sample_dir', '').endswith(sample_dir.name):
+                                image_path_str = data.get('image_path', [''])[0]
+                                run_id = Path(image_path_str).stem
+                                # Check batch2 path first, then batch1
+                                if 'run_b' in image_path_str:
+                                    # Batch2 format: run_b2_001
+                                    dataset_path = Path('/Users/log/Github/sketchvlm/datasets/second_batch_ball_path') / f'{run_id}.png'
+                                else:
+                                    # Batch1 format: run_001
+                                    dataset_path = Path('/Users/log/Github/sketchvlm/datasets/ball_path') / f'{run_id}.png'
+                                if dataset_path.exists():
+                                    original_image_path = dataset_path
+                                break
+                except Exception as e:
+                    print(f"Warning: Could not read results.jsonl: {e}")
+
         for image_path in image_files:
             entry = {
                 'image_path': str(image_path),
-                'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                'prompt': BALL_QUALITY,
                 'model_answer': model_answer,
                 'extracted_answer': extracted_answer,
                 'model': model
             }
+
+            # Add original image path if it exists
+            if original_image_path:
+                entry['original_image_path'] = str(original_image_path)
+
             entries.append(entry)
 
     return entries
