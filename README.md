@@ -52,6 +52,18 @@ python render_strokes_postprocess.py \
 
 --save-annotated-no-grid - save an annotated image without the grid background (in addition to the normal annotated image)
 
+--no-grid - removes grid from the image that is sent to model
+
+--no-system-prompt - removes sketch system prompt from being sent to model
+
+--adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 - better grid scaling for different resolutions
+
+--max-tokens {number} - set max tokens per call
+
+--only "0,1,2,3" - will only run for each index in the comma separated indices (0-based indexing)
+
+--llm --model - see in a below section for model choices
+
 
 # Better Setup for Gemini-3-Pro
 
@@ -91,24 +103,10 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-flash --mixed
 ## Claude
 python collab_sketch_with_label.py --llm claude --model claude-3-5-sonnet-20240620 --mixed-dir path/to/dataset --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20   
 
-# **Frequently Used**
-
-**Baseline:**
-
---no-grid
-
-removes grid from the image that is sent to model
-
---no-system-prompt
-
-removes sketch system prompt from being sent to model
-
-
 
 **Inference:**
 
 To get the ball_path dataset (so it's formatted in same way as other datasets) from the large_run_split, run gather_ball_prompts.py. This will create almost two equivalent folders, where one just adds a small bit to the prompt that requires the model to sketch the path.
-
 
 
 -----
@@ -141,14 +139,6 @@ This is shoddy and should probably be made better.
 
 
 
-
-## New Grid Fix (for higher res images)
-
-example:
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir datasets/ball_path --count-only-text --max-tokens 10000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20        
-
-
 ## Task Types
 sketch_app.py is now collab_sketch_all.py
 
@@ -167,8 +157,6 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --api-del
 ---- Eval one stroke at a time ----
 
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --count-stepwise-dir datasets/biased  --count-only-text --count-stepwise-max-turns 30 --api-delay 0.2          
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --eval-stepwise --eval-dataset vikhyatk/CountBenchQA --count-only-text --max-examples 100 --api-delay 0.2
-
 
 ---- Mixed testing -----
 
