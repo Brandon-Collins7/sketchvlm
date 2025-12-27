@@ -9,6 +9,8 @@
 
 # render_strokes_postprocess.py args
 
+Right now I believe this file will only render correctly for the single turn results
+
 --results-dir path/to/results - results folder to read from
 
 --base grid - will overlay on image with grid
