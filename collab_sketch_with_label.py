@@ -258,6 +258,30 @@ class SketchApp:
         Image.alpha_composite(base, over).convert("RGB").save(out_png)
         self._update_canvas_b64(out_png)
 
+    def _composite_svg_on_raw_image(self, svg_text: str, raw_img: Image.Image, out_png: str):
+        """Composite stroke SVG onto the *raw* image (no grid).
+
+        When the model drew on a grid image, the SVG coordinates live in the grid-canvas
+        space. We translate them back into the raw-image space using the placement offset.
+        """
+        raw_rgb = ImageOps.exif_transpose(raw_img).convert("RGB")
+        ox, oy = getattr(self, "_raw_image_offset", (0, 0))
+        rw, rh = raw_rgb.size
+
+        inner = re.sub(r'^.*?<svg[^>]*>|</svg>\s*$', '', svg_text, flags=re.S)
+        if ox or oy:
+            inner = f'<g transform="translate({-ox},{-oy})">{inner}</g>'
+
+        svg2 = (f'<svg width="{rw}" height="{rh}" viewBox="0 0 {rw} {rh}" '
+                f'xmlns="http://www.w3.org/2000/svg">{inner}</svg>')
+
+        over = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=svg2.encode()))).convert("RGBA")
+        base = raw_rgb.convert("RGBA")
+        if over.size != base.size:
+            over = over.resize(base.size)
+
+        Image.alpha_composite(base, over).convert("RGB").save(out_png)
+
 
 
     def _next_undrawn(self, xml, expected_s_no: Optional[int] = None) -> List[str]:
@@ -1524,7 +1548,19 @@ class SketchApp:
                 self._update_grid_for_image(pil_img)
                 placed = self._fit_image_to_canvas(pil_img.convert("RGB"), mode=mode, bgcolor=bgcolor)
                 composited = self._overlay_grid(placed)
-                    
+        
+        
+        # Track raw image size + where it was placed on the canvas (used for saving annotated images without grid)
+        self._raw_image_size = ImageOps.exif_transpose(pil_img).size
+        if self.no_grid:
+            self._raw_image_offset = (0, 0)
+        else:
+            # Both dynamic_grid and static_grid place the image shifted right by one cell for the left label column.
+            cs = getattr(self, "cell_size", None)
+            if getattr(self, "dynamic_grid", False) and hasattr(self, "grid_manager"):
+                cs = getattr(self.grid_manager, "cell_size", cs)
+            self._raw_image_offset = (int(cs or 0), 0)
+               
         self._set_base_canvas(composited)
         self.base_canvas_clean = self.base_canvas.copy()  # pristine background for stepwise + final render
         
@@ -2284,6 +2320,9 @@ class SketchApp:
                         "final_answer": final_ans,
                         "request_input": _capture_turn_input(sys_turn2, user_msg2, answer_xml),
                     })
+                    
+                    
+                    
 
                     # Count strokes from turn 1’s XML
                     total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
@@ -2328,6 +2367,23 @@ class SketchApp:
                     self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
                     
                     final_ans = self._extract_final_answer_any(answer, answer_xml, self.assitant_history)
+                
+                
+                # Optional: also save an annotated image without the grid background
+                if getattr(self, "save_annotated_no_grid", False):
+                    import shutil
+                    nogrid_png = png_path.with_name(
+                        png_path.stem.replace("_annotated", "_annotated_nogrid") + png_path.suffix
+                    )
+
+                    if self.no_grid:
+                        # No grid was ever present; the annotated image already matches raw coords
+                        shutil.copyfile(png_path, nogrid_png)
+                    else:
+                        # We drew strokes in grid-canvas space; composite onto the raw image by undoing the placement offset
+                        # (uses self._raw_image_offset set in set_background_from_pil)
+                        self._composite_svg_on_raw_image(self.cur_svg_to_render, img, str(nogrid_png))
+
 
                 total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml, re.S))
                 text_strokes  = self._count_strokes(answer_xml, count_only_text=True)
@@ -2605,6 +2661,9 @@ if __name__ == '__main__':
     default="bottom_left",
     help="Select how the system prompt describes the origin for xNyM tokens.",
 )
+    parser.add_argument("--save-annotated-no-grid", action="store_true",
+    help="Also save an annotated image without the grid background (in addition to the normal annotated image).")
+
 
 
 
@@ -2671,6 +2730,9 @@ if __name__ == '__main__':
     app.stepwise_vision_only = args.stepwise_vision_only
 
     app.stepwise_explanations = args.stepwise_explanations
+    
+    app.save_annotated_no_grid = args.save_annotated_no_grid
+
 
         
     
