@@ -268,6 +268,10 @@ def main():
     ap.add_argument("--only", type=str, default=None, help="Comma-separated item indices to process (e.g., 1,2,3)")
     ap.add_argument("--out-dir", type=str, default=None, help="Where to write outputs (default: results-dir)")
     ap.add_argument("--stroke-width", type=float, default=0.0, help="Override stroke width in px (0 = infer from cell_size)")
+    ap.add_argument("--cell-size", type=float, default=15.0,
+                    help="(Mimic collab_sketch bug) Base cell_size used for stroke/text sizing when rendering grid-token outputs. Default 15.")
+    ap.add_argument("--use-json-cell-size", action="store_true",
+                    help="Use grid_config.cell_size from each JSON for sizing (disables mimic-bug sizing).")
     ap.add_argument("--alt-colors", action="store_true", help="Alternate green/pink like colab mode (default: all green)")
     ap.add_argument("--save-svg", action="store_true", help="Also save an SVG alongside the PNG")
     args = ap.parse_args()
@@ -335,7 +339,7 @@ def main():
                 grid_size_px = (int(grid_cfg["grid_size_px"][0]), int(grid_cfg["grid_size_px"][1]))
             except Exception:
                 grid_size_px = None
-        cell_size = float(grid_cfg.get("cell_size") or 0.0) if grid_cfg else 0.0
+        cell_size = float((grid_cfg.get("cell_size") or 0.0) if (grid_cfg and args.use_json_cell_size) else args.cell_size)
 
         # Infer stroke width like the in-run code: stroke_width = cell_size * 0.6
         # Note: for base=orig with grid-token runs, we mimic the in-run behavior which uses
@@ -497,6 +501,6 @@ python render_strokes_postprocess.py \
   --base orig \
   --origin top-left \
   --res-x 1000 --res-y 1000
-  
-  
+
+
 '''
