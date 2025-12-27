@@ -128,7 +128,7 @@ Below are the different sketching methods you can use for your task.
 # Allow origin change (from top-left to bottom-left)
 SYSTEM_PROMPT_BASE_BOTTOM_LEFT_ORIGIN = SYSTEM_PROMPT_BASE.replace(
     "The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. The top left is the origin. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y{res_y}', the cell to its right is 'x2y{res_y}').",
-    "The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').",
+    "The grid uses numbers (1 to {res_x}) along the bottom (x axis) and numbers (1 to {res_y}) along the left edge (y axis) to reference specific locations within the grid. The bottom left is the origin. Each cell is uniquely identified by a combination of the corresponding x axis numbers and y axis number (e.g., the bottom-left cell is 'x1y1', the cell to its right is 'x2y1').",
 )
 
 
