@@ -7,6 +7,51 @@
   - utils.py - Utility functions
   - prompts.py - LLM prompts and templates
 
+# render_strokes_postprocess.py args
+
+--results-dir path/to/results - results folder to read from
+
+--base grid - will overlay on image with grid
+
+--base orig - will overlay on image without grid
+
+--origin bottom-left - overlay assuming bottom left origin
+
+--origin top-left - overlay assuming top left origin
+
+--res-x 1000 --res-y 1000 - use if results were generated with the --no-grid --res-x 1000 --res-y 1000 approach
+
+--only "0,1,2,3" - will only render strokes for each index in the comma separated indices (0-based indexing)
+
+Examples:
+
+Render onto the grid image (easy path, uses cell_pixel_map directly):
+
+python render_strokes_postprocess.py \
+  --results-dir results/mix_eval/20251221_210419 \
+  --base grid \
+  --origin bottom-left \
+  --only "1,2,3"
+
+Render onto the orig image (grid→orig mapping happens automatically if cell_pixel_map exists):
+
+python render_strokes_postprocess.py \
+  --results-dir results/mix_eval/20251221_210419 \
+  --base orig \
+  --origin bottom-left \
+
+If your no-grid run used res_x=res_y=1000 coords:
+
+python render_strokes_postprocess.py \
+  --results-dir results/mix_eval/20251221_210419 \
+  --base orig \
+  --origin top-left \
+  --res-x 1000 --res-y 1000
+
+# collab_sketch_with_label.py args (to be finished)
+
+--save-annotated-no-grid - save an annotated image without the grid background (in addition to the normal annotated image)
+
 
 # Better Setup for Gemini-3-Pro
 
@@ -107,17 +152,6 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-d
 ## Task Types
 sketch_app.py is now collab_sketch_all.py
 
-### Counting
-
-#### Claude example:
-python collab_sketch_all.py --llm claude --model claude-3-5-sonnet-20240620 --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text
-
-#### OpenAI example:
-python collab_sketch_all.py --llm gpt --model o3 --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text
-
-####
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --eval-dataset vikhyatk/CountBenchQA --eval-split test --count-only-text --api-delay 4
-
 
 ## Labeling
 
@@ -143,12 +177,3 @@ python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-d
 
 #one stroke per turn
 python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --mixed-dir datasets/mix --mixed-stepwise --mixed-max-turns 40 --count-only-text --api-delay 0.2
-
-
---- TallyQA
-
-
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --max-examples 200 --count-only-text --api-delay 5
-
-# multi-turn
-python collab_sketch_with_label.py --llm gemini --model gemini-2.5-pro --tallyqa-json TallyQA_dataset/test_sample_500.json --vg-root data --tallyqa-outdir results/tallyqa_eval --tallyqa-stepwise --tallyqa-max-turns 40 --max-examples 200 --count-only-text --api-delay 4
