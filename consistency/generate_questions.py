@@ -40,8 +40,26 @@ Logical Consistency Score: 5
 MAZE_QUALITY = """# Overall Instructions
 You will be shown two images: the original image and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
 
-**Quality Checks**
-Do the drawn lines make some sort of logical sense? For example, does drawn path clip through any of the static environment? Does the sketch contain additional moves that are not in the path? Does the drawn sketch contradict the given text path? If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
+# Sketch Instructions
+The original sketch was drawn according to the following prompt:
+
+"You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, "right" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. The grid on the outside of the image is only there to help provide a reference for you. Moving one right does NOT mean move one grid square right, it means go one big cell in the maze right."
+
+# Quality Checks
+
+## Things that are bad
+1) The drawn path clips through any of the black walls when it is not required to. For example, even if the directions of the drawn path are correct, if the path touches or goes through a wall, then it is a bad sketch. That means that if the path goes through a wall even when it is not absolutely required to, then it is a bad sketch.
+2) The sketch contains additional moves that are not in the path
+3) The drawn sketch contradicts the given text path
+4) Even if the directions of the drawn path are correct, the end of the path does not end up touching the red square
+5) The drawn path does not start by touching the green square
+6) Each move in the drawn path should go to the **center** of the next cell in the path. If the drawn path is a curved path, then this does not apply. This is important! Look at each step in the path and make sure that the drawn path goes to the center of the next cell.
+
+## Things that are not an issue
+1) If the proposed path is not valid, the drawn sketch shows exactly what the path should look like (even if it has to clip through walls or double back on itself)
+2) If the proposed path is not valid, the drawn sketch indicates where some sort of logical error is present with some sort of marking
+
+## Score breakdown
 
 1) The sketch makes absolutely no logical sense.
 2) The sketch has some critical flaws that breaks the logic of the sketch.
@@ -56,12 +74,14 @@ You should follow this output format EXACTLY with no other output:
 Quality Score: {integer from 1 - 5}
 
 # Example Output
-
 <example_1>
 The drawing contains multiple errors. The drawn path goes up, up, left instead of up, up, right. This contradicts the given text path. Additionally, the end of the drawn path slightly clips through the solid black wall. The minor error combined with the critical error results in a logical score of 2/5.
 
 Quality Score: 5
 </example_1>
+
+The original proposed path that the model should have followed is:
+
 """
 
 GEMINI_3_SECOND_TURN = """You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.
@@ -159,11 +179,21 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
             if not extracted_answer:
                 extracted_answer = extract_answer_from_response(model_answer)
 
+            # Extract proposed path from original prompt if it exists
+            proposed_path = ""
+            original_prompt = data.get('prompt', '')
+            if 'Proposed path:' in original_prompt:
+                # Extract everything after "Proposed path:"
+                path_match = re.search(r'Proposed path:\s*(.+?)(?:\n|$)', original_prompt)
+                if path_match:
+                    proposed_path = "\n\nProposed path: " + path_match.group(1).strip()
+
             entry = {
                 'image_path': str(image_path),
                 # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
-                'prompt': BALL_QUALITY,
+                # 'prompt': BALL_QUALITY,
                 # 'prompt': GEMINI_3_SECOND_TURN,
+                'prompt': MAZE_QUALITY + proposed_path,
                 'model_answer': model_answer,
                 'extracted_answer': extracted_answer,
                 'model': model,
@@ -226,6 +256,7 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
         # Extract model answer from text_data.json
         text_data_file = sample_dir / 'text_data.json'
         model_answer = ''
+        proposed_path = ""
 
         if text_data_file.exists():
             try:
@@ -240,6 +271,13 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
                     model_answer = data.get('response', '')
                 else:
                     model_answer = ''
+
+                # Extract proposed path from prompt if it exists (for maze tasks)
+                original_prompt = data.get('prompt', '')
+                if 'Proposed path:' in original_prompt:
+                    path_match = re.search(r'Proposed path:\s*(.+?)(?:\n|$)', original_prompt)
+                    if path_match:
+                        proposed_path = "\n\nProposed path: " + path_match.group(1).strip()
             except Exception as e:
                 print(f"Warning: Could not read {text_data_file}: {e}")
                 model_answer = ''
@@ -256,63 +294,97 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
         # Extract the actual answer from model output
         extracted_answer = extract_answer_from_response(model_answer)
 
-        # For ThinkMorph and ViLaSR, extract run ID to get original image
+        # For ThinkMorph and ViLaSR, extract ID to get original image
         original_image_path = None
-        if 'thinkmorph' in str(base_path).lower():
-            sample_name = sample_dir.name
-            if 'run_b' in sample_name:
-                # Batch2 format: run_b2_001
-                parts = sample_name.split('_')
-                for i, part in enumerate(parts):
-                    if part.startswith('run'):
-                        run_id = '_'.join(parts[i:i+3])  # run_b2_001
-                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/second_batch_ball_path') / f'{run_id}.png'
-                        if dataset_path.exists():
-                            original_image_path = dataset_path
-                        break
-            elif 'run_' in sample_name:
-                # Batch1 format: run_001 or run_001_1
-                parts = sample_name.split('_')
-                for i, part in enumerate(parts):
-                    if part.startswith('run'):
-                        # Try run_001_1 format (3 parts) first, then run_001 (2 parts)
-                        if i+2 < len(parts) and parts[i+2].isdigit():
-                            run_id = '_'.join(parts[i:i+3])  # run_001_1
-                        else:
-                            run_id = '_'.join(parts[i:i+2])  # run_001
-                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/ball_path') / f'{run_id}.png'
-                        if dataset_path.exists():
-                            original_image_path = dataset_path
-                        break
-        elif 'vilasr' in str(base_path).lower():
-            # For ViLaSR, read results.jsonl to map sample_dir to run_id
+        sample_name = sample_dir.name
+
+        # For ViLaSR, always read results.jsonl to get original image path (works for both maze and ball tasks)
+        if 'vilasr' in str(base_path).lower():
             results_file = base_path / 'results.jsonl'
             if results_file.exists():
                 try:
                     with open(results_file, 'r') as f:
                         for line in f:
-                            data = json.loads(line)
-                            if data.get('sample_dir', '').endswith(sample_dir.name):
-                                image_path_str = data.get('image_path', [''])[0]
-                                run_id = Path(image_path_str).stem
-                                # Check batch2 path first, then batch1
-                                if 'run_b' in image_path_str:
+                            data_line = json.loads(line)
+                            if data_line.get('sample_dir', '').endswith(sample_dir.name):
+                                image_path_str = data_line.get('image_path', [''])[0]
+                                file_id = Path(image_path_str).stem
+
+                                # Check if it's a maze task (contains 'maze_')
+                                if 'maze_' in image_path_str:
+                                    # Determine if invalid or valid based on path
+                                    if 'invalid' in str(base_path).lower():
+                                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/maze_v2/invalid_flattened') / f'{file_id}.png'
+                                    else:
+                                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/maze_v2/valid_flattened') / f'{file_id}.png'
+                                # Otherwise it's a ball path task
+                                elif 'run_b' in image_path_str:
                                     # Batch2 format: run_b2_001
-                                    dataset_path = Path('/Users/log/Github/sketchvlm/datasets/second_batch_ball_path') / f'{run_id}.png'
+                                    dataset_path = Path('/Users/log/Github/sketchvlm/datasets/second_batch_ball_path') / f'{file_id}.png'
                                 else:
                                     # Batch1 format: run_001
-                                    dataset_path = Path('/Users/log/Github/sketchvlm/datasets/ball_path') / f'{run_id}.png'
+                                    dataset_path = Path('/Users/log/Github/sketchvlm/datasets/ball_path') / f'{file_id}.png'
+
                                 if dataset_path.exists():
                                     original_image_path = dataset_path
                                 break
                 except Exception as e:
                     print(f"Warning: Could not read results.jsonl: {e}")
 
+        # For ThinkMorph
+        elif 'thinkmorph' in str(base_path).lower():
+            # Check if this is a maze task (contains 'maze_' in sample name)
+            if 'maze_' in sample_name:
+                # Maze format: extract maze_ID from sample name
+                # e.g., sample_20251203_185642_maze_100_fbcdb0b4 -> maze_100_fbcdb0b4
+                maze_match = re.search(r'(maze_\d+_[a-f0-9]+)', sample_name)
+                if maze_match:
+                    maze_id = maze_match.group(1)
+                    # Determine if invalid or valid based on path
+                    if 'invalid' in str(base_path).lower():
+                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/maze_v2/invalid_flattened') / f'{maze_id}.png'
+                    else:
+                        dataset_path = Path('/Users/log/Github/sketchvlm/datasets/maze_v2/valid_flattened') / f'{maze_id}.png'
+                    if dataset_path.exists():
+                        original_image_path = dataset_path
+            # Ball path format: extract run_ID from sample name
+            elif 'run_' in sample_name:
+                if 'run_b' in sample_name:
+                    # Batch2 format: run_b2_001
+                    parts = sample_name.split('_')
+                    for i, part in enumerate(parts):
+                        if part.startswith('run'):
+                            run_id = '_'.join(parts[i:i+3])  # run_b2_001
+                            dataset_path = Path('/Users/log/Github/sketchvlm/datasets/second_batch_ball_path') / f'{run_id}.png'
+                            if dataset_path.exists():
+                                original_image_path = dataset_path
+                            break
+                else:
+                    # Batch1 format: run_001 or run_001_1
+                    parts = sample_name.split('_')
+                    for i, part in enumerate(parts):
+                        if part.startswith('run'):
+                            # Try run_001_1 format (3 parts) first, then run_001 (2 parts)
+                            if i+2 < len(parts) and parts[i+2].isdigit():
+                                run_id = '_'.join(parts[i:i+3])  # run_001_1
+                            else:
+                                run_id = '_'.join(parts[i:i+2])  # run_001
+                            dataset_path = Path('/Users/log/Github/sketchvlm/datasets/ball_path') / f'{run_id}.png'
+                            if dataset_path.exists():
+                                original_image_path = dataset_path
+                            break
+
         for image_path in image_files:
+            # Determine which prompt to use based on task type
+            # If proposed_path is not empty, it's a maze task
+            if proposed_path:
+                prompt = MAZE_QUALITY + proposed_path
+            else:
+                prompt = BALL_QUALITY
+
             entry = {
                 'image_path': str(image_path),
-                # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
-                'prompt': BALL_QUALITY,
+                'prompt': prompt,
                 'model_answer': model_answer,
                 'extracted_answer': extracted_answer,
                 'model': model

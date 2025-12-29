@@ -540,3 +540,92 @@ python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py \
      --input /Users/log/Github/sketchvlm/consistency/source_data/ball_quality/ball_batch1_nano_banana.json \
      --output /Users/log/Github/sketchvlm/consistency/judge_output/ball_quality/ball_batch1_nano_banana.json \
      --model google/gemini-3-flash-preview
+
+
+
+
+# Maze Quality Evaluation Commands
+
+# Gemini 2.5 Flash Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gemini25_flash_invalid.json \
+    --output consistency/judge_output/grid_world_quality/gemini25_flash_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# Gemini 2.5 Flash Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gemini25_flash_valid.json \
+    --output consistency/judge_output/grid_world_quality/gemini25_flash_valid.json \
+    --model google/gemini-3-flash-preview
+
+# Gemini 2.5 Pro Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gemini25_pro_invalid.json \
+    --output consistency/judge_output/grid_world_quality/gemini25_pro_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# Gemini 2.5 Pro Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gemini25_pro_valid.json \
+    --output consistency/judge_output/grid_world_quality/gemini25_pro_valid.json \
+    --model google/gemini-3-flash-preview
+
+# Gemini 3 Pro Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gemini3_pro_invalid.json \
+    --output consistency/judge_output/grid_world_quality/gemini3_pro_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# Gemini 3 Pro Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gemini3_pro_valid.json \
+    --output consistency/judge_output/grid_world_quality/gemini3_pro_valid.json \
+    --model google/gemini-3-flash-preview
+
+# GPT-5 Low Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gpt5_low_invalid.json \
+    --output consistency/judge_output/grid_world_quality/gpt5_low_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# GPT-5 Low Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_gpt5_low_valid.json \
+    --output consistency/judge_output/grid_world_quality/gpt5_low_valid.json \
+    --model google/gemini-3-flash-preview
+
+# Qwen 2.5 7B Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_qwen25_7b_invalid.json \
+    --output consistency/judge_output/grid_world_quality/qwen25_7b_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# Qwen 2.5 7B Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_qwen25_7b_valid.json \
+    --output consistency/judge_output/grid_world_quality/qwen25_7b_valid.json \
+    --model google/gemini-3-flash-preview
+
+# ThinkMorph Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_thinkmorph_invalid.json \
+    --output consistency/judge_output/grid_world_quality/thinkmorph_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# ThinkMorph Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_thinkmorph_valid.json \
+    --output consistency/judge_output/grid_world_quality/thinkmorph_valid.json \
+    --model google/gemini-3-flash-preview
+
+# ViLaSR Invalid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_vilasr_invalid.json \
+    --output consistency/judge_output/grid_world_quality/vilasr_invalid.json \
+    --model google/gemini-3-flash-preview
+
+# ViLaSR Valid
+python consistency/process_with_openrouter.py \
+    --input consistency/source_data/grid_world_quality/source_maze_quality_vilasr_valid.json \
+    --output consistency/judge_output/grid_world_quality/vilasr_valid.json \
+    --model google/gemini-3-flash-preview

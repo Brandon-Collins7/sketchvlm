@@ -1,8 +1,8 @@
 """
-Calculate ball quality scores from judge outputs.
+Calculate maze quality scores from judge outputs.
 
 Usage:
-    python consistency/calculate_ball_quality.py --judge-dir consistency/judge_output/ball_quality
+    python calculate_maze_quality.py --judge-dir consistency/judge_output/grid_world_quality
 """
 
 import os
@@ -17,7 +17,7 @@ from collections import defaultdict
 
 def extract_quality_score(text: str) -> Optional[int]:
     """
-    Extract quality score from "Logical Consistency Score: X" format.
+    Extract quality score from "Quality Score: X" format.
 
     Args:
         text: Text containing the score
@@ -28,8 +28,8 @@ def extract_quality_score(text: str) -> Optional[int]:
     if not text:
         return None
 
-    # Try to find "Logical Consistency Score: X" pattern
-    score_match = re.search(r'Logical\s+Consistency\s+Score:\s*(\d+)', text, re.IGNORECASE)
+    # Try to find "Quality Score: X" pattern
+    score_match = re.search(r'Quality\s+Score:\s*(\d+)', text, re.IGNORECASE)
     if score_match:
         score = int(score_match.group(1))
         if 1 <= score <= 5:
@@ -100,9 +100,9 @@ def analyze_quality_scores(judge_file: Path) -> Dict:
     return results
 
 
-def combine_batch_results(all_results: List[Dict]) -> Dict[str, Dict]:
+def combine_invalid_valid_results(all_results: List[Dict]) -> Dict[str, Dict]:
     """
-    Combine results for models that have both batch1 and batch2.
+    Combine results for models that have both invalid and valid variants.
 
     Args:
         all_results: List of analysis results for all models
@@ -110,17 +110,17 @@ def combine_batch_results(all_results: List[Dict]) -> Dict[str, Dict]:
     Returns:
         Dictionary mapping base model name to combined results
     """
-    # Group by base model name (without batch prefix)
+    # Group by base model name (without invalid/valid suffix)
     by_base_model = defaultdict(list)
 
     for result in all_results:
         model_name = result['model']
 
-        # Extract base model name (remove batch1/batch2 prefix)
-        if 'batch1_' in model_name:
-            base_name = model_name.replace('batch1_', '')
-        elif 'batch2_' in model_name:
-            base_name = model_name.replace('batch2_', '')
+        # Extract base model name (remove _invalid/_valid suffix)
+        if '_invalid' in model_name:
+            base_name = model_name.replace('_invalid', '')
+        elif '_valid' in model_name:
+            base_name = model_name.replace('_valid', '')
         else:
             base_name = model_name
 
@@ -130,14 +130,14 @@ def combine_batch_results(all_results: List[Dict]) -> Dict[str, Dict]:
     combined = {}
     for base_name, results_list in by_base_model.items():
         if len(results_list) == 1:
-            # Only one batch, use as is
+            # Only one variant, use as is
             combined[base_name] = {
                 'results': results_list,
                 'combined_scores': results_list[0]['scores'],
                 'combined_average': results_list[0]['average_score']
             }
         else:
-            # Multiple batches, combine scores
+            # Multiple variants, combine scores
             all_scores = []
             for r in results_list:
                 all_scores.extend(r['scores'])
@@ -159,10 +159,10 @@ def print_summary_table(all_results: List[Dict], combined_results: Dict[str, Dic
 
     Args:
         all_results: List of analysis results for all models
-        combined_results: Dictionary of combined batch results
+        combined_results: Dictionary of combined variant results
     """
     print("\n" + "="*120)
-    print("BALL QUALITY SCORE SUMMARY")
+    print("MAZE QUALITY SCORE SUMMARY")
     print("="*120)
 
     # Header
@@ -178,7 +178,7 @@ def print_summary_table(all_results: List[Dict], combined_results: Dict[str, Dic
         results_list = combined['results']
 
         if len(results_list) == 1:
-            # Single batch
+            # Single variant
             result = results_list[0]
             model = result['model']
             total = result['total']
@@ -189,7 +189,7 @@ def print_summary_table(all_results: List[Dict], combined_results: Dict[str, Dic
 
             print(f"{model:<30} {total:<8} {valid:<8} {avg_score:>6.2f}       {api_failed:<12} {extract_fail:<15}")
         else:
-            # Multiple batches - show combined first, then individual
+            # Multiple variants - show combined first, then individual
             total_entries = sum(r['total'] for r in results_list)
             total_valid = len(combined['combined_scores'])
             combined_avg = combined['combined_average']
@@ -198,7 +198,7 @@ def print_summary_table(all_results: List[Dict], combined_results: Dict[str, Dic
 
             print(f"{base_name + ' (combined)':<30} {total_entries:<8} {total_valid:<8} {combined_avg:>6.2f}       {total_api_failed:<12} {total_extract_fail:<15}")
 
-            # Show individual batches indented
+            # Show individual variants indented
             for result in sorted(results_list, key=lambda x: x['model']):
                 model = '  ' + result['model']
                 total = result['total']
@@ -217,7 +217,7 @@ def print_score_distribution(combined_results: Dict[str, Dict]):
     Print score distribution for each model.
 
     Args:
-        combined_results: Dictionary of combined batch results
+        combined_results: Dictionary of combined variant results
     """
     print("\n" + "="*120)
     print("SCORE DISTRIBUTION (1-5)")
@@ -333,7 +333,7 @@ def load_all_entries(judge_dir: Path) -> List[Dict]:
 
 
 def generate_html(all_entries: List[Dict], combined_results: Dict[str, Dict], output_file: str):
-    """Generate HTML visualization of ball quality results."""
+    """Generate HTML visualization of maze quality results."""
 
     # Sort by score (lowest first to highlight problems), then by model
     all_entries.sort(key=lambda x: (x.get('quality_score') or 0, x.get('model_name', '')))
@@ -458,7 +458,7 @@ def generate_html(all_entries: List[Dict], combined_results: Dict[str, Dict], ou
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Ball Quality Scores</title>
+    <title>Maze Quality Scores</title>
     <style>
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -548,7 +548,7 @@ def generate_html(all_entries: List[Dict], combined_results: Dict[str, Dict], ou
     </style>
 </head>
 <body>
-    <h1>Ball Quality Score Analysis</h1>
+    <h1>Maze Quality Score Analysis</h1>
 
     <div class="stats">
         <div class="stats-grid">
@@ -630,18 +630,13 @@ def generate_html(all_entries: List[Dict], combined_results: Dict[str, Dict], ou
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Calculate ball quality scores from judge outputs')
+    parser = argparse.ArgumentParser(description='Calculate maze quality scores from judge outputs')
     parser.add_argument('--judge-dir', type=str, required=True,
-                       help='Directory containing ball quality judge output files')
+                       help='Directory containing maze quality judge output files')
     parser.add_argument('--max-warnings', type=int, default=5,
                        help='Maximum warnings to show per type (default: 5)')
     parser.add_argument('--show-warnings', action='store_true',
                        help='Show detailed warnings')
-    parser.add_argument('--show-distribution', action='store_true',
-                       help='Show score distribution')
-    parser.add_argument('--html-output', type=str,
-                       default='consistency/html_output/ball_quality_scores.html',
-                       help='Output HTML file path')
 
     args = parser.parse_args()
 
@@ -651,7 +646,7 @@ def main():
         print(f"Error: Directory not found: {judge_dir}")
         return
 
-    # Find all JSON files
+    # Find all judge output files
     judge_files = sorted(judge_dir.glob('*.json'))
 
     if not judge_files:
@@ -667,30 +662,30 @@ def main():
         results = analyze_quality_scores(judge_file)
         all_results.append(results)
 
-    # Combine batch results
-    combined_results = combine_batch_results(all_results)
+    # Combine invalid/valid variants
+    combined = combine_invalid_valid_results(all_results)
 
     # Print summary table
-    print_summary_table(all_results, combined_results)
+    print_summary_table(all_results, combined)
 
-    # Print score distribution if requested
-    if args.show_distribution:
-        print_score_distribution(combined_results)
+    # Print score distribution
+    print_score_distribution(combined)
 
     # Print warnings if requested
     if args.show_warnings:
         print_warnings(all_results, max_warnings=args.max_warnings)
     else:
         print(f"\nUse --show-warnings to see detailed warnings")
-        print(f"Use --show-distribution to see score distribution")
 
-    # Generate HTML visualization
-    output_path = Path(args.html_output)
+    # Load all entries and generate HTML
+    print("\nGenerating HTML visualization...")
+    all_entries = load_all_entries(judge_dir)
+
+    output_file = 'consistency/html_output/maze_quality_all_samples.html'
+    output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"\nGenerating HTML visualization...")
-    all_entries = load_all_entries(judge_dir)
-    generate_html(all_entries, combined_results, args.html_output)
+    generate_html(all_entries, combined, output_file)
 
 
 if __name__ == '__main__':
