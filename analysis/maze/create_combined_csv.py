@@ -238,6 +238,7 @@ def main():
         ('gpt5_low_sketch', base_path / 'gpt5', 'gpt5_low', 'json'),
         ('gpt5_low_vqa', base_path / 'gpt5' / 'direct_vqa', 'gpt5_low', 'json'),
         ('gpt5_low_two_turn', base_path / 'gpt5' / 'two_turn', 'gpt5_low', 'json'),
+        ('gpt5_low_1000_sketch', base_path / 'gpt5', 'gpt5_low_1000', 'json'),
         ('qwen3_235b_sketch', base_path / 'qwen3', 'qwen3_235b', 'json'),
         ('qwen3_235b_vqa', base_path / 'qwen3' / 'direct_vqa', 'qwen3_235b', 'json'),
         ('qwen25_7b_sketch', base_path / 'qwen25_7b', 'qwen25_7b', 'json'),

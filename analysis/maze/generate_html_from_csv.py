@@ -61,6 +61,7 @@ def generate_html(csv_path, output_path):
         ('gemini', 'gemini25_pro'),
         ('gemini', 'gemini3_pro'),
         ('gpt5', 'gpt5_low'),
+        ('gpt5', 'gpt5_low_1000'),
         ('qwen3', 'qwen3_235b')
     ]:
         for validity in ['invalid', 'valid']:
@@ -114,9 +115,10 @@ def generate_html(csv_path, output_path):
         ('gemini_pro_two_turn', 'Pro (Two-Turn)', True),
         ('gemini3_pro_sketch', 'Pro3 (Sketch)', True),
         ('gemini3_pro_vqa', 'Pro3 (VQA)', False),
-        ('gpt5_low_sketch', 'GPT-5 (Sketch)', True),
+        ('gpt5_low_sketch', 'GPT-5 200 (Sketch)', True),
         ('gpt5_low_vqa', 'GPT-5 (VQA)', False),
         ('gpt5_low_two_turn', 'GPT-5 (Two-Turn)', True),
+        ('gpt5_low_1000_sketch', 'GPT-5 1000 (Sketch)', True),
         ('qwen3_235b_sketch', 'Qwen3 (Sketch)', True),
         ('qwen3_235b_vqa', 'Qwen3 (VQA)', False),
     ]
@@ -362,6 +364,7 @@ def generate_html(csv_path, output_path):
                         'gemini3_pro_sketch': 'gemini3_pro',
                         'gpt5_low_sketch': 'gpt5_low',
                         'gpt5_low_two_turn': 'gpt5_low_two_turn',
+                        'gpt5_low_1000_sketch': 'gpt5_low_1000',
                         'qwen3_235b_sketch': 'qwen3_235b'
                     }
                     prefix = prefix_map.get(model_key, model_key)
@@ -400,6 +403,7 @@ def generate_html(csv_path, output_path):
                         'gemini3_pro_sketch': 'gemini3_pro',
                         'gpt5_low_sketch': 'gpt5_low',
                         'gpt5_low_two_turn': 'gpt5_low_two_turn',
+                        'gpt5_low_1000_sketch': 'gpt5_low_1000',
                         'qwen3_235b_sketch': 'qwen3_235b'
                     }
                     prefix = prefix_map.get(model_key, model_key)
