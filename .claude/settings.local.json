@@ -6,8 +6,23 @@
       "Bash(python3:*)",
       "Bash(cat:*)",
       "Bash(ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python consistency/generate_questions.py:*)"
     ],
     "deny": []
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt|idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx tsx \"$CLAUDE_PROJECT_DIR/.claude/hooks/notification-desktop.ts\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   }
 }

@@ -9,19 +9,36 @@ from typing import List, Dict
 # Standard prompts for consistency checking
 GENERAL_PROMPT = "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\n"
 BALL_DROP_PROMPT = "The image is a physics simulation of a ball being dropped. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Please respond with what bucket the **annotation shows** the ball will fall into. Please note that it is not your job to determine if the annotation is correct or not, just to extract the answer from the annotation. Your final answer must be formatted as \"$\\boxed{bucket number}$\". For example, if the ball will fall into bucket 2, respond with \"$\\boxed{2}$\". If the annotation does not show the ball falling into any bucket, respond with \"$\\boxed{none}$\". If the the annotation shows that the ball will fall into multiple different buckets, answer with \"$\\boxed{multiple}$\"."
-
+VPCT_BALL_DROP_PROMPT = "The ball is released from rest, the only force it is subject to is gravity. The black lines are walls and platforms and the ball cannot pass through them. Put your answer of which container it will land in, 1, 2, or 3 (numbered left to right)."
+MAZE_PROMPT = "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n"
 
 BALL_QUALITY = """# Overall Instructions
 You will be shown two images: the original image and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
 
 **Logic consistency**
-Do the drawn lines make some sort of logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow _extremely_ unrealistic physics? If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
+Does the drawn ball path make logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow unrealistic physics? If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
 
-1) The sketch makes absolutely no logical sense.
-2) The sketch has some critical flaws that breaks the logic of the sketch.
-3) The sketch contains multiple logical errors.
-4) The sketch contains a minor logical error.
-5) The sketch contains zero logical errors.
+# Quality Checks
+
+Below are more details:
+
+## Things that are bad
+1) The drawn path clips through any of the black walls.
+2) The drawn path does not show realistic physics. For example, the ball path momentarily disobeys gravity by moving upwards or moving in a direction that is not logical for gravity.
+3) The drawn path substantially alters the original image (like adding or removing walls)
+4) The drawn path contains multiple different paths instead of a single path.
+
+## Things that are good
+1) The drawn path is a single path that clearly shows where the final resting position of the ball will be.
+2) The drawn path does not cut through any of the black walls.
+
+# Scoring breakdown
+
+1) The sketch has several critical flaws
+2) The sketch has a critical flaw
+3) The sketch contains errors, but is overall acceptable.
+4) The sketch contains a minor logical error and is close to being very good quality.
+5) The sketch contains zero errors.
 
 # Output Format
 You should follow this output format EXACTLY with no other output:
@@ -43,21 +60,28 @@ You will be shown two images: the original image and an AI-annotated version. Yo
 # Sketch Instructions
 The original sketch was drawn according to the following prompt:
 
-"You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, "right" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. The grid on the outside of the image is only there to help provide a reference for you. Moving one right does NOT mean move one grid square right, it means go one big cell in the maze right."
+"You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, "right" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. The grid on the outside of the image is only there to help provide a reference for you. Moving one right means go one big cell in the maze right."
 
 # Quality Checks
 
+The main things that you should be looking for are:
+1) Clipping through walls when it is not required to.
+2) The drawn path does not go to the CENTER of each cell that it goes through.
+3) The drawn path contradicts the given text path.
+
+Below are more details:
+
 ## Things that are bad
 1) The drawn path clips through any of the black walls when it is not required to. For example, even if the directions of the drawn path are correct, if the path touches or goes through a wall, then it is a bad sketch. That means that if the path goes through a wall even when it is not absolutely required to, then it is a bad sketch.
-2) The sketch contains additional moves that are not in the path
-3) The drawn sketch contradicts the given text path
-4) Even if the directions of the drawn path are correct, the end of the path does not end up touching the red square
-5) The drawn path does not start by touching the green square
-6) Each move in the drawn path should go to the **center** of the next cell in the path. If the drawn path is a curved path, then this does not apply. This is important! Look at each step in the path and make sure that the drawn path goes to the center of the next cell.
+2) Each move in the drawn path should go to the **center** of the next cell in the path. If the drawn path is a curved path, then this does not apply. This is important! Look at each step in the path and make sure that the drawn path goes to the center of the next cell.
+3) The sketch contains additional moves that are not in the path
+4) The drawn sketch contradicts the given text path.
+5) Even if the directions of the drawn path are correct, the end of the path does not end up touching the red square.
+6) The drawn path does not start by touching the green square
 
 ## Things that are not an issue
-1) If the proposed path is not valid, the drawn sketch shows exactly what the path should look like (even if it has to clip through walls or double back on itself)
-2) If the proposed path is not valid, the drawn sketch indicates where some sort of logical error is present with some sort of marking
+1) If the proposed path is not valid, the drawn sketch shows exactly what the path should look like (even if it has to clip through walls or double back on itself).
+2) If the proposed path is not valid, and the drawing ends as soon as there is an invalid move that is taken (such as requiring to go through a wall), then that is not an issue. It's okay for the drawing to not show all the steps of the path here since the sketch is emphasizing that the path is invalid.
 
 ## Score breakdown
 
@@ -75,9 +99,9 @@ Quality Score: {integer from 1 - 5}
 
 # Example Output
 <example_1>
-The drawing contains multiple errors. The drawn path goes up, up, left instead of up, up, right. This contradicts the given text path. Additionally, the end of the drawn path slightly clips through the solid black wall. The minor error combined with the critical error results in a logical score of 2/5.
+The drawing contains multiple errors. The drawn path goes up, up, left instead of up, up, right. This contradicts the given text path. Additionally, the end of the drawn path slightly clips through the solid black wall. Additionally, the draw path does NOT go to the center of each cell that it goes through. Instead, it only moves about 60 percent of the way across each cell and doesn't therefore doesn't follow the grid logic of moving from one center of each cell to the center of the next cell. The minor error combined with the multiple critical errors results in a score of 1/5.
 
-Quality Score: 5
+Quality Score: 1
 </example_1>
 
 The original proposed path that the model should have followed is:
@@ -188,9 +212,18 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
                 if path_match:
                     proposed_path = "\n\nProposed path: " + path_match.group(1).strip()
 
+                    # Add valid/invalid instruction based on directory name
+                    # Check for "invalid" first since "valid" is a substring of "invalid"
+                    if 'invalid' in str(base_dir).lower():
+                        proposed_path += "\n\nThe draw path here should be INVALID. that means that the path should NOT be able to start from the green square and end up at the red square."
+                    elif 'valid' in str(base_dir).lower():
+                        proposed_path += "\n\nThe draw path here should be VALID. that means that the path should be able to start from the green square and end up at the red square. It should not clip through any of the walls."
+
             entry = {
                 'image_path': str(image_path),
                 # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
+                # 'prompt': GENERAL_PROMPT + VPCT_BALL_DROP_PROMPT,
+                # 'prompt': GENERAL_PROMPT + MAZE_PROMPT + proposed_path,
                 # 'prompt': BALL_QUALITY,
                 # 'prompt': GEMINI_3_SECOND_TURN,
                 'prompt': MAZE_QUALITY + proposed_path,
@@ -278,6 +311,13 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
                     path_match = re.search(r'Proposed path:\s*(.+?)(?:\n|$)', original_prompt)
                     if path_match:
                         proposed_path = "\n\nProposed path: " + path_match.group(1).strip()
+
+                        # Add valid/invalid instruction based on directory name
+                        # Check for "invalid" first since "valid" is a substring of "invalid"
+                        if 'invalid' in str(base_path).lower():
+                            proposed_path += "\n\nThe draw path here should be INVALID. that means that the path should NOT be able to start from the green square and end up at the red square."
+                        elif 'valid' in str(base_path).lower():
+                            proposed_path += "\n\nThe draw path here should be VALID. that means that the path should be able to start from the green square and end up at the red square. It should not clip through any of the walls."
             except Exception as e:
                 print(f"Warning: Could not read {text_data_file}: {e}")
                 model_answer = ''

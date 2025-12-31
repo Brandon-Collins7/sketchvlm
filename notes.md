@@ -589,11 +589,33 @@ python consistency/process_with_openrouter.py \
 
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_valid_flattened --no-grid --res-x 1000 --res-y 1000 --prompt-origin top_left --only "1,8,30,44,52,53,60,62,71,74,75,79,82,106,111,114,119,125,127,130,135,138,147,151,154,165,170,174,179,184"
 
-python collab_sketch_with_label.py --llm gpt --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_invalid_flattened --no-grid --res-x 1000 --res-y 1000 --prompt-origin top_left --only "3,5,21,29,30,46,53,54,73,103,105,111,127,134,143,145,150,154,193,197"
+python collab_sketch_with_label.py --llm gemini --model gpt-5 --reasoning-effort low --mixed-dir datasets/maze_v2/sketch_invalid_flattened --no-grid --res-x 1000 --res-y 1000 --prompt-origin top_left
 
 
 python collab_sketch_with_label.py --llm qwen3 --model qwen/qwen-2.5-vl-7b-instruct --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
 
 python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-preview --mixed-dir datasets/ball_path --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
-python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/vpct_ball_drop_sketch --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/vpct_ball_drop_sketch --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "8,37,39,42,47,48,52,65,73,80,86,88,97,98"
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/maze_v2/sketch_invalid_flattened_nanob --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid 
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/maze_v2/sketch_valid_flattened_nanob --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid 
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-2.5-pro --mixed-dir datasets/maze_v2/sketch_invalid_flattened --no-grid --res-x 1000 --res-y 1000 --prompt-origin top_left
+
+
+  python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py \
+      --input /Users/log/Github/sketchvlm/consistency/normal_gemini3/source_data/image_questions_vpct_nanobanana.json \
+      --model google/gemini-3-pro-preview
+
+
+  # For maze valid paths
+  python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py \
+      --input /Users/log/Github/sketchvlm/consistency/normal_gemini3/source_data/image_questions_maze_nanob_valid.json \
+      --model google/gemini-3-pro-preview
+
+  python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py \
+      --input /Users/log/Github/sketchvlm/consistency/normal_gemini3/source_data/image_questions_maze_nanob_invalid.json \
+      --model google/gemini-3-pro-preview
