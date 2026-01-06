@@ -1,0 +1,1 @@
+Draw the path that the ball will take. It will either land in container 1, 2, 3 (numbered left to right). The ball is released from rest, the only force it is subject to is gravity. The black lines are walls and platforms and the ball cannot pass through them. After emitting the strokes, put your answer of which container it will land in, 1, 2, or 3. Only use straight lines.

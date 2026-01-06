@@ -1,0 +1,1 @@
+this is a connect-the-dot puzzle. can you connect the dots in order by drawing? connect each dot one at a time, and only use straight lines, no bezier curves.
