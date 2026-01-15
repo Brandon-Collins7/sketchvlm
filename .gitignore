@@ -19,3 +19,7 @@ results/mix_eval/*
 
 # HTML files
 *.html
+# Large zip files
+consistency.zip
+analysis/ball_physics/html_output.zip
+*.zip
