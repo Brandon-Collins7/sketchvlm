@@ -23,6 +23,8 @@ def load_annotated_images(results_dir):
                 data = json.load(f)
 
             source_image = data.get('source_image', '')
+            # Handle both forward and backward slashes
+            source_image = source_image.replace('\\', '/')
             image_name = Path(source_image).name
 
             # The annotated image is in the same directory as the JSON
@@ -60,6 +62,7 @@ def generate_html(csv_path, output_path):
         'Gemini-2.5-Flash': base_path / 'gemini_25_flash_ball_paths',
         'Gemini-2.5-Pro': base_path / 'gemini_25_pro_ball_paths',
         'Gemini-3-Pro': base_path / 'gemini3_ball_paths',
+        'Gemini-3-Pro-0-1000': base_path / 'gemini3pro_batch1_ball_paths_no_grid_0_to_1000',
         'GPT-5-low': base_path / 'gpt5_low_ball_paths',
         'GPT-5-med': base_path / 'gpt5_med_ball_paths',
         'Qwen-235B': base_path / 'qwen3_235b_thinking_ball_paths',
@@ -96,12 +99,12 @@ def generate_html(csv_path, output_path):
 
     # Model definitions
     models = [
+        'Gemini-3-Pro-0-1000',
         'Gemini-3-Pro',
         'GPT-5-med',
         'GPT-5-low',
         'Gemini-2.5-Pro',
         'Gemini-2.5-Flash',
-        'nano_banana_pro',
         'Qwen-235B',
         'Qwen-8B',
     ]
@@ -414,6 +417,6 @@ def generate_html(csv_path, output_path):
 
 if __name__ == '__main__':
     csv_path = Path('/Users/log/Github/sketchvlm/analysis/ball_physics/batch1_all_models_results.csv')
-    output_path = Path('/Users/log/Github/sketchvlm/analysis/ball_physics/batch1_comparison.html')
+    output_path = Path('/Users/log/Github/sketchvlm/analysis/ball_physics/html_output/batch1_comparison.html')
 
     generate_html(csv_path, output_path)

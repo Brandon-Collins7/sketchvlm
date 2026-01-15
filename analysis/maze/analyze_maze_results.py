@@ -310,6 +310,133 @@ def analyze_jsonl_file(jsonl_path: Path, expected_answer: Union[str, int], maze_
     return results
 
 
+def analyze_consistency_check_json(json_path: Path, expected_answer: Union[str, int], maze_to_path_length: Dict[str, int],
+                                   results_base_dir: Path, index_mode: bool = False) -> Dict:
+    """
+    Analyze consistency check results from a JSON array file (Gemini 3 Pro checking other models).
+
+    Args:
+        json_path: Path to consistency check JSON file
+        expected_answer: The expected answer ('valid', 'invalid')
+        maze_to_path_length: Mapping of maze_id to path_length
+        results_base_dir: Base directory for original results (to get maze_id mapping)
+        index_mode: If True, use index-based evaluation
+
+    Returns:
+        Dictionary with analysis results
+    """
+    results = {
+        'total': 0,
+        'correct': 0,
+        'incorrect': 0,
+        'unknown': 0,
+        'expected_answer': expected_answer,
+        'details': [],
+        'by_path_length': defaultdict(lambda: {'total': 0, 'correct': 0, 'incorrect': 0, 'unknown': 0})
+    }
+
+    if not json_path.exists():
+        return results
+
+    # Build mapping from item index to maze_id
+    item_to_maze: Dict[int, str] = {}
+    if results_base_dir and results_base_dir.exists():
+        for jf in sorted(results_base_dir.glob("item_*.json")):
+            try:
+                j = json.loads(jf.read_text(encoding="utf-8"))
+                source_img = str(j.get("source_image", "")).replace("\\", "/")
+                maze_id = extract_maze_id(source_img)
+                if maze_id:
+                    idxm = re.match(r"item_(\d+)\.json$", jf.name, re.I)
+                    if idxm:
+                        item_idx = int(idxm.group(1))
+                        item_to_maze[item_idx] = maze_id
+            except Exception:
+                continue
+
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        if not isinstance(data, list):
+            return results
+
+        for entry in data:
+            # Get maze_id from image_path via item index mapping
+            image_path = entry.get('image_path', '')
+            item_match = re.search(r"item_(\d+)", Path(image_path).name, re.I)
+            if not (item_match and item_to_maze):
+                continue
+
+            item_idx = int(item_match.group(1))
+            maze_id = item_to_maze.get(item_idx)
+            if not maze_id:
+                continue
+
+            path_length = maze_to_path_length.get(maze_id, None)
+
+            # Extract answer from consistency_check_response
+            response = entry.get('consistency_check_response', '')
+
+            # Get ground truth
+            if index_mode:
+                if '_valid' in str(json_path):
+                    gt_answer = 'valid'
+                else:
+                    if path_length is not None:
+                        metadata_path = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v2/path_length_{path_length}/{maze_id}/metadata.json')
+                        if metadata_path.exists():
+                            with open(metadata_path, 'r') as meta_file:
+                                metadata = json.load(meta_file)
+                                gt_answer = metadata.get('incorrect_paths', {}).get('substitution', {}).get('modified_index')
+                        else:
+                            gt_answer = None
+                    else:
+                        gt_answer = None
+                extracted_answer = extract_index_answer_from_response(response)
+            else:
+                gt_answer = expected_answer
+                extracted_answer = extract_answer_from_response(response)
+
+            # Determine correctness
+            is_correct = (extracted_answer == gt_answer)
+            is_unknown = (extracted_answer == 'unknown')
+
+            # Update overall stats
+            results['total'] += 1
+            if is_unknown:
+                results['unknown'] += 1
+            elif is_correct:
+                results['correct'] += 1
+            else:
+                results['incorrect'] += 1
+
+            # Update path length stats
+            if path_length is not None:
+                results['by_path_length'][path_length]['total'] += 1
+                if is_unknown:
+                    results['by_path_length'][path_length]['unknown'] += 1
+                elif is_correct:
+                    results['by_path_length'][path_length]['correct'] += 1
+                else:
+                    results['by_path_length'][path_length]['incorrect'] += 1
+
+            results['details'].append({
+                'file': f'index_{entry.get("index")}',
+                'expected': gt_answer,
+                'extracted': extracted_answer,
+                'correct': is_correct,
+                'unknown': is_unknown,
+                'maze_id': maze_id,
+                'path_length': path_length
+            })
+
+    except Exception as e:
+        print(f"Error reading {json_path}: {e}")
+
+    return results
+
+
 def analyze_thinkmorph_directory(dir_path: Path, expected_answer: Union[str, int], maze_to_path_length: Dict[str, int],
                                   index_mode: bool = False) -> Dict:
     """
@@ -834,24 +961,33 @@ def main():
         sys.exit(1)
 
     # Parse configurations
-    # Format: parent_dir:model_name:label[:format]
-    # format can be: jsonl, thinkmorph, or omitted (default JSON files)
+    # Format: parent_dir:model_name:label[:format][:results_base_dir]
+    # format can be: jsonl, thinkmorph, consistency, or omitted (default JSON files)
+    # results_base_dir is only used for consistency format
     configs = []
     for arg in args:
         parts = arg.split(':')
         if len(parts) == 3:
             # Standard format: parent_dir:model_name:label
-            configs.append(tuple(parts + ['json']))  # Add format='json'
+            configs.append(tuple(parts + ['json', None]))  # Add format='json', results_base=None
         elif len(parts) == 4:
             fmt = parts[3].lower()
-            if fmt in ['jsonl', 'thinkmorph', 'json']:
-                configs.append(tuple(parts[:3] + [fmt]))
+            if fmt in ['jsonl', 'thinkmorph', 'json', 'consistency']:
+                configs.append(tuple(parts[:3] + [fmt, None]))
             else:
-                print(f"Error: Invalid format '{fmt}'. Expected: json, jsonl, or thinkmorph")
+                print(f"Error: Invalid format '{fmt}'. Expected: json, jsonl, thinkmorph, or consistency")
+                sys.exit(1)
+        elif len(parts) == 5:
+            fmt = parts[3].lower()
+            if fmt in ['jsonl', 'thinkmorph', 'json', 'consistency']:
+                configs.append(tuple(parts[:3] + [fmt, parts[4]]))
+            else:
+                print(f"Error: Invalid format '{fmt}'. Expected: json, jsonl, thinkmorph, or consistency")
                 sys.exit(1)
         else:
             print(f"Error: Invalid config format: {arg}")
-            print("Expected format: parent_dir:model_name:label or parent_dir:model_name:label:[json|jsonl|thinkmorph]")
+            print("Expected format: parent_dir:model_name:label[:format[:results_base_dir]]")
+            print("  format: json (default), jsonl, thinkmorph, or consistency")
             sys.exit(1)
 
     # Build maze to path length mapping
@@ -875,7 +1011,7 @@ def main():
     # Analyze all configurations
     all_results = []
 
-    for parent_dir, model_name, label, fmt in configs:
+    for parent_dir, model_name, label, fmt, results_base in configs:
         print("=" * 80)
         if index_mode:
             print(f"{label} - Maze Path Index Identification Analysis")
@@ -925,6 +1061,41 @@ def main():
             # Analyze valid directory
             print("Analyzing VALID ThinkMorph directory (should answer 'valid')...")
             valid_results = analyze_thinkmorph_directory(valid_dir, 'valid', maze_to_path_length, index_mode=index_mode)
+
+        elif fmt == 'consistency':
+            # Consistency check format - analyze JSON files with consistency_check_response
+            if parent_dir == '':
+                invalid_json = base_path / f'{model_name}_invalid.json'
+                valid_json = base_path / f'{model_name}_valid.json'
+            else:
+                invalid_json = base_path / parent_dir / f'{model_name}_invalid.json'
+                valid_json = base_path / parent_dir / f'{model_name}_valid.json'
+
+            # Determine results_base_dir if not provided
+            if results_base:
+                results_base_invalid = Path(results_base) / f'{results_base.split("/")[-1]}_invalid'
+                results_base_valid = Path(results_base) / f'{results_base.split("/")[-1]}_valid'
+            else:
+                # Auto-detect from model_name: maze_nanob_gemini3_pro -> nanob_maze
+                # Remove _gemini3_pro suffix, then swap maze_X to X_maze
+                original_model = model_name.replace('_gemini3_pro', '')
+                if original_model.startswith('maze_'):
+                    original_model = original_model.replace('maze_', '', 1) + '_maze'
+                results_base_invalid = Path(f'/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/{original_model}_invalid')
+                results_base_valid = Path(f'/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/{original_model}_valid')
+
+            # Analyze invalid JSON
+            if index_mode:
+                print("Analyzing INVALID consistency check JSON (ground truth: numeric index)...")
+            else:
+                print("Analyzing INVALID consistency check JSON (should answer 'invalid')...")
+            invalid_results = analyze_consistency_check_json(invalid_json, 'invalid' if not index_mode else None,
+                                                             maze_to_path_length, results_base_invalid, index_mode=index_mode)
+
+            # Analyze valid JSON
+            print("Analyzing VALID consistency check JSON (should answer 'valid')...")
+            valid_results = analyze_consistency_check_json(valid_json, 'valid', maze_to_path_length,
+                                                           results_base_valid, index_mode=index_mode)
 
         else:
             # Standard JSON format - analyze directories of JSON files

@@ -619,3 +619,207 @@ python collab_sketch_with_label.py --llm openrouter --model google/gemini-2.5-pr
   python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py \
       --input /Users/log/Github/sketchvlm/consistency/normal_gemini3/source_data/image_questions_maze_nanob_invalid.json \
       --model google/gemini-3-pro-preview
+
+
+
+
+
+
+# VPCT
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_gemini_flash.json \
+      --output consistency/judge_output/vpct_quality/vpct_gemini_flash.json \
+      --model google/gemini-3-flash-preview
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_gemini_pro25.json \
+      --output consistency/judge_output/vpct_quality/vpct_gemini_pro25.json \
+      --model google/gemini-3-flash-preview
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_gpt5low.json \
+      --output consistency/judge_output/vpct_quality/vpct_gpt5low.json \
+      --model google/gemini-3-flash-preview
+
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_gpt5med.json \
+      --output consistency/judge_output/vpct_quality/vpct_gpt5med.json \
+      --model google/gemini-3-flash-preview
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_nanobanana.json \
+      --output consistency/judge_output/vpct_quality/vpct_nanobanana.json \
+      --model google/gemini-3-flash-preview
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_thinkmorph.json \
+      --output consistency/judge_output/vpct_quality/vpct_thinkmorph.json \
+      --model google/gemini-3-flash-preview
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/vpct_quality/source_ball_quality_vpct_vilasr.json \
+      --output consistency/judge_output/vpct_quality/vpct_vilasr.json \
+      --model google/gemini-3-flash-preview
+
+
+
+
+
+
+# ball path
+⏺ # Batch 1 - Gemini 3 Pro
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_gemini3_pro.json \
+      --output consistency/judge_output/ball_quality/batch1_gemini3_pro.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - Gemini 2.5 Flash
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_gemini_25_flash.json \
+      --output consistency/judge_output/ball_quality/batch1_gemini_25_flash.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - Gemini 2.5 Pro
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_gemini_25_pro.json \
+      --output consistency/judge_output/ball_quality/batch1_gemini_25_pro.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - GPT-5 Low
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_gpt5_low.json \
+      --output consistency/judge_output/ball_quality/batch1_gpt5_low.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - GPT-5 Med
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_gpt5_med.json \
+      --output consistency/judge_output/ball_quality/batch1_gpt5_med.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - Nano Banana
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_nano_banana.json \
+      --output consistency/judge_output/ball_quality/batch1_nano_banana.json \
+      --model google/gemini-3-flash-preview
+
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_nano_banana.json \
+      --output consistency/judge_output/ball_quality/batch2_nano_banana.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - Qwen 2.5 7B
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_qwen25_7b.json \
+      --output consistency/judge_output/ball_quality/batch1_qwen25_7b.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - Qwen 3 235B Thinking
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_qwen3_235b_thinking.json \
+      --output consistency/judge_output/ball_quality/batch1_qwen3_235b_thinking.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - Qwen 3 8B Thinking
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_qwen3_8b_thinking.json \
+      --output consistency/judge_output/ball_quality/batch1_qwen3_8b_thinking.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - ThinkMorph
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_thinkmorph.json \
+      --output consistency/judge_output/ball_quality/batch1_thinkmorph.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 1 - ViLaSR
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch1_vilasr.json \
+      --output consistency/judge_output/ball_quality/batch1_vilasr.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - Gemini 3 Pro
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_gemini3_pro.json \
+      --output consistency/judge_output/ball_quality/batch2_gemini3_pro.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - Gemini 2.5 Flash
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_gemini_25_flash.json \
+      --output consistency/judge_output/ball_quality/batch2_gemini_25_flash.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - Gemini 2.5 Pro
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_gemini_25_pro.json \
+      --output consistency/judge_output/ball_quality/batch2_gemini_25_pro.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - GPT-5 Low
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_gpt5_low.json \
+      --output consistency/judge_output/ball_quality/batch2_gpt5_low.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - GPT-5 Med
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_gpt5_med.json \
+      --output consistency/judge_output/ball_quality/batch2_gpt5_med.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - Qwen 2.5 7B
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_qwen25_7b.json \
+      --output consistency/judge_output/ball_quality/batch2_qwen25_7b.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - ThinkMorph
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_thinkmorph.json \
+      --output consistency/judge_output/ball_quality/batch2_thinkmorph.json \
+      --model google/gemini-3-flash-preview
+
+  # Batch 2 - ViLaSR
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/ball_quality/source_ball_quality_batch2_vilasr.json \
+      --output consistency/judge_output/ball_quality/batch2_vilasr.json \
+      --model google/gemini-3-flash-preview
+
+
+
+
+  # Gemini 3 Pro - Valid Paths (0-1000)
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/grid_world_quality/source_maze_quality_gemini3pro_validpaths_0_1000.json \
+      --output consistency/judge_output/grid_world_quality/gemini3pro_validpaths_0_1000.json \
+      --model google/gemini-3-flash-preview
+
+  # Gemini 3 Pro - Invalid Paths (0-1000)
+  python consistency/process_with_openrouter.py \
+      --input consistency/source_data/grid_world_quality/source_maze_quality_gemini3pro_invalidpaths_0_1000.json \
+      --output consistency/judge_output/grid_world_quality/gemini3pro_invalidpaths_0_1000.json \
+      --model google/gemini-3-flash-preview
+
+
+
+
+
+
+  python consistency/process_with_openrouter.py \
+    --input consistency/normal_gemini3/source_data/image_questions_maze_nanob_invalid.json \
+    --output consistency/normal_gemini3/judge_output/maze_nanob_gemini3pro_invalid.json \
+    --model google/gemini-3-pro-preview
+
+  python consistency/process_with_openrouter.py \
+    --input consistency/normal_gemini3/source_data/image_questions_maze_nanob_valid.json \
+    --output consistency/normal_gemini3/judge_output/maze_nanob_gemini3pro_valid.json \
+    --model google/gemini-3-pro-preview
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/maze_v2/sketch_valid_flattened_nanob --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "57,71,80"
+
+
+python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/maze_v2/sketch_invalid_flattened_nanob --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "37,41,57,60,91,100,106"

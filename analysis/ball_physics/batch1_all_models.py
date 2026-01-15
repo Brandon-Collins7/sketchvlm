@@ -147,8 +147,8 @@ def load_paths_results(results_dir: Path, reasoning_level: str, gt_dict: Dict[st
     Load path-based results from JSON files.
 
     Args:
-        results_dir: Path to results/mix_eval/ball_paths/gpt5
-        reasoning_level: One of 'low', 'med', 'high'
+        results_dir: Path to results/mix_eval/ball_paths/gpt5 or batch1
+        reasoning_level: One of 'low', 'med', 'high', or 'gemini3pro'
         gt_dict: Ground truth dictionary
         lines_dict: Number of lines dictionary
 
@@ -159,7 +159,8 @@ def load_paths_results(results_dir: Path, reasoning_level: str, gt_dict: Dict[st
     dir_map = {
         'low': 'gpt5_low_ball_paths',
         'med': 'gpt5_med_ball_paths',
-        'high': 'gpt5_high_ball_paths'
+        'high': 'gpt5_high_ball_paths',
+        'gemini3pro': 'gemini3pro_batch1_ball_paths_no_grid_0_to_1000'
     }
 
     paths_dir = results_dir / dir_map[reasoning_level]
@@ -191,6 +192,10 @@ def load_paths_results(results_dir: Path, reasoning_level: str, gt_dict: Dict[st
 
             # Extract prediction from 'answer' field
             prediction = data.get('answer')
+
+            # If answer is a string (e.g., "$\boxed{1}$"), parse it
+            if isinstance(prediction, str):
+                prediction = parse_bucket(prediction)
 
             # Get ground truth and num_lines
             gold = gt_dict.get(image_name)
@@ -679,6 +684,14 @@ def main():
     if not df.empty:
         all_dfs.append(df)
         print(f"  Loaded {len(df)} Gemini-3-Pro consistency check samples")
+
+    # Load Gemini-3-Pro full batch results
+    print("\nLoading Gemini-3-Pro 0-1000 batch results...")
+    gemini3pro_dir = batch1_dir / "gemini3pro_batch1_ball_paths_no_grid_0_to_1000"
+    df = load_paths_results(batch1_dir, 'gemini3pro', gt_dict, lines_dict)
+    if not df.empty:
+        all_dfs.append(df)
+        print(f"  Loaded {len(df)} Gemini-3-Pro 0-1000 samples")
 
     # Combine all results
     if not all_dfs:

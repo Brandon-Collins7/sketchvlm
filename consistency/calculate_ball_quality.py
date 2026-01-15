@@ -17,7 +17,7 @@ from collections import defaultdict
 
 def extract_quality_score(text: str) -> Optional[int]:
     """
-    Extract quality score from "Logical Consistency Score: X" format.
+    Extract quality score from "Quality Score: X" format.
 
     Args:
         text: Text containing the score
@@ -28,7 +28,14 @@ def extract_quality_score(text: str) -> Optional[int]:
     if not text:
         return None
 
-    # Try to find "Logical Consistency Score: X" pattern
+    # Try to find "Quality Score: X" pattern (new format)
+    score_match = re.search(r'Quality\s+Score:\s*(\d+)', text, re.IGNORECASE)
+    if score_match:
+        score = int(score_match.group(1))
+        if 1 <= score <= 5:
+            return score
+
+    # Fallback: Try old format "Logical Consistency Score: X"
     score_match = re.search(r'Logical\s+Consistency\s+Score:\s*(\d+)', text, re.IGNORECASE)
     if score_match:
         score = int(score_match.group(1))

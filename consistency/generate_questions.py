@@ -13,10 +13,9 @@ VPCT_BALL_DROP_PROMPT = "The ball is released from rest, the only force it is su
 MAZE_PROMPT = "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n"
 
 BALL_QUALITY = """# Overall Instructions
-You will be shown two images: the original image and an AI-annotated version. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
+You will be shown two images: the original image and an AI-annotated version. The annotation is supposed to show how the path the ball will take when it is dropped and where it will eventually end up. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
 
-**Logic consistency**
-Does the drawn ball path make logical sense? For example, does drawn ball path clip through any of the static environment or does the ball path follow unrealistic physics? If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
+A minor issue is a violation that has little effect on the final answer of what bucket the ball will fall into. For example, if the ball path slightly clips through the walls, but the trajectory of the path still makes sense, then this is only a minor issue and not a major issue. A major issue is a violation that has a significant effect on the final answer of what bucket the ball will fall into. For example, if the ball path clips through the walls and the trajectory of the path is not logical, then this is a major issue. If there is no sketch provided, then the score should be a 1. The score should be based on the scale of 1 - 5
 
 # Quality Checks
 
@@ -24,7 +23,7 @@ Below are more details:
 
 ## Things that are bad
 1) The drawn path clips through any of the black walls.
-2) The drawn path does not show realistic physics. For example, the ball path momentarily disobeys gravity by moving upwards or moving in a direction that is not logical for gravity.
+2) The drawn path has very unrealistic physics. For example, the ball path momentarily disobeys gravity by moving upwards or moving in a direction that is not logical for gravity.
 3) The drawn path substantially alters the original image (like adding or removing walls)
 4) The drawn path contains multiple different paths instead of a single path.
 
@@ -32,26 +31,37 @@ Below are more details:
 1) The drawn path is a single path that clearly shows where the final resting position of the ball will be.
 2) The drawn path does not cut through any of the black walls.
 
+## Things that are okay
+1) If the path slightly clips through the walls, but the trajectory of the path still makes sense, then this is only a minor issue and not a major issue. We want to heavily penalize the ball going through walls and following a totally illogical path.
+2) It's okay if the drawn path does not start exactly at the origin of the ball. As long as it is close, then this is not a minor or major issue.
+
+
+
 # Scoring breakdown
 
 1) The sketch has several critical flaws
 2) The sketch has a critical flaw
-3) The sketch contains errors, but is overall acceptable.
-4) The sketch contains a minor logical error and is close to being very good quality.
+3) The sketch contains some errors, overall direction of the path is valid and makes sense.
+4) The sketch contains one minor logical error.
 5) The sketch contains zero errors.
 
 # Output Format
 You should follow this output format EXACTLY with no other output:
 
 {reasoning for logical consistency score}
-Logical Consistency Score: {integer from 1 - 5}
+Quality Score: {integer from 1 - 5}
 
 # Example Output
 
 <example_1>
-The drawing contains multiple errors. The ball path clips through one of the platforms, but it is a minor issue as the path of the ball still makes sense. Additionally, the ball path defies gravity and begins to momentarily float straight upwards for no logical reason. The minor error combined with the critical error results in a logical score of 2/5
-Logical Consistency Score: 5
+The drawing contains multiple errors. The ball path barely clips through one of the platforms, but it is a minor issue as the path of the ball still makes sense. Additionally, the ball path defies gravity and begins to momentarily float straight upwards for no logical reason. The minor error combined with the critical error results in a logical score of 2/5.
+Quality Score: 2
 </example_1>
+
+<example_2>
+Overall, the path the ball takes is logical. It properly reflects off the first wall and then rolls to the right. Then, it falls down to the left and lands in bucket 2. The ball path slightly clips through one of the black edges, but this is a minor issue because the big picture trajectory of the ball is still logical. Given the overall path makes sense and there was just one minor issue, the quality score is 4/5.
+Quality Score: 4
+</example_2>
 """
 
 MAZE_QUALITY = """# Overall Instructions
@@ -224,9 +234,9 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
                 # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
                 # 'prompt': GENERAL_PROMPT + VPCT_BALL_DROP_PROMPT,
                 # 'prompt': GENERAL_PROMPT + MAZE_PROMPT + proposed_path,
-                # 'prompt': BALL_QUALITY,
+                'prompt': BALL_QUALITY,
                 # 'prompt': GEMINI_3_SECOND_TURN,
-                'prompt': MAZE_QUALITY + proposed_path,
+                # 'prompt': MAZE_QUALITY + proposed_path,
                 'model_answer': model_answer,
                 'extracted_answer': extracted_answer,
                 'model': model,

@@ -118,10 +118,13 @@ def process_sketch_results(model_dir: Path, model_name: str, ground_truth: Dict[
             # Extract image name from source_image (original filename)
             source_image = data.get('source_image', '')
             if source_image:
+                # Handle both forward and backward slashes
+                source_image = source_image.replace('\\', '/')
                 image_name = Path(source_image).name
             else:
                 # Fallback to raw_image or grid_image path
                 image_path = data.get('raw_image', data.get('grid_image', ''))
+                image_path = image_path.replace('\\', '/')
                 image_name = Path(image_path).stem.replace('_orig', '').replace('_grid', '') + '.png'
 
             # Parse the answer
@@ -301,10 +304,13 @@ def process_direct_vqa_individual_json(model_dir: Path, model_name: str, ground_
             # Extract image name from source_image (original filename)
             source_image = data.get('source_image', '')
             if source_image:
+                # Handle both forward and backward slashes
+                source_image = source_image.replace('\\', '/')
                 image_name = Path(source_image).name
             else:
                 # Fallback to raw_image or grid_image path
                 image_path = data.get('raw_image', data.get('grid_image', ''))
+                image_path = image_path.replace('\\', '/')
                 image_name = Path(image_path).stem.replace('_orig', '').replace('_grid', '') + '.png'
 
             # Parse the answer from model_output_full or model_output
@@ -455,6 +461,7 @@ def process_all_models():
         ('vilasr_ball_paths_batch2', 'ViLaSR', 'paths', True),  # JSONL format
         ('gemini3_image_two_turn_batch2', 'nano_banana_pro', 'paths', False),
         ('gemini3_ball_paths_batch2', 'Gemini-3-Pro', 'paths', False),
+        ('gemini3pro_batch2_ball_paths_no_grid_0_to_1000', 'Gemini-3-Pro-0-1000', 'paths', False),
 
     ]
 

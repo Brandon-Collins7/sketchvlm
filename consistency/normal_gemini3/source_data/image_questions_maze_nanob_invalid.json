@@ -1,6 +1,6 @@
 [
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00000_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00000_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: left, down, right, down, left, left",
     "model_answer": "",
     "extracted_answer": "",
@@ -27,7 +27,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00002_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00003_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00003_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: left, up, down, right, right, down",
     "model_answer": "",
     "extracted_answer": "",
@@ -45,7 +45,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00004_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00005_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00005_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: left, right, down, down",
     "model_answer": "",
     "extracted_answer": "",
@@ -72,7 +72,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00007_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00008_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00008_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: right, left, up, up",
     "model_answer": "",
     "extracted_answer": "",
@@ -81,7 +81,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00008_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00009_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00009_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: up, right, right, right, up, up, left, left",
     "model_answer": "",
     "extracted_answer": "",
@@ -90,7 +90,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00009_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00010_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00010_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: up, up, left, left, right",
     "model_answer": "",
     "extracted_answer": "",
@@ -108,7 +108,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00011_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00012_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00012_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: right, up, right",
     "model_answer": "",
     "extracted_answer": "",
@@ -117,7 +117,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00012_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00013_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00013_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: left, up, left",
     "model_answer": "",
     "extracted_answer": "",
@@ -144,7 +144,7 @@
     "original_image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00015_orig.jpg"
   },
   {
-    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00016_generated_0.jpeg",
+    "image_path": "/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/nano_banana/nanob_maze_invalid/item_00016_generated_0.png",
     "prompt": "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\nYou are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n\n\nProposed path: down, up, right, down, down, left",
     "model_answer": "",
     "extracted_answer": "",

@@ -162,6 +162,62 @@ def load_vilasr_jsonl_results(jsonl_path: Path) -> Dict[str, str]:
     return results
 
 
+def load_consistency_check_json(json_path: Path, results_base_dir: Path) -> Dict[str, str]:
+    """
+    Load consistency check results from a JSON array file (Gemini 3 Pro checking other models).
+    Returns: dict mapping maze_id -> extracted_answer
+    """
+    results = {}
+
+    if not json_path.exists():
+        return results
+
+    # Build mapping from item index to maze_id
+    item_to_maze: Dict[int, str] = {}
+    if results_base_dir and results_base_dir.exists():
+        for jf in sorted(results_base_dir.glob("item_*.json")):
+            try:
+                j = json.loads(jf.read_text(encoding="utf-8"))
+                source_img = str(j.get("source_image", "")).replace("\\", "/")
+                maze_id = extract_maze_id(source_img)
+                if maze_id:
+                    idxm = re.match(r"item_(\d+)\.json$", jf.name, re.I)
+                    if idxm:
+                        item_idx = int(idxm.group(1))
+                        item_to_maze[item_idx] = maze_id
+            except Exception:
+                continue
+
+    try:
+        with open(json_path, 'r') as f:
+            data = json.load(f)
+
+        if not isinstance(data, list):
+            return results
+
+        for entry in data:
+            # Get maze_id from image_path via item index mapping
+            image_path = entry.get('image_path', '')
+            item_match = re.search(r"item_(\d+)", Path(image_path).name, re.I)
+            if not (item_match and item_to_maze):
+                continue
+
+            item_idx = int(item_match.group(1))
+            maze_id = item_to_maze.get(item_idx)
+            if not maze_id:
+                continue
+
+            # Extract answer from consistency_check_response
+            response = entry.get('consistency_check_response', '')
+            extracted_answer = extract_answer_from_response(response)
+            results[maze_id] = extracted_answer
+
+    except Exception as e:
+        print(f"Error reading {json_path}: {e}")
+
+    return results
+
+
 def load_thinkmorph_results(thinkmorph_dir: Path) -> Dict[str, str]:
     """
     Load ThinkMorph results from directories with text_data.json files.
@@ -225,7 +281,7 @@ def main():
 
     # Define all models
     # Format: (model_name, model_base_path, model_prefix, format_type)
-    # format_type: 'json' for standard, 'jsonl' for ViLaSR, 'thinkmorph' for ThinkMorph
+    # format_type: 'json' for standard, 'jsonl' for ViLaSR, 'thinkmorph' for ThinkMorph, 'consistency' for consistency check
     models = [
         ('gemini_flash_sketch', base_path / 'gemini', 'gemini25_flash', 'json'),
         ('gemini_flash_vqa', base_path / 'gemini' / 'direct_vqa', 'gemini25_flash', 'json'),
@@ -245,6 +301,7 @@ def main():
         ('qwen25_7b_vqa', base_path / 'qwen25_7b' / 'direct_vqa', 'qwen25_7b', 'json'),
         ('vilasr_sketch', base_path / 'vilasr', 'vilasr', 'jsonl'),
         ('thinkmorph_sketch', base_path / 'thinkmorph', 'thinkmorph', 'thinkmorph'),
+        ('nanob_gemini3_consistency', base_path / 'gemini', 'maze_nanob_gemini3_pro', 'consistency'),
     ]
 
     # Collect all maze IDs from results files (not just dataset)
@@ -292,6 +349,21 @@ def main():
             all_results[model_name] = {
                 'invalid': load_thinkmorph_results(invalid_dir),
                 'valid': load_thinkmorph_results(valid_dir)
+            }
+        elif format_type == 'consistency':
+            # Load from consistency check JSON files
+            invalid_json = model_base / f'{model_prefix}_invalid.json'
+            valid_json = model_base / f'{model_prefix}_valid.json'
+            # Get the original results directory for mapping: maze_nanob_gemini3_pro -> nanob_maze
+            # Remove _gemini3_pro suffix, then swap maze_X to X_maze
+            original_model = model_prefix.replace('_gemini3_pro', '')
+            if original_model.startswith('maze_'):
+                original_model = original_model.replace('maze_', '', 1) + '_maze'
+            results_base_invalid = base_path / 'nano_banana' / f'{original_model}_invalid'
+            results_base_valid = base_path / 'nano_banana' / f'{original_model}_valid'
+            all_results[model_name] = {
+                'invalid': load_consistency_check_json(invalid_json, results_base_invalid),
+                'valid': load_consistency_check_json(valid_json, results_base_valid)
             }
         else:
             # Load from individual JSON files

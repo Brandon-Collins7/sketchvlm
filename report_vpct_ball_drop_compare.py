@@ -166,7 +166,7 @@ def load_raw_dir(raw_dir: Path, raw_fallback_last_number: bool = False) -> Dict[
     return out
 
 
-def load_raw_jsonl(jsonl_path: Path, raw_fallback_last_number: bool = False) -> Dict[str,Dict[str,Any]]:
+def load_raw_jsonl(jsonl_path: Path, raw_fallback_last_number: bool = False, grid_dir: Optional[Path] = None) -> Dict[str,Dict[str,Any]]:
     """
     JSONL raw loader.
 
@@ -175,9 +175,84 @@ def load_raw_jsonl(jsonl_path: Path, raw_fallback_last_number: bool = False) -> 
       2) Extract from <answer>X</answer> in model_output field
       3) parsed_int / parsed_label / raw_text (legacy jsonl schema)
       4) (optional) last integer in model_output_full if answer is null
+      5) Extract last standalone integer from consistency_check_response (for consistency check JSONs)
     """
     out: Dict[str,Dict[str,Any]] = {}
-    for ln in jsonl_path.read_text(encoding="utf-8").splitlines():
+
+    # Build mapping from item index to sim_XXX_initial.png basename
+    item_to_sim: Dict[int, str] = {}
+    if grid_dir and grid_dir.exists():
+        for jf in sorted(grid_dir.glob("item_*.json")):
+            try:
+                j = json.loads(jf.read_text(encoding="utf-8"))
+                source_img = str(j.get("source_image", "")).replace("\\", "/")
+                basename = Path(source_img).name
+                if SIM_IMG_RE.search(basename):
+                    idxm = re.match(r"item_(\d+)\.json$", jf.name, re.I)
+                    if idxm:
+                        item_idx = int(idxm.group(1))
+                        item_to_sim[item_idx] = basename
+            except Exception:
+                continue
+
+    # Check if this is a JSON array file (not JSONL)
+    content = jsonl_path.read_text(encoding="utf-8")
+    try:
+        # Try to parse as JSON array first
+        data = json.loads(content)
+        if isinstance(data, list):
+            # It's a JSON array, handle differently
+            for j in data:
+                # Extract image_path
+                image_field = j.get("image_path") or j.get("file") or j.get("image") or j.get("source_image")
+                if isinstance(image_field, list):
+                    image_field = image_field[0] if image_field else ""
+                f = str(image_field or "").replace("\\","/")
+                basename = Path(f).name
+
+                # Try to map from item_XXXXX to sim_XXX_initial.png
+                if not SIM_IMG_RE.search(basename):
+                    # Extract item index from image_path like item_00000_generated_0.png
+                    item_match = re.search(r"item_(\d+)", basename, re.I)
+                    if item_match and item_to_sim:
+                        item_idx = int(item_match.group(1))
+                        if item_idx in item_to_sim:
+                            basename = item_to_sim[item_idx]
+                        else:
+                            continue
+                    else:
+                        continue
+
+                pred = None
+                raw_text = ""
+
+                # Check for consistency_check_response field
+                if "consistency_check_response" in j:
+                    raw_text = str(j.get("consistency_check_response", ""))
+                    # Extract last standalone integer from response
+                    if raw_text.strip():
+                        last_int = _extract_last_int_token(raw_text)
+                        pred = _to_int_123(last_int)
+
+                # Fallback to other fields if not found
+                if pred is None:
+                    pred = _to_int_123(j.get("answer"))
+
+                if pred is None:
+                    model_output = j.get("model_output") or ""
+                    if isinstance(model_output, str) and model_output.strip():
+                        answer_match = re.search(r"<answer>(\d+)</answer>", model_output, re.I)
+                        if answer_match:
+                            pred = _to_int_123(answer_match.group(1))
+
+                out[basename] = {"pred": pred, "raw_text": raw_text, "orig": None}
+            return out
+    except json.JSONDecodeError:
+        # Not a JSON array, continue with JSONL parsing
+        pass
+
+    # Original JSONL parsing
+    for ln in content.splitlines():
         ln = ln.strip()
         if not ln:
             continue
@@ -610,7 +685,7 @@ def main():
         raise SystemExit("Please provide --raw-jsonl (recommended) or --raw-dir.")
 
     if args.raw_jsonl:
-        raw_map = load_raw_jsonl(args.raw_jsonl, raw_fallback_last_number=args.raw_fallback_last_number)
+        raw_map = load_raw_jsonl(args.raw_jsonl, raw_fallback_last_number=args.raw_fallback_last_number, grid_dir=args.grid_dir)
         raw_src_label = args.raw_jsonl.as_posix()
         jsonl_for_mapping = args.raw_jsonl
     else:
