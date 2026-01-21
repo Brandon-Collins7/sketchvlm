@@ -7,7 +7,11 @@
       "Bash(cat:*)",
       "Bash(ls:*)",
       "Bash(find:*)",
-      "Bash(python consistency/generate_questions.py:*)"
+      "Bash(python consistency/generate_questions.py:*)",
+      "Bash(python /tmp/check_success_count.py:*)",
+      "Bash(python /tmp/check_indices.py:*)",
+      "Bash(python:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   },

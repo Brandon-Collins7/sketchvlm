@@ -12,6 +12,8 @@ BALL_DROP_PROMPT = "The image is a physics simulation of a ball being dropped. T
 VPCT_BALL_DROP_PROMPT = "The ball is released from rest, the only force it is subject to is gravity. The black lines are walls and platforms and the ball cannot pass through them. Put your answer of which container it will land in, 1, 2, or 3 (numbered left to right)."
 MAZE_PROMPT = "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n"
 
+DONT_HALLUCINATE_PROMPT = "Keep in mind that your final answer should only be based off the annotated image. Only look at the path that is taken when making your decision. Be careful to make sure that you do not hallucinate moves that do not exist in the image."
+
 BALL_QUALITY = """# Overall Instructions
 You will be shown two images: the original image and an AI-annotated version. The annotation is supposed to show how the path the ball will take when it is dropped and where it will eventually end up. Your job is to grade the quality of the sketch using a rubric. You should grade only based on the following attributes that are given.
 
@@ -234,7 +236,9 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
                 # 'prompt': GENERAL_PROMPT + BALL_DROP_PROMPT,
                 # 'prompt': GENERAL_PROMPT + VPCT_BALL_DROP_PROMPT,
                 # 'prompt': GENERAL_PROMPT + MAZE_PROMPT + proposed_path,
-                'prompt': BALL_QUALITY,
+                # 'prompt': GENERAL_PROMPT + MAZE_PROMPT,
+                'prompt': GENERAL_PROMPT + MAZE_PROMPT + DONT_HALLUCINATE_PROMPT,
+                # 'prompt': BALL_QUALITY,
                 # 'prompt': GEMINI_3_SECOND_TURN,
                 # 'prompt': MAZE_QUALITY + proposed_path,
                 'model_answer': model_answer,
@@ -425,12 +429,8 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
                             break
 
         for image_path in image_files:
-            # Determine which prompt to use based on task type
-            # If proposed_path is not empty, it's a maze task
-            if proposed_path:
-                prompt = MAZE_QUALITY + proposed_path
-            else:
-                prompt = BALL_QUALITY
+            # Use consistency checking prompt (same as SketchVLM format)
+            prompt = GENERAL_PROMPT + MAZE_PROMPT + DONT_HALLUCINATE_PROMPT
 
             entry = {
                 'image_path': str(image_path),
@@ -464,12 +464,11 @@ def main():
 
     args = parser.parse_args()
 
-    # Create source_data directory
-    source_data_dir = os.path.join(args.output_dir, 'source_data')
-    os.makedirs(source_data_dir, exist_ok=True)
+    # Create output directory
+    os.makedirs(args.output_dir, exist_ok=True)
 
     # Output JSON file path
-    output_file = os.path.join(source_data_dir, f'image_questions_{args.model}.json')
+    output_file = os.path.join(args.output_dir, f'{args.model}.json')
 
     print(f"Model: {args.model}")
     print(f"Scanning directory: {args.base_dir}")

@@ -823,3 +823,71 @@ python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-
 
 
 python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-image-preview --mixed-dir datasets/maze_v2/sketch_invalid_flattened_nanob --max-tokens 20000 --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --no-system-prompt --no-grid --only "37,41,57,60,91,100,106"
+
+
+
+
+
+                                                                                                                                                                              
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gpt5_low_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gpt5_low_invalid.json --model google/gemini-3-flash-preview       
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gpt5_low_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gpt5_low_invalid.json --model google/gemini-3-flash-preview       
+
+
+  python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gemini3pro_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gemini3pro_invalid.json --model google/gemini-3-flash-preview           
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gemini3pro_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gemini3pro_valid.json --model google/gemini-3-flash-preview                         
+
+
+  python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gemini25_flash_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gemini25_flash_invalid.json --model google/gemini-3-flash-preview  
+
+  python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gemini25_flash_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gemini25_flash_valid.json --model google/gemini-3-flash-preview     
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gemini25_pro_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gemini25_pro_invalid.json --model google/gemini-3-flash-preview    
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/gemini25_pro_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_gemini25_pro_valid.json --model google/gemini-3-flash-preview   
+
+  python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/thinkmorph_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_thinkmorph_invalid.json --model google/gemini-3-flash-preview       
+  
+  python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/thinkmorph_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_thinkmorph_valid.json --model google/gemini-3-flash-preview       
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/vilasr_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_vilasr_invalid.json --model google/gemini-3-flash-preview        
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/vilasr_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_vilasr_valid.json --model google/gemini-3-flash-preview        
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_pro_invalid.json --model google/gemini-3-flash-preview              
+        
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_pro_valid.json --model google/gemini-3-flash-preview                
+
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_invalid_retry.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_pro_invalid_retry.json --model google/gemini-3-flash-preview              
+        
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_valid_retry.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_pro_valid_retry.json --model google/gemini-3-flash-preview                
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_invalid_missing.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/nanob_gemini3_pro_invalid_missing_results.json --model google/gemini-3-pro-preview      
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_valid_missing.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/nanob_gemini3_pro_valid_missing_results.json --model google/gemini-3-pro-preview            
+
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_invalid_newly_available.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/nanob_gemini3_pro_invalid_newly_available_results.json --model google/gemini-3-pro-preview     
+                             
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_valid_newly_available.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/nanob_gemini3_pro_valid_newly_available_results.json --model google/gemini-3-pro-preview       
+       
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_pro_invalid.json --model google/gemini-3-flash-preview                
+               
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/grid_world/nanob_gemini3_pro_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_pro_valid.json --model google/gemini-3-flash-preview                  
+
+
+
+
+
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 

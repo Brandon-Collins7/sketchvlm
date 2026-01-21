@@ -40,41 +40,61 @@ def extract_boxed_answer(text: str) -> Optional[str]:
     return None
 
 
-def normalize_answer(answer: str) -> Optional[str]:
+def normalize_answer(answer: str, answer_type: str = 'number') -> Optional[str]:
     """
-    Normalize answer to just the number.
+    Normalize answer to just the number or valid/invalid.
 
     Args:
         answer: Raw answer string
+        answer_type: 'number' for ball drop tasks, 'word' for maze tasks
 
     Returns:
-        Normalized answer (just the number) or None
+        Normalized answer (just the number or valid/invalid) or None
     """
     if not answer:
         return None
 
     answer = str(answer).strip().lower()
 
-    # Extract just the number
-    number_match = re.search(r'\d+', answer)
-    if number_match:
-        return number_match.group(0)
+    if answer_type == 'word':
+        # Word mode: only extract valid/invalid
+        # Extract from boxed format if present
+        boxed = extract_boxed_answer(answer)
+        if boxed:
+            boxed_lower = boxed.lower()
+            if 'invalid' in boxed_lower:
+                return 'invalid'
+            elif 'valid' in boxed_lower:
+                return 'valid'
+        # Otherwise check the full string
+        if 'invalid' in answer:
+            return 'invalid'
+        elif 'valid' in answer:
+            return 'valid'
+        return None
+    else:
+        # Number mode: extract numbers
+        # Extract just the number
+        number_match = re.search(r'\d+', answer)
+        if number_match:
+            return number_match.group(0)
 
-    # Handle special cases
-    if 'none' in answer:
-        return 'none'
-    if 'multiple' in answer:
-        return 'multiple'
+        # Handle special cases
+        if 'none' in answer:
+            return 'none'
+        if 'multiple' in answer:
+            return 'multiple'
 
     return answer
 
 
-def analyze_consistency(judge_file: Path) -> Dict:
+def analyze_consistency(judge_file: Path, answer_type: str = 'number') -> Dict:
     """
     Analyze consistency for a single judge output file.
 
     Args:
         judge_file: Path to judge output JSON file
+        answer_type: 'number' for ball drop tasks, 'word' for maze tasks
 
     Returns:
         Dictionary with analysis results
@@ -116,8 +136,8 @@ def analyze_consistency(judge_file: Path) -> Dict:
         judge_answer = extract_boxed_answer(judge_response)
 
         # Normalize both answers
-        norm_original = normalize_answer(original_answer)
-        norm_judge = normalize_answer(judge_answer)
+        norm_original = normalize_answer(original_answer, answer_type)
+        norm_judge = normalize_answer(judge_answer, answer_type)
 
         # Check extraction failures
         judge_failed = judge_answer is None or norm_judge is None
@@ -272,6 +292,8 @@ def main():
                        help='Maximum warnings to show per type (default: 5)')
     parser.add_argument('--show-warnings', action='store_true',
                        help='Show detailed warnings')
+    parser.add_argument('--answer-type', type=str, choices=['number', 'word'], default='number',
+                       help='Answer type: "number" for ball drop tasks (1,2,3,4), "word" for maze tasks (valid/invalid)')
 
     args = parser.parse_args()
 
@@ -292,12 +314,13 @@ def main():
         return
 
     print(f"Found {len(judge_files)} judge output files")
+    print(f"Answer type: {args.answer_type}")
 
     # Analyze each file
     all_results = []
     for judge_file in judge_files:
         print(f"Analyzing {judge_file.name}...")
-        results = analyze_consistency(judge_file)
+        results = analyze_consistency(judge_file, answer_type=args.answer_type)
         all_results.append(results)
 
     # Print summary table
