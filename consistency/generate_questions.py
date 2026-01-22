@@ -237,10 +237,10 @@ def gather_sketchvlm_results(base_dir: str, model: str, use_generated: bool = Fa
                 # 'prompt': GENERAL_PROMPT + VPCT_BALL_DROP_PROMPT,
                 # 'prompt': GENERAL_PROMPT + MAZE_PROMPT + proposed_path,
                 # 'prompt': GENERAL_PROMPT + MAZE_PROMPT,
-                'prompt': GENERAL_PROMPT + MAZE_PROMPT + DONT_HALLUCINATE_PROMPT,
+                # 'prompt': GENERAL_PROMPT + MAZE_PROMPT + DONT_HALLUCINATE_PROMPT,
                 # 'prompt': BALL_QUALITY,
                 # 'prompt': GEMINI_3_SECOND_TURN,
-                # 'prompt': MAZE_QUALITY + proposed_path,
+                'prompt': MAZE_QUALITY + proposed_path,
                 'model_answer': model_answer,
                 'extracted_answer': extracted_answer,
                 'model': model,
@@ -430,7 +430,7 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
 
         for image_path in image_files:
             # Use consistency checking prompt (same as SketchVLM format)
-            prompt = GENERAL_PROMPT + MAZE_PROMPT + DONT_HALLUCINATE_PROMPT
+            prompt = GENERAL_PROMPT + BALL_DROP_PROMPT
 
             entry = {
                 'image_path': str(image_path),

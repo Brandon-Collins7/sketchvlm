@@ -265,6 +265,13 @@ def create_html_table(index_mode: bool = True):
     qwen3_vqa_invalid = load_results_with_output('direct_vqa', 'qwen3_235b', 'invalid', index_mode, 'qwen3')
     qwen3_vqa_valid = load_results_with_output('direct_vqa', 'qwen3_235b', 'valid', index_mode, 'qwen3')
 
+    # Load GPT-5 results
+    gpt5_med_invalid = load_results_with_output('.', 'gpt5_med', 'invalid', index_mode, 'gpt5')
+    gpt5_med_valid = load_results_with_output('.', 'gpt5_med', 'valid', index_mode, 'gpt5')
+
+    gpt5_low_invalid = load_results_with_output('.', 'gpt5_low', 'invalid', index_mode, 'gpt5')
+    gpt5_low_valid = load_results_with_output('.', 'gpt5_low', 'valid', index_mode, 'gpt5')
+
     # Combine all maze IDs with their ground truth and image paths
     all_mazes = []
 
@@ -272,39 +279,45 @@ def create_html_table(index_mode: bool = True):
     invalid_mazes = sorted(set(flash_sketch_invalid.keys()) | set(pro_sketch_invalid.keys()) |
                           set(pro3_sketch_invalid.keys()) | set(flash_vqa_invalid.keys()) |
                           set(pro_vqa_invalid.keys()) | set(pro3_vqa_invalid.keys()) |
-                          set(qwen3_sketch_invalid.keys()) | set(qwen3_vqa_invalid.keys()))
+                          set(qwen3_sketch_invalid.keys()) | set(qwen3_vqa_invalid.keys()) |
+                          set(gpt5_med_invalid.keys()) | set(gpt5_low_invalid.keys()))
     for maze_id in invalid_mazes:
         # Get ground truth and image path from any available source
         gt_answer = None
         image_path = None
         for results_dict in [flash_sketch_invalid, pro_sketch_invalid, pro3_sketch_invalid,
                             flash_vqa_invalid, pro_vqa_invalid, pro3_vqa_invalid,
-                            qwen3_sketch_invalid, qwen3_vqa_invalid]:
+                            qwen3_sketch_invalid, qwen3_vqa_invalid,
+                            gpt5_med_invalid, gpt5_low_invalid]:
             if maze_id in results_dict:
                 gt_answer = results_dict[maze_id][0]  # first element is gt_answer
                 image_path = results_dict[maze_id][3]  # fourth element is image path
                 break
         all_mazes.append((maze_id, gt_answer, flash_sketch_invalid, pro_sketch_invalid, pro3_sketch_invalid,
                          flash_vqa_invalid, pro_vqa_invalid, pro3_vqa_invalid,
-                         qwen3_sketch_invalid, qwen3_vqa_invalid, image_path))
+                         qwen3_sketch_invalid, qwen3_vqa_invalid,
+                         gpt5_med_invalid, gpt5_low_invalid, image_path))
 
     # Add valid mazes
     valid_mazes = sorted(set(flash_sketch_valid.keys()) | set(pro_sketch_valid.keys()) |
                         set(pro3_sketch_valid.keys()) | set(flash_vqa_valid.keys()) |
                         set(pro_vqa_valid.keys()) | set(pro3_vqa_valid.keys()) |
-                        set(qwen3_sketch_valid.keys()) | set(qwen3_vqa_valid.keys()))
+                        set(qwen3_sketch_valid.keys()) | set(qwen3_vqa_valid.keys()) |
+                        set(gpt5_med_valid.keys()) | set(gpt5_low_valid.keys()))
     for maze_id in valid_mazes:
         # Get image path from any available source
         image_path = None
         for results_dict in [flash_sketch_valid, pro_sketch_valid, pro3_sketch_valid,
                             flash_vqa_valid, pro_vqa_valid, pro3_vqa_valid,
-                            qwen3_sketch_valid, qwen3_vqa_valid]:
+                            qwen3_sketch_valid, qwen3_vqa_valid,
+                            gpt5_med_valid, gpt5_low_valid]:
             if maze_id in results_dict:
                 image_path = results_dict[maze_id][3]  # fourth element is image path
                 break
         all_mazes.append((maze_id, 'valid', flash_sketch_valid, pro_sketch_valid, pro3_sketch_valid,
                          flash_vqa_valid, pro_vqa_valid, pro3_vqa_valid,
-                         qwen3_sketch_valid, qwen3_vqa_valid, image_path))
+                         qwen3_sketch_valid, qwen3_vqa_valid,
+                         gpt5_med_valid, gpt5_low_valid, image_path))
 
     print(f"Found {len(invalid_mazes)} invalid mazes and {len(valid_mazes)} valid mazes")
     print(f"Creating HTML table with {len(all_mazes)} total rows...")
@@ -332,8 +345,8 @@ def generate_html(all_mazes: List[Tuple]) -> str:
     """Generate the HTML content."""
 
     # Count stats first
-    invalid_count = sum(1 for _, gt, _, _, _, _, _, _, _, _, _ in all_mazes if gt != 'valid')
-    valid_count = sum(1 for _, gt, _, _, _, _, _, _, _, _, _ in all_mazes if gt == 'valid')
+    invalid_count = sum(1 for _, gt, _, _, _, _, _, _, _, _, _, _, _ in all_mazes if gt != 'valid')
+    valid_count = sum(1 for _, gt, _, _, _, _, _, _, _, _, _, _, _ in all_mazes if gt == 'valid')
 
     html_start = f"""<!DOCTYPE html>
 <html>
@@ -504,6 +517,8 @@ def generate_html(all_mazes: List[Tuple]) -> str:
                 <th colspan="2" class="model-col">Pro3 (Direct VQA)</th>
                 <th colspan="3" class="model-col">Qwen3 (Sketch)</th>
                 <th colspan="2" class="model-col">Qwen3 (Direct VQA)</th>
+                <th colspan="3" class="model-col" style="background-color: #C55A11;">GPT-5 Med (Sketch)</th>
+                <th colspan="3" class="model-col" style="background-color: #70AD47;">GPT-5 Low (Sketch)</th>
             </tr>
             <tr>
                 <th class="model-col" style="width: 80px;">Answer</th>
@@ -526,6 +541,12 @@ def generate_html(all_mazes: List[Tuple]) -> str:
                 <th class="model-col" style="width: 180px;">Last 50 chars</th>
                 <th class="model-col" style="width: 80px;">Answer</th>
                 <th class="model-col" style="width: 180px;">Last 50 chars</th>
+                <th class="model-col" style="width: 80px; background-color: #C55A11;">Answer</th>
+                <th class="model-col" style="width: 160px; background-color: #C55A11;">Annotated</th>
+                <th class="model-col" style="width: 180px; background-color: #C55A11;">Last 50 chars</th>
+                <th class="model-col" style="width: 80px; background-color: #70AD47;">Answer</th>
+                <th class="model-col" style="width: 160px; background-color: #70AD47;">Annotated</th>
+                <th class="model-col" style="width: 180px; background-color: #70AD47;">Last 50 chars</th>
             </tr>
         </thead>
         <tbody>
@@ -533,7 +554,7 @@ def generate_html(all_mazes: List[Tuple]) -> str:
 
     html_rows = []
 
-    for maze_id, gt, flash_sketch_results, pro_sketch_results, pro3_sketch_results, flash_vqa_results, pro_vqa_results, pro3_vqa_results, qwen3_sketch_results, qwen3_vqa_results, image_path in all_mazes:
+    for maze_id, gt, flash_sketch_results, pro_sketch_results, pro3_sketch_results, flash_vqa_results, pro_vqa_results, pro3_vqa_results, qwen3_sketch_results, qwen3_vqa_results, gpt5_med_results, gpt5_low_results, image_path in all_mazes:
         # Get results or defaults (gt_answer, extracted_answer, last_chars, image_path, annotated_path)
         flash_sketch_data = flash_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
         pro_sketch_data = pro_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
@@ -543,6 +564,8 @@ def generate_html(all_mazes: List[Tuple]) -> str:
         pro3_vqa_data = pro3_vqa_results.get(maze_id, (None, 'N/A', '', '', None))
         qwen3_sketch_data = qwen3_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
         qwen3_vqa_data = qwen3_vqa_results.get(maze_id, (None, 'N/A', '', '', None))
+        gpt5_med_data = gpt5_med_results.get(maze_id, (None, 'N/A', '', '', None))
+        gpt5_low_data = gpt5_low_results.get(maze_id, (None, 'N/A', '', '', None))
 
         _, flash_sketch_answer, flash_sketch_output, _, flash_sketch_annotated = flash_sketch_data
         _, pro_sketch_answer, pro_sketch_output, _, pro_sketch_annotated = pro_sketch_data
@@ -552,6 +575,8 @@ def generate_html(all_mazes: List[Tuple]) -> str:
         _, pro3_vqa_answer, pro3_vqa_output, _, _ = pro3_vqa_data
         _, qwen3_sketch_answer, qwen3_sketch_output, _, qwen3_sketch_annotated = qwen3_sketch_data
         _, qwen3_vqa_answer, qwen3_vqa_output, _, _ = qwen3_vqa_data
+        _, gpt5_med_answer, gpt5_med_output, _, gpt5_med_annotated = gpt5_med_data
+        _, gpt5_low_answer, gpt5_low_output, _, gpt5_low_annotated = gpt5_low_data
 
         # Convert main maze image to base64 if available
         image_html = ''
@@ -608,6 +633,28 @@ def generate_html(all_mazes: List[Tuple]) -> str:
         else:
             qwen3_sketch_annotated_html = '<span style="color: #999;">No image</span>'
 
+        # Convert GPT-5 Med annotated image to base64
+        gpt5_med_annotated_html = ''
+        if gpt5_med_annotated:
+            gpt5_med_uri = image_to_base64(gpt5_med_annotated)
+            if gpt5_med_uri:
+                gpt5_med_annotated_html = f'<img src="{gpt5_med_uri}" alt="{maze_id} GPT-5 Med annotated" />'
+            else:
+                gpt5_med_annotated_html = '<span style="color: #999;">No image</span>'
+        else:
+            gpt5_med_annotated_html = '<span style="color: #999;">No image</span>'
+
+        # Convert GPT-5 Low annotated image to base64
+        gpt5_low_annotated_html = ''
+        if gpt5_low_annotated:
+            gpt5_low_uri = image_to_base64(gpt5_low_annotated)
+            if gpt5_low_uri:
+                gpt5_low_annotated_html = f'<img src="{gpt5_low_uri}" alt="{maze_id} GPT-5 Low annotated" />'
+            else:
+                gpt5_low_annotated_html = '<span style="color: #999;">No image</span>'
+        else:
+            gpt5_low_annotated_html = '<span style="color: #999;">No image</span>'
+
         # Determine cell classes
         def get_class(answer, gt):
             if answer == 'N/A':
@@ -627,6 +674,8 @@ def generate_html(all_mazes: List[Tuple]) -> str:
         pro3_vqa_class = get_class(pro3_vqa_answer, gt)
         qwen3_sketch_class = get_class(qwen3_sketch_answer, gt)
         qwen3_vqa_class = get_class(qwen3_vqa_answer, gt)
+        gpt5_med_class = get_class(gpt5_med_answer, gt)
+        gpt5_low_class = get_class(gpt5_low_answer, gt)
 
         # Format answers for display
         def format_answer(ans):
@@ -658,6 +707,12 @@ def generate_html(all_mazes: List[Tuple]) -> str:
                 <td class="output-cell">{html.escape(qwen3_sketch_output)}</td>
                 <td class="answer-cell {qwen3_vqa_class}">{html.escape(format_answer(qwen3_vqa_answer))}</td>
                 <td class="output-cell">{html.escape(qwen3_vqa_output)}</td>
+                <td class="answer-cell {gpt5_med_class}">{html.escape(format_answer(gpt5_med_answer))}</td>
+                <td class="maze-image">{gpt5_med_annotated_html}</td>
+                <td class="output-cell">{html.escape(gpt5_med_output)}</td>
+                <td class="answer-cell {gpt5_low_class}">{html.escape(format_answer(gpt5_low_answer))}</td>
+                <td class="maze-image">{gpt5_low_annotated_html}</td>
+                <td class="output-cell">{html.escape(gpt5_low_output)}</td>
             </tr>
 """
         html_rows.append(row)

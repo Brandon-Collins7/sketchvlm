@@ -891,3 +891,37 @@ python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvl
 
 
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 
+
+
+export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/opt/cairolib:$DYLD_FALLBACK_LIBRARY_PATH && python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
+
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/thinkmorph_ball_paths_batch1.json --output /Users/log/Github/sketchvlm/consistency/judge_output/gemini3_flash_judge/consistency_results_thinkmorph_ball_paths_batch1.json --model google/gemini-3-flash-preview    
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/thinkmorph_ball_paths_batch2.json --output /Users/log/Github/sketchvlm/consistency/judge_output/gemini3_flash_judge/consistency_results_thinkmorph_ball_paths_batch2.json --model google/gemini-3-flash-preview    
+
+
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/vilasr_ball_paths_batch1.json --output /Users/log/Github/sketchvlm/consistency/judge_output/gemini3_flash_judge/consistency_results_vilasr_ball_paths_batch1.json --model google/gemini-3-flash-preview
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/vilasr_ball_paths_batch1.json --output /Users/log/Github/sketchvlm/consistency/judge_output/gemini3_flash_judge/consistency_results_vilasr_ball_paths_batch1.json --model google/gemini-3-flash-preview
+     
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/vilasr_ball_paths_batch1.json --output /Users/log/Github/sketchvlm/consistency/judge_output/gemini3_flash_judge/consistency_results_vilasr_ball_paths_batch1.json --model google/gemini-3-flash-preview    
+
+python consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/consistency/vilasr_ball_paths_batch2.json --output /Users/log/Github/sketchvlm/consistency/judge_output/gemini3_flash_judge/consistency_results_vilasr_ball_paths_batch2.json --model google/gemini-3-flash-preview    
+
+
+
+python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/grid_world_quality/nano_banana_invalid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_quality/consistency_results_nano_banana_invalid.json --model google/gemini-3-flash-preview   
+
+python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py --input /Users/log/Github/sketchvlm/consistency/source_data/grid_world_quality/nano_banana_valid.json --output /Users/log/Github/sketchvlm/consistency/judge_output/grid_world_quality/consistency_results_nano_banana_valid.json --model google/gemini-3-flash-preview   
+
+
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --reasoning-effort medium --no-system-prompt --no-grid 
+
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --reasoning-effort medium --no-system-prompt --no-grid 

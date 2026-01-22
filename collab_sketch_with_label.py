@@ -2,7 +2,6 @@
 import argparse
 import ast
 import base64
-import cairosvg
 import io
 import json
 import math
@@ -17,6 +16,26 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, Dict
 import html
+import sys
+import ctypes.util
+
+
+if sys.platform == "darwin":
+    _original_find_library = ctypes.util.find_library
+
+    def _find_library_with_cairo(name):
+        if name in {"cairo", "cairo-2", "libcairo-2"}:
+            for candidate in (
+                "/opt/homebrew/lib/libcairo.2.dylib",
+                "/opt/homebrew/opt/cairo/lib/libcairo.2.dylib",
+            ):
+                if candidate and os.path.exists(candidate):
+                    return candidate
+        return _original_find_library(name)
+
+    ctypes.util.find_library = _find_library_with_cairo
+
+import cairosvg
 
 
 import hashlib, io, base64, os, re
