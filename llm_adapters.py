@@ -574,12 +574,19 @@ class OpenRouterAdapter(BaseLLMAdapter):
         # Build messages with system message
         chat_messages = list(messages or [])  # Make a copy
 
-        extra_body = {
-            "provider": {
-                "only": ["google-ai-studio"],      # enforce single provider
-                "allow_fallbacks": False  # never fall back
-            }
-        }
+        # extra_body = {
+        #     "provider": {
+        #         "only": ["google-ai-studio"],      # enforce single provider
+        #         "allow_fallbacks": False  # never fall back
+        #     }
+        # }
+        
+        extra_body = {"provider": {"allow_fallbacks": False}}
+
+        # Only lock to google-ai-studio when using Gemini models
+        if self.model.startswith("google/"):
+            extra_body["provider"]["only"] = ["google-ai-studio"]
+
 
         # Special handling for image generation model - two-turn approach
         # Only use it when explicitly requested via use_image_gen flag
@@ -600,6 +607,10 @@ class OpenRouterAdapter(BaseLLMAdapter):
             args["temperature"] = float(temperature)
         if stop_sequences:
             args["stop"] = stop_sequences if isinstance(stop_sequences, list) else [stop_sequences]
+
+        reasoning_effort = add_args.get("reasoning_effort")
+        if reasoning_effort:
+            args["reasoning_effort"] = reasoning_effort  # OpenRouter expects this for GPT-5
 
         return self._client.chat.completions.create(**args)
 
