@@ -12,7 +12,7 @@ import time
 import json
 
 
-client = genai.Client()
+client = genai.Client(api_key='AIzaSyDf3WLALYcDq3goMpUWIxLIkOJSHwDbXII')
 
 prompt = "Connect each numbered dot in the image with thin lines in numerical order. You should only change the image by overlaying lines on top of the image."
 
@@ -62,10 +62,13 @@ results_file = "/Users/log/Github/sketchvlm/nano_generated/connect_dots_nano/res
 if os.path.exists(results_file):
     with open(results_file, "r") as f:
         results = json.load(f)
+else:
+    results = []
 
 
 # Create a set of already processed image paths for quick lookup
 processed_paths = {result["original_image_path"] for result in results}
+# processed_paths = {}
 
 # Collect all images to process
 all_images = []
@@ -85,26 +88,33 @@ print(f"Remaining to process: {len(images_to_process)}")
 # Process only the remaining images
 for full_image_path in images_to_process:
     image = Image.open(full_image_path)
+    # if "boat" in full_image_path: # boat.png breaks it for some reason
+    #     continue
     original_filename = os.path.splitext(os.path.basename(full_image_path))[0]
     output_filename = f"/Users/log/Github/sketchvlm/nano_generated/connect_dots_nano/{original_filename}_nano_generated.png"
 
     print(f"\nProcessing: {original_filename}")
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash-image-preview",
+        model="gemini-3-pro-image-preview",
         contents=[prompt, image],
     )
-
+    print(response)
     image_saved = False
-    for part in response.candidates[0].content.parts:
-        if part.text is not None:
-            print(part.text)
-        elif part.inline_data is not None:
-            output_image = Image.open(BytesIO(part.inline_data.data))
-            output_image.save(output_filename)
-            print(f"Saved: {original_filename}_nano_generated.png")
-            image_saved = True
-
+    
+    try:
+        for part in response.candidates[0].content.parts:
+            if part.text is not None:
+                print(part.text)
+            elif part.inline_data is not None:
+                output_image = Image.open(BytesIO(part.inline_data.data))
+                output_image.save(output_filename)
+                print(f"Saved: {original_filename}_nano_generated.png")
+                image_saved = True
+    except Exception as e:
+        print(f"Error: {e}")
+        continue
+    
     if image_saved:
         results.append({
             "original_image_path": full_image_path,

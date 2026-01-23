@@ -362,14 +362,27 @@ def analyze_consistency_check_json(json_path: Path, expected_answer: Union[str, 
             return results
 
         for entry in data:
-            # Get maze_id from image_path via item index mapping
+            # Get maze_id: prefer item index mapping; fallback to extracting from image_path
             image_path = entry.get('image_path', '')
-            item_match = re.search(r"item_(\d+)", Path(image_path).name, re.I)
-            if not (item_match and item_to_maze):
-                continue
+            maze_id = None
 
-            item_idx = int(item_match.group(1))
-            maze_id = item_to_maze.get(item_idx)
+            # Try item_XXX mapping first if available
+            try:
+                item_match = re.search(r"item_(\d+)", Path(image_path).name, re.I)
+            except Exception:
+                item_match = None
+
+            if item_match and item_to_maze:
+                item_idx = int(item_match.group(1))
+                maze_id = item_to_maze.get(item_idx)
+
+            # Fallback: extract maze_id directly from image_path filename (without extension)
+            if not maze_id:
+                try:
+                    maze_id = extract_maze_id(str(image_path))
+                except Exception:
+                    maze_id = None
+
             if not maze_id:
                 continue
 

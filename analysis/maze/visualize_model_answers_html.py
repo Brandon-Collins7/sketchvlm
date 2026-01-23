@@ -1,358 +1,266 @@
 #!/usr/bin/env python3
 """
-Create an HTML table showing all model answers for maze validation.
-Includes the last ~50 characters of model output for verification.
+Create an HTML table showing model answers for maze validation using pre-graded CSV data.
 
-Example usage:
-    python3 analysis/maze/visualize_model_answers_html.py [--index-mode]
+Usage:
+    python3 analysis/maze/visualize_model_answers_html.py [--csv-path=PATH]
+
+The CSV is produced by analysis/maze/create_combined_csv.py and contains the answers,
+output snippets, and annotated image paths for every model. This visualizer simply
+renders those saved results without re-grading.
 """
 
-import json
-import re
 import base64
+import csv
+import html
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Union
-import html
+from typing import Dict, Optional
+
+PROJECT_ROOT = Path('/Users/log/Github/sketchvlm')
+DEFAULT_CSV_PATH = PROJECT_ROOT / 'analysis/maze/maze_v2_combined_results.csv'
+DEFAULT_OUTPUT_PATH = PROJECT_ROOT / 'analysis/maze/model_answers_comparison.html'
+
+MODEL_CONFIGS = [
+    {'key': 'gemini_flash_sketch', 'label': 'Flash (Sketch)', 'has_annotation': True},
+    {'key': 'gemini_pro_sketch', 'label': 'Pro (Sketch)', 'has_annotation': True},
+    {'key': 'gemini3_pro_sketch', 'label': 'Pro3 (Sketch)', 'has_annotation': True},
+    {'key': 'gemini_flash_vqa', 'label': 'Flash (Direct VQA)', 'has_annotation': False},
+    {'key': 'gemini_pro_vqa', 'label': 'Pro (Direct VQA)', 'has_annotation': False},
+    {'key': 'gemini3_pro_vqa', 'label': 'Pro3 (Direct VQA)', 'has_annotation': False},
+    {'key': 'qwen3_235b_sketch', 'label': 'Qwen3 (Sketch)', 'has_annotation': True},
+    {'key': 'qwen3_235b_vqa', 'label': 'Qwen3 (Direct VQA)', 'has_annotation': False},
+    {'key': 'gpt5_med_sketch', 'label': 'GPT-5 Med (Sketch)', 'has_annotation': True},
+    {'key': 'gpt5_med_vqa', 'label': 'GPT-5 Med (Direct VQA)', 'has_annotation': False},
+    {'key': 'gpt5_low_sketch', 'label': 'GPT-5 Low (Sketch)', 'has_annotation': True},
+    {'key': 'gpt5_low_vqa', 'label': 'GPT-5 Low (Direct VQA)', 'has_annotation': False},
+    # Show the combined Nano Banana + Gemini column (VQA preferred, then Consistency)
+    {'key': 'nanob_gemini3', 'label': 'NanoB + Gemini (Combined)', 'has_annotation': True},
+]
 
 
-def extract_maze_id(source_image_path: str) -> str:
-    """Extract maze ID from source image path."""
-    if not source_image_path:
+def resolve_path(path_str: Optional[str]) -> Optional[Path]:
+    """Resolve a path relative to the project root if needed."""
+    if not path_str:
         return None
-    filename = Path(source_image_path).stem
-    return filename
+
+    path = Path(path_str)
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+
+    return path if path.exists() else None
 
 
-def extract_answer_from_response(response_text: str) -> str:
-    """Extract answer from model response."""
-    if not response_text or response_text.strip() == '':
-        return 'unknown'
+def image_to_base64(path_str: Optional[str]) -> Optional[str]:
+    """Convert an image path into a base64 data URI."""
+    resolved = resolve_path(path_str)
+    if not resolved:
+        return None
 
-    # Try to extract from <final_answer> tags first
-    final_answer_match = re.search(r'<final_answer>\s*(.*?)\s*</final_answer>',
-                                   response_text, re.IGNORECASE | re.DOTALL)
-    if final_answer_match:
-        answer_text = final_answer_match.group(1).strip()
-        if 'valid' in answer_text.lower():
-            if 'invalid' in answer_text.lower():
-                return 'invalid'
-            else:
-                return 'valid'
-        return 'unknown'
-
-    # Fallback: check last 30 characters
-    last_chars = response_text[-30:].lower()
-    if 'invalid' in last_chars:
-        return 'invalid'
-    elif 'valid' in last_chars:
-        return 'valid'
-
-    return 'unknown'
-
-
-def extract_index_answer_from_response(response_text: str):
-    """Extract answer from model response for index-based evaluation."""
-    if not response_text or response_text.strip() == '':
-        return 'unknown'
-
-    # Try to extract from <final_answer> tags first
-    final_answer_match = re.search(r'<final_answer>\s*(.*?)\s*</final_answer>', response_text, re.IGNORECASE | re.DOTALL)
-    if final_answer_match:
-        answer_text = final_answer_match.group(1).strip()
-
-        # Check for "valid" first
-        if answer_text.lower() == 'valid':
-            return 'valid'
-
-        # Try to extract number from $\boxed{N}$ notation
-        boxed_match = re.search(r'\$\\boxed\{(\d+)\}\$', answer_text)
-        if boxed_match:
-            return int(boxed_match.group(1))
-
-        # Try without the $ signs
-        boxed_match = re.search(r'\\boxed\{(\d+)\}', answer_text)
-        if boxed_match:
-            return int(boxed_match.group(1))
-
-        # Try to find any number in the answer
-        number_match = re.search(r'\b(\d+)\b', answer_text)
-        if number_match:
-            return int(number_match.group(1))
-
-    # If no <final_answer> tags, look for boxed notation anywhere in the text
-    boxed_matches = list(re.finditer(r'\$\\boxed\{(\d+)\}\$', response_text))
-    if boxed_matches:
-        return int(boxed_matches[-1].group(1))
-
-    # Try without the $ signs
-    boxed_matches = list(re.finditer(r'\\boxed\{(\d+)\}', response_text))
-    if boxed_matches:
-        return int(boxed_matches[-1].group(1))
-
-    # Check for "valid" in boxed notation
-    if re.search(r'\$\\boxed\{valid\}\$', response_text, re.IGNORECASE):
-        return 'valid'
-    if re.search(r'\\boxed\{valid\}', response_text, re.IGNORECASE):
-        return 'valid'
-
-    # Fallback: check for "valid" in the text (but not if "invalid" is present)
-    if 'valid' in response_text.lower() and 'invalid' not in response_text.lower():
-        return 'valid'
-
-    return 'unknown'
-
-
-def load_results_with_output(parent_dir: str, model_name: str, expected_answer: str, index_mode: bool = True, base_dir: str = 'gemini') -> Dict[str, Tuple[Union[str, int], str, str, str, str]]:
-    """
-    Load results from a directory and return a dict mapping maze_id to (gt_answer, extracted_answer, last_50_chars, image_path, annotated_path).
-
-    Args:
-        parent_dir: Parent directory name (e.g., '.', 'direct_vqa')
-        model_name: Model name (e.g., 'gemini25_flash', 'gemini25_pro', 'qwen3_235b')
-        expected_answer: Expected answer ('valid' or 'invalid')
-        index_mode: If True, use index-based evaluation mode
-        base_dir: Base directory name (e.g., 'gemini', 'gpt5', 'qwen3')
-
-    Returns:
-        Dictionary mapping maze_id to (gt_answer, extracted_answer, last_50_chars, image_path, annotated_path)
-    """
-    if index_mode:
-        base_path = Path(f'/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/{base_dir}/index')
-    else:
-        base_path = Path(f'/Users/log/Github/sketchvlm/results/mix_eval/maze_v2/{base_dir}')
-
-    if parent_dir == '.':
-        dir_path = base_path / f'{model_name}_{expected_answer}'
-    else:
-        dir_path = base_path / parent_dir / f'{model_name}_{expected_answer}'
-
-    results = {}
-
-    if not dir_path.exists():
-        return results
-
-    # Build path length mapping once for efficiency
-    maze_to_path_length = {}
-    for pl in range(1, 8):
-        pl_dir = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v1/path_length_{pl}')
-        if pl_dir.exists():
-            for mdir in pl_dir.iterdir():
-                if mdir.is_dir() and mdir.name.startswith('maze_'):
-                    maze_to_path_length[mdir.name] = pl
-
-    for json_file in sorted(dir_path.glob('item_*.json')):
-        try:
-            with open(json_file, 'r') as f:
-                data = json.load(f)
-
-            source_image = data.get('source_image', '')
-            maze_id = extract_maze_id(source_image)
-            model_output = data.get('model_output_full', '')
-
-            # Extract answer based on mode
-            if index_mode:
-                answer = extract_index_answer_from_response(model_output)
-            else:
-                answer = extract_answer_from_response(model_output)
-
-            # Get ground truth
-            if expected_answer == 'valid':
-                gt_answer = 'valid'
-            else:
-                # For invalid paths
-                if index_mode:
-                    # Read from metadata.json for index mode
-                    path_length = maze_to_path_length.get(maze_id)
-                    if path_length is not None:
-                        metadata_path = Path(f'/Users/log/Github/sketchvlm/datasets/maze_v1/path_length_{path_length}/{maze_id}/metadata.json')
-                        if metadata_path.exists():
-                            with open(metadata_path, 'r') as meta_file:
-                                metadata = json.load(meta_file)
-                                gt_answer = metadata.get('incorrect_paths', {}).get('substitution', {}).get('modified_index')
-                        else:
-                            gt_answer = None
-                    else:
-                        gt_answer = None
-                else:
-                    # Binary mode: ground truth is just 'invalid'
-                    gt_answer = 'invalid'
-
-            # Get last 50 characters
-            last_chars = model_output[-50:] if model_output else ''
-
-            # Get annotated image path (for sketch-based models)
-            annotated_path = None
-            annotated_file = json_file.parent / f"{json_file.stem}_annotated.png"
-            if annotated_file.exists():
-                # Make path relative to project root
-                annotated_path = str(annotated_file.relative_to(Path('/Users/log/Github/sketchvlm')))
-
-            if maze_id:
-                results[maze_id] = (gt_answer, answer, last_chars, source_image, annotated_path)
-
-        except Exception as e:
-            print(f"Error processing {json_file}: {e}")
-
-    return results
-
-
-def image_to_base64(image_path: str) -> Optional[str]:
-    """
-    Convert an image file to a base64 data URI.
-
-    Args:
-        image_path: Path to the image file
-
-    Returns:
-        Base64 encoded data URI or None if error
-    """
     try:
-        # Resolve the path relative to the project root
-        full_path = Path('/Users/log/Github/sketchvlm') / image_path
-
-        if not full_path.exists():
-            return None
-
-        with open(full_path, 'rb') as f:
-            image_data = f.read()
-            encoded = base64.b64encode(image_data).decode('utf-8')
-
-            # Determine the image format
-            suffix = full_path.suffix.lower()
-            if suffix == '.png':
-                mime_type = 'image/png'
-            elif suffix in ['.jpg', '.jpeg']:
-                mime_type = 'image/jpeg'
-            else:
-                mime_type = 'image/png'  # default
-
-            return f"data:{mime_type};base64,{encoded}"
-
-    except Exception as e:
-        print(f"Error converting image {image_path} to base64: {e}")
+        data = resolved.read_bytes()
+        encoded = base64.b64encode(data).decode('utf-8')
+        suffix = resolved.suffix.lower()
+        if suffix in {'.jpg', '.jpeg'}:
+            mime = 'image/jpeg'
+        else:
+            mime = 'image/png'
+        return f'data:{mime};base64,{encoded}'
+    except Exception:
         return None
 
 
-def create_html_table(index_mode: bool = True):
-    """Create an HTML table showing all model answers with output snippets."""
+def load_csv_results(csv_path: Path) -> Dict[str, Dict[str, Dict[str, str]]]:
+    """Load the CSV into a maze_id -> {validity: row} mapping."""
+    maze_entries: Dict[str, Dict[str, Dict[str, str]]] = {}
 
-    print("Loading results...")
+    with open(csv_path, 'r', newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            maze_id = row['maze_id']
+            validity = row['validity']
+            maze_entries.setdefault(maze_id, {'invalid': None, 'valid': None})[validity] = row
 
-    # Load all results for all models
-    flash_sketch_invalid = load_results_with_output('.', 'gemini25_flash', 'invalid', index_mode, 'gemini')
-    flash_sketch_valid = load_results_with_output('.', 'gemini25_flash', 'valid', index_mode, 'gemini')
-
-    pro_sketch_invalid = load_results_with_output('.', 'gemini25_pro', 'invalid', index_mode, 'gemini')
-    pro_sketch_valid = load_results_with_output('.', 'gemini25_pro', 'valid', index_mode, 'gemini')
-
-    pro3_sketch_invalid = load_results_with_output('.', 'gemini3_pro', 'invalid', index_mode, 'gemini')
-    pro3_sketch_valid = load_results_with_output('.', 'gemini3_pro', 'valid', index_mode, 'gemini')
-
-    flash_vqa_invalid = load_results_with_output('direct_vqa', 'gemini25_flash', 'invalid', index_mode, 'gemini')
-    flash_vqa_valid = load_results_with_output('direct_vqa', 'gemini25_flash', 'valid', index_mode, 'gemini')
-
-    pro_vqa_invalid = load_results_with_output('direct_vqa', 'gemini25_pro', 'invalid', index_mode, 'gemini')
-    pro_vqa_valid = load_results_with_output('direct_vqa', 'gemini25_pro', 'valid', index_mode, 'gemini')
-
-    pro3_vqa_invalid = load_results_with_output('direct_vqa', 'gemini3_pro', 'invalid', index_mode, 'gemini')
-    pro3_vqa_valid = load_results_with_output('direct_vqa', 'gemini3_pro', 'valid', index_mode, 'gemini')
-
-    # Load Qwen3 results
-    qwen3_sketch_invalid = load_results_with_output('.', 'qwen3_235b', 'invalid', index_mode, 'qwen3')
-    qwen3_sketch_valid = load_results_with_output('.', 'qwen3_235b', 'valid', index_mode, 'qwen3')
-
-    qwen3_vqa_invalid = load_results_with_output('direct_vqa', 'qwen3_235b', 'invalid', index_mode, 'qwen3')
-    qwen3_vqa_valid = load_results_with_output('direct_vqa', 'qwen3_235b', 'valid', index_mode, 'qwen3')
-
-    # Load GPT-5 results
-    gpt5_med_invalid = load_results_with_output('.', 'gpt5_med', 'invalid', index_mode, 'gpt5')
-    gpt5_med_valid = load_results_with_output('.', 'gpt5_med', 'valid', index_mode, 'gpt5')
-
-    gpt5_low_invalid = load_results_with_output('.', 'gpt5_low', 'invalid', index_mode, 'gpt5')
-    gpt5_low_valid = load_results_with_output('.', 'gpt5_low', 'valid', index_mode, 'gpt5')
-
-    # Combine all maze IDs with their ground truth and image paths
-    all_mazes = []
-
-    # Add invalid mazes
-    invalid_mazes = sorted(set(flash_sketch_invalid.keys()) | set(pro_sketch_invalid.keys()) |
-                          set(pro3_sketch_invalid.keys()) | set(flash_vqa_invalid.keys()) |
-                          set(pro_vqa_invalid.keys()) | set(pro3_vqa_invalid.keys()) |
-                          set(qwen3_sketch_invalid.keys()) | set(qwen3_vqa_invalid.keys()) |
-                          set(gpt5_med_invalid.keys()) | set(gpt5_low_invalid.keys()))
-    for maze_id in invalid_mazes:
-        # Get ground truth and image path from any available source
-        gt_answer = None
-        image_path = None
-        for results_dict in [flash_sketch_invalid, pro_sketch_invalid, pro3_sketch_invalid,
-                            flash_vqa_invalid, pro_vqa_invalid, pro3_vqa_invalid,
-                            qwen3_sketch_invalid, qwen3_vqa_invalid,
-                            gpt5_med_invalid, gpt5_low_invalid]:
-            if maze_id in results_dict:
-                gt_answer = results_dict[maze_id][0]  # first element is gt_answer
-                image_path = results_dict[maze_id][3]  # fourth element is image path
-                break
-        all_mazes.append((maze_id, gt_answer, flash_sketch_invalid, pro_sketch_invalid, pro3_sketch_invalid,
-                         flash_vqa_invalid, pro_vqa_invalid, pro3_vqa_invalid,
-                         qwen3_sketch_invalid, qwen3_vqa_invalid,
-                         gpt5_med_invalid, gpt5_low_invalid, image_path))
-
-    # Add valid mazes
-    valid_mazes = sorted(set(flash_sketch_valid.keys()) | set(pro_sketch_valid.keys()) |
-                        set(pro3_sketch_valid.keys()) | set(flash_vqa_valid.keys()) |
-                        set(pro_vqa_valid.keys()) | set(pro3_vqa_valid.keys()) |
-                        set(qwen3_sketch_valid.keys()) | set(qwen3_vqa_valid.keys()) |
-                        set(gpt5_med_valid.keys()) | set(gpt5_low_valid.keys()))
-    for maze_id in valid_mazes:
-        # Get image path from any available source
-        image_path = None
-        for results_dict in [flash_sketch_valid, pro_sketch_valid, pro3_sketch_valid,
-                            flash_vqa_valid, pro_vqa_valid, pro3_vqa_valid,
-                            qwen3_sketch_valid, qwen3_vqa_valid,
-                            gpt5_med_valid, gpt5_low_valid]:
-            if maze_id in results_dict:
-                image_path = results_dict[maze_id][3]  # fourth element is image path
-                break
-        all_mazes.append((maze_id, 'valid', flash_sketch_valid, pro_sketch_valid, pro3_sketch_valid,
-                         flash_vqa_valid, pro_vqa_valid, pro3_vqa_valid,
-                         qwen3_sketch_valid, qwen3_vqa_valid,
-                         gpt5_med_valid, gpt5_low_valid, image_path))
-
-    print(f"Found {len(invalid_mazes)} invalid mazes and {len(valid_mazes)} valid mazes")
-    print(f"Creating HTML table with {len(all_mazes)} total rows...")
-
-    # Generate HTML
-    html_content = generate_html(all_mazes)
-
-    # Write to file
-    if index_mode:
-        output_dir = Path('/Users/log/Github/sketchvlm/analysis/maze')
-        output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / 'model_answers_comparison_index.html'
-    else:
-        output_dir = Path('/Users/log/Github/sketchvlm/analysis/maze')
-        output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / 'model_answers_comparison.html'
-
-    with open(output_path, 'w') as f:
-        f.write(html_content)
-
-    print(f"Saved HTML table to: {output_path}")
+    return maze_entries
 
 
-def generate_html(all_mazes: List[Tuple]) -> str:
-    """Generate the HTML content."""
+def classify_answer(answer: str, expected: str) -> str:
+    """Return CSS class for an answer cell."""
+    answer_norm = (answer or '').strip().lower()
+    expected_norm = (expected or '').strip().lower()
 
-    # Count stats first
-    invalid_count = sum(1 for _, gt, _, _, _, _, _, _, _, _, _, _, _ in all_mazes if gt != 'valid')
-    valid_count = sum(1 for _, gt, _, _, _, _, _, _, _, _, _, _, _ in all_mazes if gt == 'valid')
+    if not answer or answer_norm in {'unknown', 'missing', ''}:
+        return 'unknown'
+    if answer_norm == expected_norm:
+        return 'correct'
+    return 'incorrect'
 
-    html_start = f"""<!DOCTYPE html>
+
+def render_annotation_cell(path_str: Optional[str], alt_text: str) -> str:
+    uri = image_to_base64(path_str)
+    if uri:
+        return f'<img src="{uri}" alt="{html.escape(alt_text)}" />'
+    return '<span style="color: #999;">No image</span>'
+
+
+def render_maze_image(path_str: Optional[str], maze_id: str) -> str:
+    uri = image_to_base64(path_str)
+    if uri:
+        return f'<img src="{uri}" alt="{html.escape(maze_id)}" />'
+    return '<span style="color: #999;">No image</span>'
+
+
+def build_model_cells(row_data: Dict[str, str], ground_truth: str) -> str:
+    cells = []
+    for config in MODEL_CONFIGS:
+        answer = row_data.get(config['key'], 'missing')
+        css_class = classify_answer(answer, ground_truth)
+        cells.append(
+            f'<td class="answer-cell {css_class}">{html.escape(str(answer))}</td>'
+        )
+
+        if config['has_annotation']:
+            annotation_path = row_data.get(f"{config['key']}__annotated_image", '')
+            annotation_html = render_annotation_cell(
+                annotation_path,
+                f"{row_data['maze_id']} {config['label']} annotated"
+            )
+            cells.append(f'<td class="maze-image">{annotation_html}</td>')
+
+        output_tail = row_data.get(f"{config['key']}__output_tail", '')
+        cells.append(f'<td class="output-cell">{html.escape(output_tail)}</td>')
+
+    return ''.join(cells)
+
+
+def build_table_rows(maze_entries: Dict[str, Dict[str, Dict[str, str]]]) -> str:
+    rows_html = []
+
+    for maze_id in sorted(maze_entries.keys()):
+        entry = maze_entries[maze_id]
+        invalid_row = entry.get('invalid')
+        valid_row = entry.get('valid')
+
+        available_rows = [row for row in (invalid_row, valid_row) if row]
+        if not available_rows:
+            continue
+
+        row_span = len(available_rows)
+        base_row = invalid_row or valid_row
+        image_html = render_maze_image(base_row.get('source_image'), maze_id)
+
+        first_row = True
+        for validity in ('invalid', 'valid'):
+            row_data = entry.get(validity)
+            if not row_data:
+                continue
+
+            gt = row_data.get('ground_truth', validity)
+            row_cells = ['<tr>']
+
+            if first_row:
+                row_cells.append(f'<td class="maze-id" rowspan="{row_span}">{html.escape(maze_id)}</td>')
+                row_cells.append(f'<td class="maze-image" rowspan="{row_span}">{image_html}</td>')
+                first_row = False
+
+            gt_class = 'gt-valid' if validity == 'valid' else 'gt-invalid'
+            row_cells.append(f'<td class="gt-cell {gt_class}">{html.escape(gt)}</td>')
+            row_cells.append(build_model_cells(row_data, gt))
+            row_cells.append('</tr>')
+            rows_html.append(''.join(row_cells))
+
+    return '\n'.join(rows_html)
+
+
+def build_table_header() -> str:
+    header = ['<thead>', '<tr>']
+    header.append('<th rowspan="2" style="width: 150px;">Maze ID</th>')
+    header.append('<th rowspan="2" style="width: 160px;">Maze Image</th>')
+    header.append('<th rowspan="2" style="width: 80px; text-align: center;">GT</th>')
+
+    for config in MODEL_CONFIGS:
+        col_span = 3 if config['has_annotation'] else 2
+        header.append(f'<th colspan="{col_span}" class="model-col">{config["label"]}</th>')
+    header.append('</tr>')
+
+    header.append('<tr>')
+    for config in MODEL_CONFIGS:
+        header.append('<th class="model-col" style="width: 80px;">Answer</th>')
+        if config['has_annotation']:
+            header.append('<th class="model-col" style="width: 160px;">Annotated</th>')
+        header.append('<th class="model-col" style="width: 180px;">Last 50 chars</th>')
+    header.append('</tr>')
+    header.append('</thead>')
+
+    return '\n'.join(header)
+
+
+def compute_model_stats(maze_entries: Dict[str, Dict[str, Dict[str, str]]]):
+    """Compute accuracy stats for each model column."""
+    stats = {
+        cfg['key']: {'label': cfg['label'], 'correct': 0, 'total': 0}
+        for cfg in MODEL_CONFIGS
+    }
+
+    skip_answers = {'', 'missing', 'unknown'}
+
+    for entry in maze_entries.values():
+        for validity in ('invalid', 'valid'):
+            row = entry.get(validity)
+            if not row:
+                continue
+
+            gt_norm = (row.get('ground_truth', validity) or '').strip().lower()
+
+            for cfg in MODEL_CONFIGS:
+                answer = row.get(cfg['key'], '')
+                answer_norm = (answer or '').strip().lower()
+                if answer_norm in skip_answers:
+                    continue
+
+                stat = stats[cfg['key']]
+                stat['total'] += 1
+                if answer_norm == gt_norm:
+                    stat['correct'] += 1
+
+    for stat in stats.values():
+        total = stat['total']
+        stat['accuracy'] = (stat['correct'] / total * 100) if total else 0.0
+
+    return stats
+
+
+def build_model_stats_block(model_stats: Dict[str, Dict[str, float]]) -> str:
+    items = []
+    for cfg in MODEL_CONFIGS:
+        stat = model_stats.get(cfg['key'])
+        if not stat:
+            continue
+        if stat['total']:
+            detail = f"{stat['accuracy']:.1f}% ({stat['correct']}/{stat['total']})"
+        else:
+            detail = 'No data'
+        items.append(
+            f'<div class="legend-item"><span style="font-weight: bold;">{cfg["label"]}:</span> {detail}</div>'
+        )
+    return '\n'.join(items)
+
+
+def build_html_document(maze_entries: Dict[str, Dict[str, Dict[str, str]]],
+                        model_stats: Dict[str, Dict[str, float]]) -> str:
+    total_invalid = sum(1 for data in maze_entries.values() if data.get('invalid'))
+    total_valid = sum(1 for data in maze_entries.values() if data.get('valid'))
+    total = len(maze_entries)
+
+    table_header = build_table_header()
+    table_rows = build_table_rows(maze_entries)
+    model_stats_block = build_model_stats_block(model_stats)
+
+    return f"""<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>Maze Index Identification - Model Answers Comparison</title>
+    <meta charset=\"UTF-8\">
+    <title>Maze Model Answers Comparison</title>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -447,9 +355,6 @@ def generate_html(all_mazes: List[Tuple]) -> str:
             word-wrap: break-word;
             white-space: pre-wrap;
         }}
-        .model-section {{
-            border-left: 3px solid #C55A11;
-        }}
         tr:hover {{
             background-color: #f0f0f0;
         }}
@@ -481,10 +386,14 @@ def generate_html(all_mazes: List[Tuple]) -> str:
     </style>
 </head>
 <body>
-    <h1>Maze Index Identification - Model Answers Comparison</h1>
+    <h1>Maze Model Answers Comparison</h1>
     <div class="stats">
-        Total Mazes: {len(all_mazes)} ({invalid_count} invalid, {valid_count} valid)<br>
-        Invalid paths: Ground truth is the index of the incorrect move (0-based)
+        Total Mazes: {total} ({total_invalid} invalid, {total_valid} valid)
+    </div>
+
+    <div class="legend">
+        <div class="legend-title">Model Accuracy:</div>
+        {model_stats_block}
     </div>
 
     <div class="legend">
@@ -499,251 +408,71 @@ def generate_html(all_mazes: List[Tuple]) -> str:
         </div>
         <div class="legend-item">
             <span class="legend-box" style="background-color: #F4B084;"></span>
-            <span>Unknown/Unparseable</span>
+            <span>Unknown/Missing</span>
         </div>
     </div>
 
     <table>
-        <thead>
-            <tr>
-                <th rowspan="2" style="width: 150px;">Maze ID</th>
-                <th rowspan="2" style="width: 160px;">Maze Image</th>
-                <th rowspan="2" style="width: 80px; text-align: center;">GT</th>
-                <th colspan="3" class="model-col">Flash (Sketch)</th>
-                <th colspan="3" class="model-col">Pro (Sketch)</th>
-                <th colspan="3" class="model-col">Pro3 (Sketch)</th>
-                <th colspan="2" class="model-col">Flash (Direct VQA)</th>
-                <th colspan="2" class="model-col">Pro (Direct VQA)</th>
-                <th colspan="2" class="model-col">Pro3 (Direct VQA)</th>
-                <th colspan="3" class="model-col">Qwen3 (Sketch)</th>
-                <th colspan="2" class="model-col">Qwen3 (Direct VQA)</th>
-                <th colspan="3" class="model-col" style="background-color: #C55A11;">GPT-5 Med (Sketch)</th>
-                <th colspan="3" class="model-col" style="background-color: #70AD47;">GPT-5 Low (Sketch)</th>
-            </tr>
-            <tr>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 160px;">Annotated</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 160px;">Annotated</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 160px;">Annotated</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 160px;">Annotated</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px;">Answer</th>
-                <th class="model-col" style="width: 180px;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px; background-color: #C55A11;">Answer</th>
-                <th class="model-col" style="width: 160px; background-color: #C55A11;">Annotated</th>
-                <th class="model-col" style="width: 180px; background-color: #C55A11;">Last 50 chars</th>
-                <th class="model-col" style="width: 80px; background-color: #70AD47;">Answer</th>
-                <th class="model-col" style="width: 160px; background-color: #70AD47;">Annotated</th>
-                <th class="model-col" style="width: 180px; background-color: #70AD47;">Last 50 chars</th>
-            </tr>
-        </thead>
+        {table_header}
         <tbody>
-"""
-
-    html_rows = []
-
-    for maze_id, gt, flash_sketch_results, pro_sketch_results, pro3_sketch_results, flash_vqa_results, pro_vqa_results, pro3_vqa_results, qwen3_sketch_results, qwen3_vqa_results, gpt5_med_results, gpt5_low_results, image_path in all_mazes:
-        # Get results or defaults (gt_answer, extracted_answer, last_chars, image_path, annotated_path)
-        flash_sketch_data = flash_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
-        pro_sketch_data = pro_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
-        pro3_sketch_data = pro3_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
-        flash_vqa_data = flash_vqa_results.get(maze_id, (None, 'N/A', '', '', None))
-        pro_vqa_data = pro_vqa_results.get(maze_id, (None, 'N/A', '', '', None))
-        pro3_vqa_data = pro3_vqa_results.get(maze_id, (None, 'N/A', '', '', None))
-        qwen3_sketch_data = qwen3_sketch_results.get(maze_id, (None, 'N/A', '', '', None))
-        qwen3_vqa_data = qwen3_vqa_results.get(maze_id, (None, 'N/A', '', '', None))
-        gpt5_med_data = gpt5_med_results.get(maze_id, (None, 'N/A', '', '', None))
-        gpt5_low_data = gpt5_low_results.get(maze_id, (None, 'N/A', '', '', None))
-
-        _, flash_sketch_answer, flash_sketch_output, _, flash_sketch_annotated = flash_sketch_data
-        _, pro_sketch_answer, pro_sketch_output, _, pro_sketch_annotated = pro_sketch_data
-        _, pro3_sketch_answer, pro3_sketch_output, _, pro3_sketch_annotated = pro3_sketch_data
-        _, flash_vqa_answer, flash_vqa_output, _, _ = flash_vqa_data
-        _, pro_vqa_answer, pro_vqa_output, _, _ = pro_vqa_data
-        _, pro3_vqa_answer, pro3_vqa_output, _, _ = pro3_vqa_data
-        _, qwen3_sketch_answer, qwen3_sketch_output, _, qwen3_sketch_annotated = qwen3_sketch_data
-        _, qwen3_vqa_answer, qwen3_vqa_output, _, _ = qwen3_vqa_data
-        _, gpt5_med_answer, gpt5_med_output, _, gpt5_med_annotated = gpt5_med_data
-        _, gpt5_low_answer, gpt5_low_output, _, gpt5_low_annotated = gpt5_low_data
-
-        # Convert main maze image to base64 if available
-        image_html = ''
-        if image_path:
-            image_data_uri = image_to_base64(image_path)
-            if image_data_uri:
-                image_html = f'<img src="{image_data_uri}" alt="{maze_id}" />'
-            else:
-                image_html = '<span style="color: #999;">No image</span>'
-        else:
-            image_html = '<span style="color: #999;">No image</span>'
-
-        # Convert Flash Sketch annotated image to base64
-        flash_sketch_annotated_html = ''
-        if flash_sketch_annotated:
-            flash_annotated_uri = image_to_base64(flash_sketch_annotated)
-            if flash_annotated_uri:
-                flash_sketch_annotated_html = f'<img src="{flash_annotated_uri}" alt="{maze_id} Flash Sketch annotated" />'
-            else:
-                flash_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-        else:
-            flash_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-
-        # Convert Pro Sketch annotated image to base64
-        pro_sketch_annotated_html = ''
-        if pro_sketch_annotated:
-            pro_annotated_uri = image_to_base64(pro_sketch_annotated)
-            if pro_annotated_uri:
-                pro_sketch_annotated_html = f'<img src="{pro_annotated_uri}" alt="{maze_id} Pro Sketch annotated" />'
-            else:
-                pro_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-        else:
-            pro_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-
-        # Convert Pro3 Sketch annotated image to base64
-        pro3_sketch_annotated_html = ''
-        if pro3_sketch_annotated:
-            pro3_annotated_uri = image_to_base64(pro3_sketch_annotated)
-            if pro3_annotated_uri:
-                pro3_sketch_annotated_html = f'<img src="{pro3_annotated_uri}" alt="{maze_id} Pro3 Sketch annotated" />'
-            else:
-                pro3_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-        else:
-            pro3_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-
-        # Convert Qwen3 Sketch annotated image to base64
-        qwen3_sketch_annotated_html = ''
-        if qwen3_sketch_annotated:
-            qwen3_annotated_uri = image_to_base64(qwen3_sketch_annotated)
-            if qwen3_annotated_uri:
-                qwen3_sketch_annotated_html = f'<img src="{qwen3_annotated_uri}" alt="{maze_id} Qwen3 Sketch annotated" />'
-            else:
-                qwen3_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-        else:
-            qwen3_sketch_annotated_html = '<span style="color: #999;">No image</span>'
-
-        # Convert GPT-5 Med annotated image to base64
-        gpt5_med_annotated_html = ''
-        if gpt5_med_annotated:
-            gpt5_med_uri = image_to_base64(gpt5_med_annotated)
-            if gpt5_med_uri:
-                gpt5_med_annotated_html = f'<img src="{gpt5_med_uri}" alt="{maze_id} GPT-5 Med annotated" />'
-            else:
-                gpt5_med_annotated_html = '<span style="color: #999;">No image</span>'
-        else:
-            gpt5_med_annotated_html = '<span style="color: #999;">No image</span>'
-
-        # Convert GPT-5 Low annotated image to base64
-        gpt5_low_annotated_html = ''
-        if gpt5_low_annotated:
-            gpt5_low_uri = image_to_base64(gpt5_low_annotated)
-            if gpt5_low_uri:
-                gpt5_low_annotated_html = f'<img src="{gpt5_low_uri}" alt="{maze_id} GPT-5 Low annotated" />'
-            else:
-                gpt5_low_annotated_html = '<span style="color: #999;">No image</span>'
-        else:
-            gpt5_low_annotated_html = '<span style="color: #999;">No image</span>'
-
-        # Determine cell classes
-        def get_class(answer, gt):
-            if answer == 'N/A':
-                return 'unknown'
-            elif answer == gt:
-                return 'correct'
-            elif answer == 'unknown':
-                return 'unknown'
-            else:
-                return 'incorrect'
-
-        flash_sketch_class = get_class(flash_sketch_answer, gt)
-        pro_sketch_class = get_class(pro_sketch_answer, gt)
-        pro3_sketch_class = get_class(pro3_sketch_answer, gt)
-        flash_vqa_class = get_class(flash_vqa_answer, gt)
-        pro_vqa_class = get_class(pro_vqa_answer, gt)
-        pro3_vqa_class = get_class(pro3_vqa_answer, gt)
-        qwen3_sketch_class = get_class(qwen3_sketch_answer, gt)
-        qwen3_vqa_class = get_class(qwen3_vqa_answer, gt)
-        gpt5_med_class = get_class(gpt5_med_answer, gt)
-        gpt5_low_class = get_class(gpt5_low_answer, gt)
-
-        # Format answers for display
-        def format_answer(ans):
-            if isinstance(ans, int):
-                return str(ans)
-            return str(ans)
-
-        row = f"""            <tr>
-                <td class="maze-id">{html.escape(maze_id)}</td>
-                <td class="maze-image">{image_html}</td>
-                <td class="gt-cell">{html.escape(format_answer(gt))}</td>
-                <td class="answer-cell {flash_sketch_class}">{html.escape(format_answer(flash_sketch_answer))}</td>
-                <td class="maze-image">{flash_sketch_annotated_html}</td>
-                <td class="output-cell">{html.escape(flash_sketch_output)}</td>
-                <td class="answer-cell {pro_sketch_class}">{html.escape(format_answer(pro_sketch_answer))}</td>
-                <td class="maze-image">{pro_sketch_annotated_html}</td>
-                <td class="output-cell">{html.escape(pro_sketch_output)}</td>
-                <td class="answer-cell {pro3_sketch_class}">{html.escape(format_answer(pro3_sketch_answer))}</td>
-                <td class="maze-image">{pro3_sketch_annotated_html}</td>
-                <td class="output-cell">{html.escape(pro3_sketch_output)}</td>
-                <td class="answer-cell {flash_vqa_class}">{html.escape(format_answer(flash_vqa_answer))}</td>
-                <td class="output-cell">{html.escape(flash_vqa_output)}</td>
-                <td class="answer-cell {pro_vqa_class}">{html.escape(format_answer(pro_vqa_answer))}</td>
-                <td class="output-cell">{html.escape(pro_vqa_output)}</td>
-                <td class="answer-cell {pro3_vqa_class}">{html.escape(format_answer(pro3_vqa_answer))}</td>
-                <td class="output-cell">{html.escape(pro3_vqa_output)}</td>
-                <td class="answer-cell {qwen3_sketch_class}">{html.escape(format_answer(qwen3_sketch_answer))}</td>
-                <td class="maze-image">{qwen3_sketch_annotated_html}</td>
-                <td class="output-cell">{html.escape(qwen3_sketch_output)}</td>
-                <td class="answer-cell {qwen3_vqa_class}">{html.escape(format_answer(qwen3_vqa_answer))}</td>
-                <td class="output-cell">{html.escape(qwen3_vqa_output)}</td>
-                <td class="answer-cell {gpt5_med_class}">{html.escape(format_answer(gpt5_med_answer))}</td>
-                <td class="maze-image">{gpt5_med_annotated_html}</td>
-                <td class="output-cell">{html.escape(gpt5_med_output)}</td>
-                <td class="answer-cell {gpt5_low_class}">{html.escape(format_answer(gpt5_low_answer))}</td>
-                <td class="maze-image">{gpt5_low_annotated_html}</td>
-                <td class="output-cell">{html.escape(gpt5_low_output)}</td>
-            </tr>
-"""
-        html_rows.append(row)
-
-    html_end = """        </tbody>
+            {table_rows}
+        </tbody>
     </table>
 </body>
 </html>
 """
 
-    return html_start + ''.join(html_rows) + html_end
+
+def create_html_from_csv(csv_path: Path, output_path: Path) -> None:
+    if not csv_path.exists():
+        raise SystemExit(f'CSV not found: {csv_path}')
+
+    maze_entries = load_csv_results(csv_path)
+    if not maze_entries:
+        raise SystemExit(f'No rows found in {csv_path}')
+
+    model_stats = compute_model_stats(maze_entries)
+    html_content = build_html_document(maze_entries, model_stats)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html_content, encoding='utf-8')
+
+    print(f'Saved HTML table to: {output_path}')
+    print(f'Total mazes visualized: {len(maze_entries)}')
+
+
+def parse_args():
+    csv_path = DEFAULT_CSV_PATH
+    output_path = DEFAULT_OUTPUT_PATH
+    index_mode = False
+
+    for arg in sys.argv[1:]:
+        if arg == '--index-mode':
+            index_mode = True
+        elif arg.startswith('--csv-path='):
+            csv_path = Path(arg.split('=', 1)[1])
+        elif arg.startswith('--output='):
+            output_path = Path(arg.split('=', 1)[1])
+
+    if index_mode:
+        raise SystemExit('Index mode is not supported by the CSV visualizer yet.')
+
+    return csv_path, output_path
 
 
 def main():
-    # Check for --index-mode flag
-    index_mode = '--index-mode' in sys.argv
+    csv_path, output_path = parse_args()
 
-    print("=" * 80)
-    if index_mode:
-        print("Creating HTML Model Answer Comparison Table (Index Mode)")
-    else:
-        print("Creating HTML Model Answer Comparison Table (Binary Mode)")
-    print("=" * 80)
+    print('=' * 80)
+    print('Creating HTML Model Answer Comparison Table (CSV mode)')
+    print('=' * 80)
     print()
 
-    create_html_table(index_mode)
+    create_html_from_csv(csv_path, output_path)
 
     print()
-    print("=" * 80)
-    print("Done!")
-    print("=" * 80)
+    print('=' * 80)
+    print('Done!')
+    print('=' * 80)
 
 
 if __name__ == '__main__':

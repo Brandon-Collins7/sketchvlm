@@ -894,6 +894,8 @@ python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/
 
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 
 
+python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 
+
 
 export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/opt/cairolib:$DYLD_FALLBACK_LIBRARY_PATH && python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 
@@ -925,3 +927,33 @@ python /Users/log/Github/sketchvlm/consistency/process_with_openrouter.py --inpu
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --reasoning-effort medium --no-system-prompt --no-grid 
 
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --reasoning-effort medium --no-system-prompt --no-grid 
+
+
+python collab_sketch_with_label.py --llm openrouter --model openai/gpt-5 --mixed-dir datasets/maze_v2/sketch_invalid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --only "119,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199"
+
+
+python collab_sketch_with_label.py --llm openrouter --model openai/gpt-5 --mixed-dir datasets/maze_v2/sketch_valid_flattened --max-tokens 20000 --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20 --only "48,123,125,126,127,128,129,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199"
+
+python collab_sketch_with_label.py --llm openrouter --model openai/gpt-5 --mixed-dir datasets/maze_v2/valid_flattened --max-tokens 20000 --reasoning-effort medium 
+
+python collab_sketch_with_label.py --llm openrouter --model openai/gpt-5 --mixed-dir datasets/maze_v2/invalid_flattened --max-tokens 20000 --reasoning-effort medium 
+
+
+
+
+
+python consistency/process_with_openrouter.py --input consistency/normal_gemini3/source_data/image_questions_maze_nanob_valid.json --output consistency/normal_gemini3/judge_output/maze_nanob_gemini3pro_valid.json --model google/gemini-3-pro-preview
+
+
+
+python consistency/process_with_openrouter.py --input consistency/normal_gemini3/source_data/image_questions_maze_nanob_invalid.json --output consistency/normal_gemini3/judge_output/maze_nanob_gemini3pro_invalid.json --model google/gemini-3-pro-preview
+
+
+python consistency/process_with_openrouter.py --input consistency/normal_gemini3/source_data/image_questions_maze_nanob_invalid_retry.json --output consistency/normal_gemini3/judge_output/maze_nanob_gemini3pro_invalid_retry.json --model google/gemini-3-pro-preview
+
+python consistency/process_with_openrouter.py --input consistency/normal_gemini3/source_data/image_questions_maze_nanob_valid_retry.json --output consistency/normal_gemini3/judge_output/maze_nanob_gemini3pro_valid_retry.json --model google/gemini-3-pro-preview
+
+
+python3 consistency/process_with_openrouter.py --input consistency/source_data/consistency/grid_world/consistency_check_nanob_gemini3_invalid.json --output consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_invalid.json --model google/gemini-3-flash-preview   
+
+python3 consistency/process_with_openrouter.py --input consistency/source_data/consistency/grid_world/consistency_check_nanob_gemini3_valid.json --output consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_valid.json --model google/gemini-3-flash-preview   

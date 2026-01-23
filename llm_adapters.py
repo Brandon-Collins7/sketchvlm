@@ -8,6 +8,7 @@ including OpenAI, Anthropic Claude, and Google Gemini.
 import os
 import base64
 import re
+import json
 from typing import Optional, List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
@@ -549,6 +550,7 @@ class OpenRouterAdapter(BaseLLMAdapter):
             api_key=api_key
         )
         self._is_image_gen_model = (model == "google/gemini-3-pro-image-preview")
+        self._last_request_payload: Dict = {}
 
     def build_user_content(self, init_canvas_b64: Optional[str], text: str):
         content: List[Dict] = []
@@ -565,6 +567,8 @@ class OpenRouterAdapter(BaseLLMAdapter):
         add_args = additional_args or {}
         temperature = add_args.get("temperature")
         stop_sequences = add_args.get("stop_sequences")
+        reasoning_effort = add_args.get("reasoning_effort")
+        prev_response_id = add_args.get("previous_response_id")
 
         # Build messages with system message
         chat_messages = list(messages or [])  # Make a copy
@@ -575,6 +579,11 @@ class OpenRouterAdapter(BaseLLMAdapter):
                 # "allow_fallbacks": False  # never fall back
             }
         }
+
+        if reasoning_effort:
+            extra_body["reasoning"] = {"effort": reasoning_effort}
+        if prev_response_id:
+            extra_body["previous_response_id"] = prev_response_id
 
         # For gemini image gen model, add modalities: ["image"] for single-turn image generation
         if self._is_image_gen_model:
@@ -594,6 +603,16 @@ class OpenRouterAdapter(BaseLLMAdapter):
             args["temperature"] = float(temperature)
         if stop_sequences:
             args["stop"] = stop_sequences if isinstance(stop_sequences, list) else [stop_sequences]
+
+        # Keep a serializable snapshot for debugging/logging purposes
+        self._last_request_payload = {
+            "model": self.model,
+            "max_tokens": self.max_tokens,
+            "temperature": args.get("temperature"),
+            "stop": args.get("stop"),
+            "extra_body": extra_body,
+            "messages": chat_messages,
+        }
 
         return self._client.chat.completions.create(**args)
 
@@ -659,6 +678,28 @@ class OpenRouterAdapter(BaseLLMAdapter):
         if images:
             print(f"[IMAGE GEN] Found {len(images)} generated images")
         return images
+
+    def debug_dump(self, raw_response) -> dict:
+        dump: Dict[str, Dict] = {}
+
+        # Include the serialized request we just sent
+        if self._last_request_payload:
+            dump["request"] = self._last_request_payload
+
+        # Best-effort serialization of the provider response
+        try:
+            if hasattr(raw_response, "model_dump"):
+                dump["response"] = raw_response.model_dump()
+            elif hasattr(raw_response, "json"):
+                dump["response"] = json.loads(raw_response.json())
+            elif isinstance(raw_response, dict):
+                dump["response"] = raw_response
+            else:
+                dump["response_repr"] = repr(raw_response)
+        except Exception:
+            dump["response_repr"] = repr(raw_response)
+
+        return dump
 
 
 # =========================

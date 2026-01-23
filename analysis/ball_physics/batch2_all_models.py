@@ -462,6 +462,7 @@ def process_all_models():
         ('gemini3_image_two_turn_batch2', 'nano_banana_pro', 'paths', False),
         ('gemini3_ball_paths_batch2', 'Gemini-3-Pro', 'paths', False),
         ('gemini3pro_batch2_ball_paths_no_grid_0_to_1000', 'Gemini-3-Pro-0-1000', 'paths', False),
+        ('20260114_111423_gem3pro_meta_second_batch_copy', 'Gemini-3-Pro-Meta', 'paths', False),
 
     ]
 
