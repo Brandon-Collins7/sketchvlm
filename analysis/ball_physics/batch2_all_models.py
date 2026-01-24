@@ -456,6 +456,7 @@ def process_all_models():
         ('gemini_25_flash_ball_paths_batch2', 'Gemini-2.5-Flash', 'paths', False),
         ('gemini_25_pro_ball_paths_batch2', 'Gemini-2.5-Pro', 'paths', False),
         ('gpt5_low_ball_paths_batch2', 'GPT-5-low', 'paths', False),
+        ('20260121_205501_gpt5low_ball_batch2', 'GPT-5-low-NEW', 'paths', False),
         ('gpt5_med_ball_paths_batch2', 'GPT-5-med', 'paths', False),
         ('qwen25_7b_ball_paths_batch2', 'Qwen2.5-7B', 'paths', False),
         ('vilasr_ball_paths_batch2', 'ViLaSR', 'paths', True),  # JSONL format

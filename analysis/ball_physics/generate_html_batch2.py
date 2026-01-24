@@ -64,6 +64,7 @@ def generate_html(csv_path, output_path):
         'Gemini-3-Pro': base_path / 'gemini3_ball_paths_batch2',
         'Gemini-3-Pro-0-1000': base_path / 'gemini3pro_batch2_ball_paths_no_grid_0_to_1000',
         'GPT-5-low': base_path / 'gpt5_low_ball_paths_batch2',
+        'GPT-5-low-NEW': base_path / '20260121_205501_gpt5low_ball_batch2',
         'GPT-5-med': base_path / 'gpt5_med_ball_paths_batch2',
         'nano_banana_pro': base_path / 'gemini3_image_two_turn_batch2',
     }
@@ -101,6 +102,7 @@ def generate_html(csv_path, output_path):
         'Gemini-3-Pro',
         'GPT-5-med',
         'GPT-5-low',
+        'GPT-5-low-NEW',
         'Gemini-2.5-Pro',
         'Gemini-2.5-Flash',
     ]

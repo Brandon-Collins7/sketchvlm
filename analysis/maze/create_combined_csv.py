@@ -112,7 +112,9 @@ def extract_maze_id(source_image_path: str) -> str:
     """Extract maze ID from source image path."""
     if not source_image_path:
         return None
-    filename = Path(source_image_path).stem
+    # Normalize path separators to handle Windows paths on Unix systems
+    normalized_path = str(source_image_path).replace('\\', '/')
+    filename = Path(normalized_path).stem
     return filename
 
 
@@ -509,6 +511,7 @@ def main():
         ('gemini_pro_two_turn', base_path / 'gemini' / 'two_turn', 'gemini25_pro', 'json'),
         ('gemini3_pro_sketch', base_path / 'gemini', 'gemini3_pro', 'json'),
         ('gemini3_pro_vqa', base_path / 'gemini' / 'direct_vqa', 'gemini3_pro', 'json'),
+        ('gemini3_pro_0_1000_sketch', base_path / 'gemini', 'gemini3pro_gridworld_paths_0_to_1000', 'json'),
         ('gpt5_med_sketch', base_path / 'gpt5', 'gpt5_med', 'json'),
         ('gpt5_med_vqa', base_path / 'gpt5' / 'direct_vqa', 'gpt5_med', 'json'),
         ('gpt5_low_sketch', base_path / 'gpt5', 'gpt5_low', 'json'),

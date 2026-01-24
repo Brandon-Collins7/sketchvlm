@@ -25,6 +25,7 @@ MODEL_CONFIGS = [
     {'key': 'gemini_flash_sketch', 'label': 'Flash (Sketch)', 'has_annotation': True},
     {'key': 'gemini_pro_sketch', 'label': 'Pro (Sketch)', 'has_annotation': True},
     {'key': 'gemini3_pro_sketch', 'label': 'Pro3 (Sketch)', 'has_annotation': True},
+    {'key': 'gemini3_pro_0_1000_sketch', 'label': 'Pro3 0-1000 (Sketch)', 'has_annotation': True},
     {'key': 'gemini_flash_vqa', 'label': 'Flash (Direct VQA)', 'has_annotation': False},
     {'key': 'gemini_pro_vqa', 'label': 'Pro (Direct VQA)', 'has_annotation': False},
     {'key': 'gemini3_pro_vqa', 'label': 'Pro3 (Direct VQA)', 'has_annotation': False},
