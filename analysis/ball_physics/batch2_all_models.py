@@ -464,6 +464,8 @@ def process_all_models():
         ('gemini3_ball_paths_batch2', 'Gemini-3-Pro', 'paths', False),
         ('gemini3pro_batch2_ball_paths_no_grid_0_to_1000', 'Gemini-3-Pro-0-1000', 'paths', False),
         ('20260114_111423_gem3pro_meta_second_batch_copy', 'Gemini-3-Pro-Meta', 'paths', False),
+        ('20260123_232913_gpt_meta_batch2_nogrid_sketch', 'GPT-Meta-NoGrid', 'paths', False),
+        ('20260124_183213_gpt_meta_grid_vqa_2', 'GPT-Meta-Grid-VQA', 'paths', False),
 
     ]
 
