@@ -1,28 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-compare_vpct_quality_pdf.py
+compare_maze_quality_pdf.py
 
-Generate a PDF comparison figure for VPCT quality scores across multiple models.
+Generate a PDF comparison figure for maze quality scores across multiple models.
 Each column shows a different model's quality scores, each row shows a different sample.
-Similar in style to compare_figure_pdf.py but focused on quality scores instead of predictions.
+Similar in style to compare_figure_pdf.py but focused on maze quality scores.
 
 By default, rows with any errors (API failures or missing quality scores) are excluded.
 
 Usage:
-  python consistency/compare_vpct_quality_pdf.py \
-    --judge-dir consistency/judge_output/vpct_quality \
-    --models vpct_gemini3pro_0_1000 vpct_gpt5low vpct_thinkmorph vpct_nanobanana vpct_gemini_flash vpct_vilasr \
+  python consistency/compare_maze_quality_pdf.py \
+    --judge-dir consistency/judge_output/grid_world_quality \
+    --source-root datasets/maze_v2/sketch_valid_flattened \
+    --models gemini3_pro_valid gpt5_low_valid thinkmorph_valid nano_banana_valid vilasr_valid \
     --rows "0-20" \
-    --out-pdf consistency/fig_vpct_quality_compare.pdf
+    --out-pdf consistency/fig_maze_quality_compare.pdf
 
-Custom titles example:
-  python consistency/compare_vpct_quality_pdf.py \
-    --judge-dir consistency/judge_output/vpct_quality \
-    --models vpct_gemini3pro_0_1000 vpct_gpt5low vpct_thinkmorph \
+For invalid paths:
+  python consistency/compare_maze_quality_pdf.py \
+    --judge-dir consistency/judge_output/grid_world_quality \
+    --source-root datasets/maze_v2/sketch_invalid_flattened \
+    --models gemini3_pro_invalid gpt5_low_invalid thinkmorph_invalid \
     --titles "Gemini-3-Pro" "GPT-5 (low)" "ThinkMorph" \
-    --rows "0,3,5,8,10,15" \
-    --out-pdf consistency/fig_vpct_quality_custom.pdf
+    --rows "0-10" \
+    --out-pdf consistency/fig_maze_quality_invalid.pdf
 """
 
 import argparse
@@ -48,7 +50,7 @@ class QualityEntry:
     quality_score: Optional[int] = None
     judge_response: Optional[str] = None
     success: bool = False
-    bucket_answer: Optional[str] = None
+    validity_answer: Optional[str] = None
     source_image_path: Optional[Path] = None
 
 
@@ -90,16 +92,19 @@ def load_model_data(judge_dir: Path, model_name: str, source_root: Optional[Path
 
         img_path_str = entry.get('image_path', '')
         img_path = Path(img_path_str) if img_path_str else None
+        if img_path and not img_path.is_absolute():
+            # Make relative paths absolute
+            img_path = Path.cwd() / img_path
 
         judge_response = entry.get('consistency_check_response', '')
         success = entry.get('success', False)
-        bucket = entry.get('original_extracted_answer')
+        validity = entry.get('original_extracted_answer')
 
         quality_score = None
         if success and judge_response:
             quality_score = extract_quality_score(judge_response)
 
-        # Try to find source image from the annotated image directory
+        # Try to find source image
         source_image_path = None
         if img_path and img_path.exists() and source_root:
             # Try to load the corresponding item JSON to get source image
@@ -126,7 +131,7 @@ def load_model_data(judge_dir: Path, model_name: str, source_root: Optional[Path
             quality_score=quality_score,
             judge_response=judge_response,
             success=success,
-            bucket_answer=bucket,
+            validity_answer=validity,
             source_image_path=source_image_path
         )
 
@@ -286,18 +291,6 @@ def draw_header_cell(c: canvas.Canvas, x0: float, y_top: float, cell_w: float,
         c.drawCentredString(x0 + cell_w / 2, y_start - i * lead, ln)
 
 
-def get_score_color(score: Optional[int]) -> Tuple:
-    """Get color for quality score (RGB tuple)."""
-    if score is None:
-        return (0.6, 0.6, 0.6)  # Gray for missing
-    elif score <= 2:
-        return (0.94, 0.27, 0.27)  # Red for poor
-    elif score == 3:
-        return (0.96, 0.62, 0.04)  # Orange for fair
-    else:
-        return (0.06, 0.72, 0.51)  # Green for good
-
-
 def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry]],
                     model_titles: List[str], picked_rows: List[int],
                     include_source: bool = True, source_title: str = "Source Image",
@@ -307,7 +300,7 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
                     row_gap_in: float = 0.0, col_gap_pt: float = 1.0,
                     font_size: int = 7, header_font_size: int = 8,
                     header_max_lines: int = 2, header_leading: Optional[float] = None,
-                    img_h_in: Optional[float] = None, fixed_img_aspect: float = 4.0/3.0) -> None:
+                    img_h_in: Optional[float] = None, fixed_img_aspect: float = 1.0) -> None:
     """Generate the quality comparison PDF with fixed aspect ratio columns."""
 
     pagesize = letter if page.lower() == "letter" else A4
@@ -329,7 +322,7 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
     # Calculate target image height first
     target_img_h = (img_h_in * inch) if (img_h_in is not None) else (2.2 * inch)
 
-    # Cell width is determined by the fixed aspect ratio (800x600 = 4:3)
+    # Cell width is determined by the fixed aspect ratio (maze images are typically square)
     cell_w = target_img_h * fixed_img_aspect
 
     def rows_per_page() -> int:
@@ -390,8 +383,8 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
                 # Draw image with crop settings for specific models
                 img_path = entry.image_path if entry else None
                 model_lower = model_name.lower()
-                crop_left = 22 if ('gpt5' in model_lower or 'gemini3' in model_lower) else 0
-                crop_bottom = 20 if ('gpt5' in model_lower or 'gemini3' in model_lower) else 0
+                crop_left = 22 if ('gpt5' in model_lower or 'gemini3' in model_lower or 'gemini_3' in model_lower) else 0
+                crop_bottom = 20 if ('gpt5' in model_lower or 'gemini3' in model_lower or 'gemini_3' in model_lower) else 0
                 draw_image_fit(c, img_path, x, y_img, cell_w, target_img_h,
                               crop_left=crop_left, crop_bottom=crop_bottom)
 
@@ -423,12 +416,12 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate PDF comparison figure for VPCT quality scores"
+        description="Generate PDF comparison figure for maze quality scores"
     )
     parser.add_argument("--judge-dir", type=Path, required=True,
-                       help="Directory containing VPCT quality judge JSON files")
-    parser.add_argument("--source-root", type=Path, default=Path("datasets/vpct-1"),
-                       help="Directory containing source VPCT images (default: datasets/vpct-1)")
+                       help="Directory containing maze quality judge JSON files")
+    parser.add_argument("--source-root", type=Path, default=None,
+                       help="Directory containing source maze images (e.g., datasets/maze_v2/sketch_valid_flattened)")
     parser.add_argument("--models", nargs="+", required=True,
                        help="Model names to include (JSON file stems)")
     parser.add_argument("--titles", nargs="+", default=None,
@@ -444,7 +437,7 @@ def main():
     parser.add_argument("--include-errors", action="store_true",
                        help="Include entries with API errors or missing scores")
 
-    # Page layout options (matching compare_figure_pdf.py)
+    # Page layout options
     parser.add_argument("--page", choices=["letter", "a4"], default="letter")
     parser.add_argument("--landscape", action="store_true", default=True)
     parser.add_argument("--margin-in", type=float, default=0.15)
@@ -459,6 +452,8 @@ def main():
     parser.add_argument("--header-leading", type=float, default=None)
     parser.add_argument("--pt-per-inch", type=float, default=30.0)
     parser.add_argument("--img-h-in", type=float, default=None)
+    parser.add_argument("--img-aspect", type=float, default=1.0,
+                       help="Image aspect ratio (width/height), default 1.0 for square")
 
     args = parser.parse_args()
 
@@ -486,8 +481,9 @@ def main():
         # Clean up model names for display
         model_titles = []
         for name in model_data.keys():
-            # Remove 'vpct_' prefix if present
-            clean_name = name.replace('vpct_', '').replace('_', ' ').title()
+            # Remove common prefixes/suffixes
+            clean_name = name.replace('consistency_results_', '').replace('_valid', '').replace('_invalid', '')
+            clean_name = clean_name.replace('_', ' ').title()
             model_titles.append(clean_name)
 
     # Parse row specification
@@ -542,7 +538,8 @@ def main():
         header_font_size=args.header_font_size,
         header_max_lines=args.header_max_lines,
         header_leading=args.header_leading,
-        img_h_in=args.img_h_in
+        img_h_in=args.img_h_in,
+        fixed_img_aspect=args.img_aspect
     )
 
 
@@ -553,43 +550,36 @@ if __name__ == "__main__":
 '''
 EXAMPLE USAGE:
 
-# Basic usage with all 6 models
-python consistency/compare_vpct_quality_pdf.py \
-  --judge-dir consistency/judge_output/vpct_quality \
-  --models vpct_gemini3pro_0_1000 vpct_gpt5low vpct_thinkmorph vpct_nanobanana vpct_gemini_flash vpct_vilasr \
-  --rows "0-20" \
-  --out-pdf consistency/fig_vpct_quality_compare.pdf
+# Valid paths
+python consistency/compare_maze_quality_pdf.py \
+  --judge-dir consistency/judge_output/grid_world_quality \
+  --source-root datasets/maze_v2/sketch_valid_flattened \
+  --models gemini3_pro_valid gpt5_low_valid thinkmorph_valid \
+  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" \
+  --rows "0-15" \
+  --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.20 --row-gap-in 0 --col-gap-pt 1.0 \
+  --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 \
+  --out-pdf consistency/fig_maze_quality_valid_compare.pdf
 
-# Custom titles and specific rows
-python consistency/compare_vpct_quality_pdf.py \
-  --judge-dir consistency/judge_output/vpct_quality \
-  --models vpct_gemini3pro_0_1000 vpct_gpt5low vpct_thinkmorph \
-  --titles "Gemini-3-Pro" "GPT-5 (low)" "ThinkMorph" \
-  --rows "0,3,5,8,10,12,15" \
-  --out-pdf consistency/fig_vpct_quality_subset.pdf
+# Invalid paths
+python consistency/compare_maze_quality_pdf.py \
+  --judge-dir consistency/judge_output/grid_world_quality \
+  --source-root datasets/maze_v2/sketch_invalid_flattened \
+  --models gemini3_pro_invalid gpt5_low_invalid thinkmorph_invalid \
+  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" \
+  --rows "0-15" \
+  --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.20 --row-gap-in 0 --col-gap-pt 1.0 \
+  --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 \
+  --out-pdf consistency/fig_maze_quality_invalid_compare.pdf
 
-# All models with custom layout (matching compare_figure_pdf.py style)
-python consistency/compare_vpct_quality_pdf.py \
-  --judge-dir consistency/judge_output/vpct_quality \
-  --source-root datasets/vpct-1 \
-  --models vpct_gemini3pro_0_1000 vpct_gpt5low vpct_thinkmorph vpct_nanobanana vpct_vilasr \
-  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" "NanoBanana" "ViLaSR" \
-  --rows "0,2,4,5,6,7,8,11,12,13,14" \
-  --margin-in 0.15 \
-  --header-h-in 0.36 \
-  --label-h-in 0.20 \
-  --row-gap-in 0 \
-  --col-gap-pt 1.0 \
-  --pt-per-inch 30 \
-  --header-font-size 8 \
-  --header-max-lines 2 \
-  --out-pdf consistency/fig_vpct_quality_compare.pdf
-
-# Include rows with errors (not recommended)
-python consistency/compare_vpct_quality_pdf.py \
-  --judge-dir consistency/judge_output/vpct_quality \
-  --models vpct_gemini3pro_0_1000 vpct_gpt5low \
-  --include-errors \
-  --rows "0-50" \
-  --out-pdf consistency/fig_vpct_quality_with_errors.pdf
+# With NanoBanana
+python consistency/compare_maze_quality_pdf.py \
+  --judge-dir consistency/judge_output/grid_world_quality \
+  --source-root datasets/maze_v2/sketch_valid_flattened \
+  --models gemini3_pro_valid gpt5_low_valid thinkmorph_valid consistency_results_nano_banana_valid vilasr_valid \
+  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" "NanoBanana Pro" "ViLaSR" \
+  --rows "0,4,5,6,7,8,11,12,13,14" \
+  --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.20 --row-gap-in 0 --col-gap-pt 1.0 \
+  --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 \
+  --out-pdf consistency/fig_maze_quality_compare.pdf
 '''
