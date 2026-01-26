@@ -957,3 +957,24 @@ python consistency/process_with_openrouter.py --input consistency/normal_gemini3
 python3 consistency/process_with_openrouter.py --input consistency/source_data/consistency/grid_world/consistency_check_nanob_gemini3_invalid.json --output consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_invalid.json --model google/gemini-3-flash-preview   
 
 python3 consistency/process_with_openrouter.py --input consistency/source_data/consistency/grid_world/consistency_check_nanob_gemini3_valid.json --output consistency/judge_output/grid_world_consistency/consistency_results_nanob_gemini3_valid.json --model google/gemini-3-flash-preview   
+
+
+
+
+
+
+
+file:///Users/log/Github/sketchvlm/consistency/html_output/vpct_quality_scores.html
+vpct_gemini3pro_0_1000
+vpct_gpt5low
+vpct_thinkmorph
+vpct_nanobanana
+vpct_gemini_flash
+vpct_vilasr
+
+/Users/log/Github/sketchvlm/consistency/compare_figure_pdf.py
+^^ want to be in same style as this
+
+
+/Users/log/Github/sketchvlm/consistency
+Please make a different visualization for vpct_quality that works very similarly to compare_figure_pdf. I want it in latex. Don't include rows where there's any sort of errors. 
