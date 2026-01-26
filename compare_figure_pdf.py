@@ -558,6 +558,31 @@ def resolve_source_image_path_from_ex(ex: Optional[RunExample], gt_root: Path) -
                 return p3
     return None
 
+
+#----
+
+def infer_vpct_order_from_item_jsons(run_dir: Path) -> List[str]:
+    """
+    Returns basenames like ['sim_100_initial.png', ...] ordered by item_XXXXX.json index.
+    """
+    pairs = []
+    for jf in sorted(run_dir.glob("item_*.json")):
+        m = re.match(r"item_(\d+)\.json$", jf.name, re.I)
+        if not m:
+            continue
+        idx = int(m.group(1))
+        try:
+            j = json.loads(jf.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        src = str(j.get("source_image", "") or j.get("image", "") or j.get("file", "")).replace("\\", "/")
+        base = Path(src).name
+        if SIM_IMG_RE.search(base):
+            pairs.append((idx, base))
+    pairs.sort(key=lambda t: t[0])
+    return [b for _, b in pairs]
+
+
 # -----------------------------
 # PDF drawing
 # -----------------------------
@@ -967,6 +992,15 @@ def main():
 
     if args.task == "vpct":
         ordered, gt_map = load_gt_vpct(args.gt_root)
+        
+        # Prefer dataset/item order (from item_*.json) so row indices match item_00000, item_00001, ...
+        for cs in col_specs:
+            if cs.kind == "standard":
+                inferred = infer_vpct_order_from_item_jsons(cs.run_dir)
+                if inferred:
+                    ordered = inferred
+                break
+
         if not ordered:
             raise SystemExit(f"No VPCT GT found in {args.gt_root} (expected sim_*_results.json)")
 
