@@ -46,32 +46,33 @@ SIM_IMG_RE = re.compile(r"sim_(\d+)_initial\.png$", re.I)
 
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
-def draw_pred_with_mark(c, x_center, y, pred_text, ok, font_size):
-    base_font = "Times-Roman"
-    sym_font = "ZapfDingbats"
+def draw_pred_with_mark(c, x_center: float, y: float, pred_text: str, ok: Optional[bool], font_size: int) -> None:
+    """
+    Draw: 'Pred=K' plus a green check / red x right next to it (like vpct/pathnav).
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth
 
-    # ZapfDingbats: "3" is a check mark, "7" is a cross mark
-    mark = None
-    if ok is True:
-        mark = "3"
-    elif ok is False:
-        mark = "7"
+    # Base text
+    c.setFillColor(colors.black)
+    c.setFont("Times-Roman", font_size)
+    c.drawCentredString(x_center, y, pred_text)
 
-    sym_size = font_size + 1
-    gap = 1.5  # points
+    if ok is None:
+        return
 
-    w_text = stringWidth(pred_text, base_font, font_size)
-    w_mark = stringWidth(mark, sym_font, sym_size) if mark else 0.0
-    total = w_text + (gap + w_mark if mark else 0.0)
+    mark = "✓" if ok else "✗"
+    mark_color = colors.green if ok else colors.red
+    mark_font = "Helvetica-Bold"
+    mark_size = max(font_size + 2, 9)
 
-    x_left = x_center - total / 2.0
+    text_w = stringWidth(pred_text, "Times-Roman", font_size)
+    gap = 2  # points
+    x_mark = x_center + text_w / 2 + gap
 
-    c.setFont(base_font, font_size)
-    c.drawString(x_left, y, pred_text)
+    c.setFillColor(mark_color)
+    c.setFont(mark_font, mark_size)
+    c.drawString(x_mark, y - (mark_size - font_size) * 0.25, mark)
 
-    if mark:
-        c.setFont(sym_font, sym_size)
-        c.drawString(x_left + w_text + gap, y, mark)
 
 
 # -----------------------------
@@ -1125,8 +1126,7 @@ python compare_figure_pdf.py --task pathnav \
   --out-pdf fig_pathnav_compare.pdf
 
 
-
-python compare_figure_pdf_ball_drop.py --task balldrop --gt-root large_run_split --col-dir results/mix_eval/gemini3pro_meta_ball_physics_no_grid_0_to_1000 --col-title "Gemini" --col-kind standard   --col-dir results/mix_eval/20260113_141928_gem3pro_meta_first_batch --col-title "Gemini multi" --col-kind standard --col-dir results/mix_eval/gpt5_low_ball_paths --col-title "GPT-5 (low)" --col-kind standard --col-dir results/mix_eval/20260121_205447_gpt5low_ball_batch1 --col-title "GPT-5 (low) multi" --col-kind standard --col-dir results/mix_eval/meta_ball_1_other_models/gemini3_image_two_turn  --col-title "NanoBanana" --col-kind nanobanana --col-dir results/mix_eval/meta_ball_1_other_models/thinkmorph_ball_paths --col-title "ThinkMorph" --col-kind thinkmorph --col-dir results/mix_eval/meta_ball_1_other_models/vilasr_ball_paths --col-title "ViLaSR" --col-kind vilasr --rows "0,2,4,5" --margin-in 0.15 --header-h-in 0.16 --label-h-in 0.10 --row-gap-in 0 --pt-per-inch 60 --out-pdf fig_balldrop_compare_2.pdf
+python compare_figure_pdf_ball_drop.py --task balldrop --gt-root large_run_split --col-dir results/mix_eval/gemini3pro_meta_ball_physics_no_grid_0_to_1000 --col-title "Gemini-3-Pro-Preview" --col-kind standard   --col-dir results/mix_eval/20260113_141928_gem3pro_meta_first_batch_copy --col-title "Gemini-3-Pro-Preview Multi-turn" --col-kind standard --col-dir results/mix_eval/gpt5_low_ball_paths --col-title "GPT-5 (low)" --col-kind standard --col-dir results/mix_eval/20260121_205447_gpt5low_ball_batch1 --col-title "GPT-5 (low) Multi-turn" --col-kind standard --col-dir results/mix_eval/meta_ball_1_other_models/gemini3_image_two_turn  --col-title "NanoBanana Pro" --col-kind nanobanana --col-dir results/mix_eval/meta_ball_1_other_models/thinkmorph_ball_paths --col-title "ThinkMorph" --col-kind thinkmorph --col-dir results/mix_eval/meta_ball_1_other_models/vilasr_ball_paths --col-title "ViLaSR" --col-kind vilasr --rows "0,2,7,8,9,12,14,16" --margin-in 0.15 --header-h-in 0.16 --label-h-in 0.10 --row-gap-in 0 --pt-per-inch 40 --header-font-size 7 --header-max-lines 2 --no-ids --out-pdf fig_balldrop_compare_2.pdf
 
 
 python compare_figure_pdf.py \
