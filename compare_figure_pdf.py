@@ -372,6 +372,88 @@ def build_thinkmorph_index(run_dir: Path) -> Tuple[Dict[str, Path], Dict[str, in
 # loaders
 # -----------------------------
 
+
+def _is_nanobanana_merged_list(obj) -> bool:
+    if not isinstance(obj, list) or not obj:
+        return False
+    e0 = obj[0]
+    return isinstance(e0, dict) and \
+           "index" in e0 and "image_path" in e0 and "consistency_check_response" in e0
+
+def find_nanobanana_merged_json(run_dir: Path) -> Optional[Path]:
+    # Search run_dir then parent for a merged file
+    for base in [run_dir, run_dir.parent]:
+        if not base or not base.exists():
+            continue
+        for p in sorted(base.glob("*.json")):
+            try:
+                obj = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if _is_nanobanana_merged_list(obj):
+                return p
+    return None
+
+def load_run_dir_nanobanana_from_merged_json(task: str, run_dir: Path,
+                                            vpct_ordered_imgs: Optional[List[str]] = None
+                                            ) -> Dict[str, RunExample]:
+    """
+    NanoBanana merged format:
+      - annotated image: entry["image_path"] (basename exists under run_dir)
+      - answer source: entry["consistency_check_response"]
+      - index aligns to dataset order
+    Returns map keyed like the rest of the script:
+      - VPCT: key = sim_XXX_initial.png basename (from vpct_ordered_imgs[index])
+      - PathNav: key = item_idx (5-digit string)
+    """
+    merged = find_nanobanana_merged_json(run_dir)
+    if merged is None:
+        print(f"[nanobanana] No merged json found near {run_dir}")
+        return {}
+
+    try:
+        rows = json.loads(merged.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[nanobanana] Failed reading {merged}: {e}")
+        return {}
+
+    out: Dict[str, RunExample] = {}
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        idx = r.get("index")
+        if not isinstance(idx, int) or idx < 0:
+            continue
+
+        resp = r.get("consistency_check_response", "")
+        if not isinstance(resp, str):
+            resp = "" if resp is None else str(resp)
+
+        pred_i, pred_lab = parse_pred_from_text(task, resp)
+
+        img_path_raw = r.get("image_path", "")
+        img_path = None
+        if isinstance(img_path_raw, str) and img_path_raw:
+            bname = Path(img_path_raw).name
+            cand = run_dir / bname
+            if cand.exists():
+                img_path = cand
+            elif Path(img_path_raw).exists():
+                img_path = Path(img_path_raw)
+
+        if task == "vpct":
+            if not vpct_ordered_imgs or idx >= len(vpct_ordered_imgs):
+                continue
+            key = vpct_ordered_imgs[idx]          # e.g. "sim_100_initial.png"
+            out[key] = RunExample(pred_int=pred_i, img_path=img_path, item_idx=f"{idx:05d}")
+        else:
+            key = f"{idx:05d}"                    # match pathnav’s item_idx keys
+            out[key] = RunExample(pred_label=pred_lab, img_path=img_path, item_idx=key)
+
+    print(f"[nanobanana] Loaded {len(out)} examples from {merged.name}")
+    return out
+
+
 def load_run_dir_vpct_standard_or_nanobanana(run_dir: Path, kind: str) -> Dict[str, RunExample]:
     out: Dict[str, RunExample] = {}
     for jf in sorted(run_dir.glob("item_*.json")):
@@ -890,7 +972,9 @@ def main():
 
         cols_loaded = []
         for cs in col_specs:
-            if cs.kind in ("standard", "nanobanana"):
+            if cs.kind == "nanobanana":
+                cols_loaded.append((cs, load_run_dir_nanobanana_from_merged_json("vpct", cs.run_dir, vpct_ordered_imgs=ordered)))
+            elif cs.kind == "standard":
                 cols_loaded.append((cs, load_run_dir_vpct_standard_or_nanobanana(cs.run_dir, cs.kind)))
             elif cs.kind == "thinkmorph":
                 cols_loaded.append((cs, load_run_dir_thinkmorph("vpct", cs.run_dir)))
@@ -900,6 +984,7 @@ def main():
                 cols_loaded.append((cs, load_run_dir_vilasr("vpct", cs.run_dir, ref_stem_to_rank=thinkmorph_rank)))
             else:
                 raise SystemExit(f"Unhandled kind: {cs.kind}")
+
 
         make_pdf_vpct(args.out_pdf, args.gt_root, ordered, gt_map, cols_loaded, picked,
               include_original=(not args.no_original),
@@ -927,7 +1012,9 @@ def main():
 
     cols_loaded2 = []
     for cs in col_specs:
-        if cs.kind in ("standard", "nanobanana"):
+        if cs.kind == "nanobanana":
+            cols_loaded2.append((cs, load_run_dir_nanobanana_from_merged_json("pathnav", cs.run_dir)))
+        elif cs.kind == "standard":
             cols_loaded2.append((cs, load_run_dir_pathnav_standard_or_nanobanana(cs.run_dir, cs.kind)))
         elif cs.kind == "thinkmorph":
             cols_loaded2.append((cs, load_run_dir_thinkmorph("pathnav", cs.run_dir)))
@@ -937,6 +1024,7 @@ def main():
             cols_loaded2.append((cs, load_run_dir_vilasr("pathnav", cs.run_dir, ref_stem_to_rank=thinkmorph_rank)))
         else:
             raise SystemExit(f"Unhandled kind: {cs.kind}")
+
 
     make_pdf_pathnav(args.out_pdf, args.gt_root, args.gt_fixed, cols_loaded2, picked,
                  include_original=(not args.no_original),
@@ -1005,6 +1093,7 @@ python compare_figure_pdf.py `
 
 python compare_figure_pdf.py --task vpct --gt-root vpct-1 --col-dir results/mix_eval/geminipro3_vpct --col-title "Gemini-3-Pro" --col-kind standard --col-dir results/mix_eval/vpct_nanobanana_sketch --col-title "NanoBanana" --col-kind nanobanana --col-dir results/mix_eval/vpct_thinkmorph --col-title "ThinkMorph" --col-kind thinkmorph --col-dir results/mix_eval/vpct_vilasr --col-title "VilaSR" --col-kind vilasr --rows "0,3,5,9" --no-ids --margin-in 0.15 --header-h-in 0.16 --label-h-in 0.10 --row-gap-in 0 --pt-per-inch 45 --out-pdf fig_vpct_compare_2.pdf
 
+## USE BELOW -- VPCT &&&&&
 python compare_figure_pdf.py --task vpct --gt-root vpct-1 --col-dir results/mix_eval/geminipro3_vpct --col-title "Gemini-3-Pro" --col-kind standard --col-dir results/mix_eval/gem3pro_vpct_multi_withtextstrokes --col-title "Gemini-3-Pro Multi-turn" --col-kind standard --col-dir results/mix_eval/vpct_ball_gpt5low --col-title "GPT-5 (low) With Grid" --col-kind standard --col-dir results/mix_eval/gpt5low_vpct_multiturn --col-title "GPT-5 (low) Multi-turn" --col-kind standard --col-dir results/mix_eval/vpct_nanobanana_sketch --col-title "NanoBanana" --col-kind nanobanana --col-dir results/mix_eval/vpct_thinkmorph --col-title "ThinkMorph" --col-kind thinkmorph --col-dir results/mix_eval/vpct_vilasr --col-title "ViLaSR" --col-kind vilasr --rows "0,2,4,5,6,7,8,11,12,13,14" --no-ids --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.10 --row-gap-in 0 --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 --out-pdf fig_vpct_compare_3.pdf
 
 --col-dir results/mix_eval/gem3pro_vpct_multi_withtextstrokes --col-title "Gemini-3-Pro Multi-turn" --col-kind standard --col-dir results/mix_eval/vpct_ball_gpt5low --col-title "GPT-5 (low) With Grid" --col-kind standard --col-dir results/mix_eval/gpt5low_vpct_multiturn --col-title "GPT-5 (low) Multi-turn" --col-kind standard
@@ -1021,12 +1110,18 @@ python compare_figure_pdf.py --task vpct \
 
 
 
-python compare_figure_pdf_unified2.py --task pathnav \
+python compare_figure_pdf.py --task pathnav --gt-root datasets/maze_v2/sketch_valid_flattened --gt-fixed valid --col-dir results/mix_eval/gemini3pro_gridworld_validpaths_0_to_1000 --col-title "Gemini-3-Pro" --col-kind standard --col-dir results/mix_eval/20260123_232940_gpt_maze_valid_validity_answers --col-title "GPT-5 (low)" --col-kind standard --col-dir results/mix_eval/mazev2_other_models/nano_banana/nanob_maze_valid --col-title "NanoBanana" --col-kind nanobanana --col-dir results/mix_eval/mazev2_other_models/thinkmorph/thinkmorph_valid --col-title "ThinkMorph" --col-kind thinkmorph --col-dir results/mix_eval/mazev2_other_models/vilasr/vilasr_valid --col-title "ViLaSR" --col-kind vilasr --rows "10,11,12,13" --no-ids --pt-per-inch 70 --out-pdf fig_pathnav_compare.pdf
+
+## USE BELOW -- Path Navigation &&&&&
+python compare_figure_pdf.py --task pathnav --gt-root datasets/maze_v2/sketch_valid_flattened --gt-fixed valid --col-dir results/mix_eval/gemini3pro_gridworld_validpaths_0_to_1000 --col-title "Gemini-3-Pro" --col-kind standard --col-dir results/mix_eval/20260123_232940_gpt_maze_valid_validity_answers --col-title "GPT-5 (low)" --col-kind standard --col-dir results/mix_eval/mazev2_other_models/nano_banana/nanob_maze_valid --col-title "NanoBanana" --col-kind nanobanana --col-dir results/mix_eval/mazev2_other_models/thinkmorph/thinkmorph_valid --col-title "ThinkMorph" --col-kind thinkmorph --col-dir results/mix_eval/mazev2_other_models/vilasr/vilasr_valid --col-title "ViLaSR" --col-kind vilasr --rows "110,111,112,113" --no-ids --pt-per-inch 70 --out-pdf fig_pathnav_compare.pdf
+
+python compare_figure_pdf.py --task pathnav \
   --gt-root datasets/maze_v2/sketch_valid_flattened --gt-fixed valid \
   --col-dir results/mix_eval/gemini3pro_gridworld_validpaths_0_to_1000 --col-title "Gemini-3-Pro" --col-kind standard \
   --col-dir results/mix_eval/20260123_232940_gpt_maze_valid_validity_answers --col-title "GPT-5 (low)" --col-kind standard \
-  --col-dir results/mix_eval/maze_thinkmorph --col-title "ThinkMorph" --col-kind thinkmorph \
-  --col-dir results/mix_eval/maze_vilasr --col-title "VilaSR" --col-kind vilasr \
+  --col-dir results/mix_eval/mazev2_other_models/nano_banana/nanob_maze_valid --col-title "NanoBanana" --col-kind nanobanana \
+  --col-dir results/mix_eval/mazev2_other_models/thinkmorph/thinkmorph_valid --col-title "ThinkMorph" --col-kind thinkmorph \
+  --col-dir results/mix_eval/mazev2_other_models/vilasr/vilasr_valid --col-title "ViLaSR" --col-kind vilasr \
   --rows "10,11,12,13" --no-ids --pt-per-inch 45 \
   --out-pdf fig_pathnav_compare.pdf
 
