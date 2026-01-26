@@ -25,4 +25,5 @@ analysis/ball_physics/html_output.zip
 *.zip
 
 # PDF files in consistency directory (generated figures)
+consistency/*/*.pdf
 consistency/*.pdf

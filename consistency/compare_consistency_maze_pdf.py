@@ -1,30 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-compare_maze_quality_pdf.py
+compare_consistency_maze_pdf.py
 
-Generate a PDF comparison figure for maze quality scores across multiple models.
-Each column shows a different model's quality scores, each row shows a different sample.
-Similar in style to compare_figure_pdf.py but focused on maze quality scores.
-
-By default, rows with any errors (API failures or missing quality scores) are excluded.
+Generate a PDF comparison figure for maze consistency results across multiple models.
+Each column shows a different model's consistency checks, each row shows a different sample.
+Similar in style to compare_maze_quality_pdf.py.
 
 Usage:
-  python consistency/compare_maze_quality_pdf.py \
-    --judge-dir consistency/judge_output/grid_world_quality \
-    --source-root datasets/maze_v2/sketch_valid_flattened \
-    --models gemini3_pro_valid gpt5_low_valid thinkmorph_valid nano_banana_valid vilasr_valid \
-    --rows "0-20" \
-    --out-pdf consistency/fig_maze_quality_compare.pdf
-
-For invalid paths:
-  python consistency/compare_maze_quality_pdf.py \
-    --judge-dir consistency/judge_output/grid_world_quality \
-    --source-root datasets/maze_v2/sketch_invalid_flattened \
-    --models gemini3_pro_invalid gpt5_low_invalid thinkmorph_invalid \
-    --titles "Gemini-3-Pro" "GPT-5 (low)" "ThinkMorph" \
-    --rows "0-10" \
-    --out-pdf consistency/fig_maze_quality_invalid.pdf
+  python consistency/compare_consistency_maze_pdf.py \
+    --judge-dir consistency/judge_output/grid_world_consistency \
+    --models consistency_results_gemini3pro_valid consistency_results_gpt5_low_valid \
+    --titles "Gemini-3-Pro" "GPT-5 (low)" \
+    --rows "0-15" \
+    --out-pdf consistency/figure_pdfs/consistency_maze_valid.pdf \
+    --answer-type word
 """
 
 import argparse
@@ -44,50 +34,68 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 
 
 @dataclass
-class QualityEntry:
+class ConsistencyEntry:
+    """Represents a single consistency check result."""
     index: int
     image_path: Optional[Path] = None
-    quality_score: Optional[int] = None
-    judge_response: Optional[str] = None
+    original_answer: Optional[str] = None
+    judge_answer: Optional[str] = None
     success: bool = False
-    validity_answer: Optional[str] = None
+    norm_original: Optional[str] = None
+    norm_judge: Optional[str] = None
+    is_consistent: Optional[bool] = None
     source_image_path: Optional[Path] = None
-    proposed_path: Optional[str] = None
 
 
-def extract_quality_score(text: str) -> Optional[int]:
-    """Extract quality score from judge response."""
+def extract_boxed_answer(text: str) -> Optional[str]:
+    """Extract answer from $\boxed{...}$ format."""
     if not text:
         return None
 
-    # Try to find "Quality Score: X" pattern
-    score_match = re.search(r'Quality\s+Score:\s*(\d+)', text, re.IGNORECASE)
-    if score_match:
-        score = int(score_match.group(1))
-        if 1 <= score <= 5:
-            return score
+    # Try to find $\boxed{X}$ pattern
+    boxed_match = re.search(r'\$\\boxed\{([^}]+)\}\$', text, re.IGNORECASE)
+    if boxed_match:
+        return boxed_match.group(1).strip()
+
+    # Try without dollar signs
+    boxed_match = re.search(r'\\boxed\{([^}]+)\}', text, re.IGNORECASE)
+    if boxed_match:
+        return boxed_match.group(1).strip()
 
     return None
 
 
-def extract_proposed_path(prompt: str) -> Optional[str]:
-    """Extract proposed path from the prompt."""
-    if not prompt:
+def normalize_answer(answer: str, answer_type: str = 'number') -> Optional[str]:
+    """Normalize answer to just the number or valid/invalid."""
+    if not answer:
         return None
 
-    # Look for "Proposed path: ..." pattern
-    match = re.search(r'Proposed\s+path:\s*([^\n]+)', prompt, re.IGNORECASE)
-    if match:
-        path = match.group(1).strip()
-        # Clean up the path
-        path = path.rstrip('.')
-        return path
+    answer = str(answer).strip().lower()
 
-    return None
+    if answer_type == 'word':
+        # Word mode: only extract valid/invalid
+        if 'invalid' in answer:
+            return 'invalid'
+        elif 'valid' in answer:
+            return 'valid'
+        return None
+    else:
+        # Number mode: extract numbers
+        number_match = re.search(r'\d+', answer)
+        if number_match:
+            return number_match.group(0)
+
+        # Handle special cases
+        if 'none' in answer:
+            return 'none'
+        if 'multiple' in answer:
+            return 'multiple'
+
+    return answer
 
 
-def load_model_data(judge_dir: Path, model_name: str, source_root: Optional[Path] = None) -> Dict[int, QualityEntry]:
-    """Load quality data for a single model."""
+def load_model_data(judge_dir: Path, model_name: str, answer_type: str = 'number', source_root: Optional[Path] = None) -> Dict[int, ConsistencyEntry]:
+    """Load consistency data for a single model."""
     json_file = judge_dir / f"{model_name}.json"
 
     if not json_file.exists():
@@ -113,17 +121,19 @@ def load_model_data(judge_dir: Path, model_name: str, source_root: Optional[Path
             # Make relative paths absolute
             img_path = Path.cwd() / img_path
 
+        original_extracted = entry.get('original_extracted_answer', '')
         judge_response = entry.get('consistency_check_response', '')
         success = entry.get('success', False)
-        validity = entry.get('original_extracted_answer')
-        prompt = entry.get('prompt', '')
 
-        quality_score = None
-        if success and judge_response:
-            quality_score = extract_quality_score(judge_response)
+        # Extract judge's answer from boxed format
+        judge_answer = extract_boxed_answer(judge_response)
 
-        # Extract proposed path from prompt
-        proposed_path = extract_proposed_path(prompt)
+        # Normalize answers
+        norm_original = normalize_answer(original_extracted, answer_type) if original_extracted else None
+        norm_judge = normalize_answer(judge_answer, answer_type) if judge_answer else None
+
+        # Check if consistent
+        is_consistent = (norm_original == norm_judge) if (norm_original and norm_judge) else None
 
         # Try to find source image
         source_image_path = None
@@ -146,15 +156,16 @@ def load_model_data(judge_dir: Path, model_name: str, source_root: Optional[Path
                 except Exception:
                     pass
 
-        results[idx] = QualityEntry(
+        results[idx] = ConsistencyEntry(
             index=idx,
             image_path=img_path,
-            quality_score=quality_score,
-            judge_response=judge_response,
+            original_answer=original_extracted,
+            judge_answer=judge_answer or '',
             success=success,
-            validity_answer=validity,
-            source_image_path=source_image_path,
-            proposed_path=proposed_path
+            norm_original=norm_original,
+            norm_judge=norm_judge,
+            is_consistent=is_consistent,
+            source_image_path=source_image_path
         )
 
     return results
@@ -260,22 +271,6 @@ def wrap_label_text(text: str, cell_w: float, font_name: str, font_size: int) ->
     """Wrap label text to fit within a column width."""
     if not text:
         return [""]
-
-    # Split by commas first for path-like text
-    if "," in text:
-        parts = [p.strip() for p in text.split(",")]
-        lines = []
-        current_line = parts[0]
-
-        for part in parts[1:]:
-            test_line = current_line + ", " + part
-            if stringWidth(test_line, font_name, font_size) <= (cell_w * 0.95):
-                current_line = test_line
-            else:
-                lines.append(current_line)
-                current_line = part
-        lines.append(current_line)
-        return lines
 
     # For non-comma text, wrap by words
     words = text.split()
@@ -384,17 +379,17 @@ def draw_header_cell(c: canvas.Canvas, x0: float, y_top: float, cell_w: float,
         c.drawCentredString(x0 + cell_w / 2, y_start - i * lead, ln)
 
 
-def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry]],
-                    model_titles: List[str], picked_rows: List[int],
-                    include_source: bool = True, source_title: str = "Source Image",
-                    page: str = "letter", landscape_mode: bool = True,
-                    pt_per_inch: float = 45.0, margin_in: float = 0.15,
-                    header_h_in: float = 0.36, label_h_in: float = 0.10,
-                    row_gap_in: float = 0.0, col_gap_pt: float = 1.0,
-                    font_size: int = 7, header_font_size: int = 8,
-                    header_max_lines: int = 2, header_leading: Optional[float] = None,
-                    img_h_in: Optional[float] = None, fixed_img_aspect: float = 1.0) -> None:
-    """Generate the quality comparison PDF with fixed aspect ratio columns."""
+def make_consistency_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, ConsistencyEntry]],
+                        model_titles: List[str], picked_rows: List[int],
+                        include_source: bool = True, source_title: str = "Source Image",
+                        page: str = "letter", landscape_mode: bool = True,
+                        pt_per_inch: float = 30.0, margin_in: float = 0.15,
+                        header_h_in: float = 0.36, label_h_in: float = 0.50,
+                        row_gap_in: float = 0.0, col_gap_pt: float = 1.0,
+                        font_size: int = 7, header_font_size: int = 8,
+                        header_max_lines: int = 2, header_leading: Optional[float] = None,
+                        img_h_in: Optional[float] = None, fixed_img_aspect: float = 1.0) -> None:
+    """Generate the consistency comparison PDF with fixed aspect ratio columns."""
 
     pagesize = letter if page.lower() == "letter" else A4
     pw, ph = pagesize
@@ -417,6 +412,17 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
 
     # Cell width is determined by the fixed aspect ratio (maze images are typically square)
     cell_w = target_img_h * fixed_img_aspect
+
+    # Ensure columns fit across the available page width even when we add a new column
+    usable_w = max(pw - 2 * margin, 1)
+    if ncols > 0:
+        max_cell_w = (usable_w - (ncols - 1) * col_gap) / ncols
+        if max_cell_w <= 0:
+            max_cell_w = usable_w / ncols
+        if cell_w > max_cell_w:
+            cell_w = max_cell_w
+            if fixed_img_aspect != 0:
+                target_img_h = cell_w / fixed_img_aspect
 
     def rows_per_page() -> int:
         usable_h = ph - 2 * margin - header_h
@@ -442,8 +448,7 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
     def draw_page(page_rows: List[int]):
         draw_header()
         y_cursor = ph - margin - header_h
-        path_label_padding = max(font_size * 1.1, 5)
-        score_label_padding = max(font_size * 0.9, 5)
+        label_padding = max(font_size * 0.9, 5)
 
         for ridx in page_rows:
             y_top = y_cursor
@@ -456,26 +461,15 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
             if include_source:
                 x = margin + col_i * (cell_w + col_gap)
 
-                # Get source image and proposed path from first model's data
+                # Get source image from first model's data
                 source_path = None
-                proposed_path = None
                 for model_name in model_data.keys():
                     entry = model_data[model_name].get(ridx)
                     if entry and entry.source_image_path:
                         source_path = entry.source_image_path
-                        proposed_path = entry.proposed_path
                         break
 
                 draw_image_fit(c, source_path, x, y_img, cell_w, target_img_h)
-
-                # Draw proposed path label under source image (with wrapping, top-justified)
-                if proposed_path:
-                    path_text = f"Path: {proposed_path}"
-                    draw_label(c, x + cell_w / 2, y_label + label_h,
-                              path_text, font_size, color=colors.black,
-                              cell_w=cell_w, max_lines=5, top_justify=True,
-                              top_padding=path_label_padding)
-
                 col_i += 1
 
             # Draw model columns
@@ -487,24 +481,50 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
                 # Draw image with crop settings for specific models
                 img_path = entry.image_path if entry else None
                 model_lower = model_name.lower()
-                crop_left = 22 if ('gpt5' in model_lower or 'gemini3' in model_lower or 'gemini_3' in model_lower) else 0
-                crop_bottom = 20 if ('gpt5' in model_lower or 'gemini3' in model_lower or 'gemini_3' in model_lower) else 0
+                crop_left = 22 if 'gpt5' in model_lower else 0
+                crop_bottom = 20 if 'gpt5' in model_lower else 0
                 draw_image_fit(c, img_path, x, y_img, cell_w, target_img_h,
                               crop_left=crop_left, crop_bottom=crop_bottom)
 
-                # Draw label with score (black text only, "Score: X" format)
-                if entry and entry.success and entry.quality_score is not None:
-                    label_text = f"Score: {entry.quality_score}"
-                elif entry and not entry.success:
-                    label_text = "Error"
-                else:
-                    label_text = "N/A"
+                # Draw consistency labels
+                if entry and entry.norm_original and entry.norm_judge:
+                    # Build label text
+                    sketch_text = f"Sketch: {entry.norm_original}"
+                    judge_text = f"Judge: {entry.norm_judge}"
 
-                # Draw score label (top-justified to match source column)
-                draw_label(c, x + cell_w / 2, y_label + label_h,
-                          label_text, font_size, color=colors.black,
-                          cell_w=None, top_justify=True,
-                          top_padding=score_label_padding)  # Single-line labels with explicit padding
+                    # Choose emoji based on consistency
+                    if entry.is_consistent:
+                        emoji = "✓"
+                        emoji_color = colors.green
+                    else:
+                        emoji = "✗"
+                        emoji_color = colors.red
+
+                    # Draw two lines with emoji on second line
+                    c.setFillColor(colors.black)
+                    c.setFont("Times-Roman", font_size)
+
+                    # Start position
+                    line_y = y_label + label_h - label_padding
+                    line_height = font_size * 1.3
+
+                    # Line 1: Sketch answer
+                    c.drawCentredString(x + cell_w / 2, line_y, sketch_text)
+
+                    # Line 2: Judge answer (left side) + emoji (right side)
+                    line_y -= line_height
+
+                    # Calculate text width to position emoji
+                    judge_width = stringWidth(judge_text, "Times-Roman", font_size)
+
+                    # Draw judge text
+                    c.drawCentredString(x + cell_w / 2, line_y, judge_text)
+
+                    # Draw emoji slightly to the right of the text
+                    c.setFillColor(emoji_color)
+                    c.setFont("Times-Roman", 10)
+                    emoji_x = x + cell_w / 2 + judge_width / 2 + 3  # Reduced spacing
+                    c.drawString(emoji_x, line_y, emoji)
 
                 col_i += 1
 
@@ -523,10 +543,10 @@ def make_quality_pdf(out_pdf: Path, model_data: Dict[str, Dict[int, QualityEntry
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate PDF comparison figure for maze quality scores"
+        description="Generate PDF comparison figure for maze consistency results"
     )
     parser.add_argument("--judge-dir", type=Path, required=True,
-                       help="Directory containing maze quality judge JSON files")
+                       help="Directory containing maze consistency judge JSON files")
     parser.add_argument("--source-root", type=Path, default=None,
                        help="Directory containing source maze images (e.g., datasets/maze_v2/sketch_valid_flattened)")
     parser.add_argument("--models", nargs="+", required=True,
@@ -535,22 +555,30 @@ def main():
                        help="Custom titles for each model (optional)")
     parser.add_argument("--rows", type=str, default="0-20",
                        help="Row indices to include (e.g., '0,3,5' or '0-10')")
+    parser.add_argument("--exclude-rows", type=str, default=None,
+                       help="Row indices to exclude (same format as --rows)")
+    parser.add_argument("--original-filter", type=str, choices=['valid', 'invalid'],
+                       default=None,
+                       help="Only include rows where the normalized original answer matches this label")
     parser.add_argument("--out-pdf", type=Path, required=True,
                        help="Output PDF file path")
+    parser.add_argument("--answer-type", type=str, choices=['number', 'word'],
+                       default='word',
+                       help='Answer type: "number" for ball drop, "word" for maze')
     parser.add_argument("--no-source", action="store_true",
                        help="Don't include source image column")
 
     # Exclude entries with errors by default
     parser.add_argument("--include-errors", action="store_true",
-                       help="Include entries with API errors or missing scores")
+                       help="Include entries with API errors or missing answers")
 
     # Page layout options
     parser.add_argument("--page", choices=["letter", "a4"], default="letter")
     parser.add_argument("--landscape", action="store_true", default=True)
     parser.add_argument("--margin-in", type=float, default=0.15)
     parser.add_argument("--header-h-in", type=float, default=0.36)
-    parser.add_argument("--label-h-in", type=float, default=0.60)
-    parser.add_argument("--row-gap-in", type=float, default=0.0)
+    parser.add_argument("--label-h-in", type=float, default=0.50)
+    parser.add_argument("--row-gap-in", type=float, default=0.08)
     parser.add_argument("--col-gap-pt", type=float, default=1.0,
                        help="Column gap in points (default: 1.0)")
     parser.add_argument("--font-size", type=int, default=7)
@@ -567,7 +595,7 @@ def main():
     # Load data for each model
     model_data = {}
     for model_name in args.models:
-        data = load_model_data(args.judge_dir, model_name, source_root=args.source_root)
+        data = load_model_data(args.judge_dir, model_name, answer_type=args.answer_type, source_root=args.source_root)
         if data:
             model_data[model_name] = data
         else:
@@ -598,24 +626,44 @@ def main():
     if picked_rows is None:
         picked_rows = list(range(21))  # Default to first 21 rows
 
-    # Filter out rows with errors if requested
-    if not args.include_errors:
-        valid_rows = []
-        for ridx in picked_rows:
-            # Check if this row has valid data for all models
-            all_valid = True
-            for model_name in model_data.keys():
-                entry = model_data[model_name].get(ridx)
-                if not entry or not entry.success or entry.quality_score is None:
-                    all_valid = False
-                    break
-            if all_valid:
-                valid_rows.append(ridx)
+    # Optionally remove specific rows
+    excluded_rows = parse_rows_spec(args.exclude_rows)
+    if excluded_rows:
+        excluded_set = set(excluded_rows)
+        before = len(picked_rows)
+        picked_rows = [r for r in picked_rows if r not in excluded_set]
+        removed = before - len(picked_rows)
+        if removed > 0:
+            print(f"Excluded {removed} rows via --exclude-rows")
 
-        excluded_count = len(picked_rows) - len(valid_rows)
-        if excluded_count > 0:
-            print(f"Excluded {excluded_count} rows with errors or missing scores")
-        picked_rows = valid_rows
+    def row_matches_filters(ridx: int) -> bool:
+        has_entry = False
+        for model_name in model_data.keys():
+            entry = model_data[model_name].get(ridx)
+            if not entry:
+                return False
+            has_entry = True
+
+            if not args.include_errors:
+                if not entry.success or not entry.norm_original or not entry.norm_judge:
+                    return False
+
+            if args.original_filter and entry.norm_original != args.original_filter:
+                return False
+
+        return has_entry
+
+    filtered_rows = [r for r in picked_rows if row_matches_filters(r)]
+    excluded_count = len(picked_rows) - len(filtered_rows)
+    if excluded_count > 0:
+        msg_parts = []
+        if not args.include_errors:
+            msg_parts.append("errors or missing answers")
+        if args.original_filter:
+            msg_parts.append(f"original != '{args.original_filter}'")
+        reason = " and ".join(msg_parts) if msg_parts else "filters"
+        print(f"Excluded {excluded_count} rows due to {reason}")
+    picked_rows = filtered_rows
 
     if not picked_rows:
         print("Error: No valid rows to display after filtering")
@@ -627,7 +675,7 @@ def main():
     args.out_pdf.parent.mkdir(parents=True, exist_ok=True)
 
     # Generate PDF
-    make_quality_pdf(
+    make_consistency_pdf(
         out_pdf=args.out_pdf,
         model_data=model_data,
         model_titles=model_titles,
@@ -652,41 +700,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-'''
-EXAMPLE USAGE:
-
-# Valid paths
-python consistency/compare_maze_quality_pdf.py \
-  --judge-dir consistency/judge_output/grid_world_quality \
-  --source-root datasets/maze_v2/sketch_valid_flattened \
-  --models gemini3_pro_valid gpt5_low_valid thinkmorph_valid \
-  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" \
-  --rows "0-15" \
-  --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.20 --row-gap-in 0 --col-gap-pt 1.0 \
-  --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 \
-  --out-pdf consistency/fig_maze_quality_valid_compare.pdf
-
-# Invalid paths
-python consistency/compare_maze_quality_pdf.py \
-  --judge-dir consistency/judge_output/grid_world_quality \
-  --source-root datasets/maze_v2/sketch_invalid_flattened \
-  --models gemini3_pro_invalid gpt5_low_invalid thinkmorph_invalid \
-  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" \
-  --rows "0-15" \
-  --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.20 --row-gap-in 0 --col-gap-pt 1.0 \
-  --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 \
-  --out-pdf consistency/fig_maze_quality_invalid_compare.pdf
-
-# With NanoBanana
-python consistency/compare_maze_quality_pdf.py \
-  --judge-dir consistency/judge_output/grid_world_quality \
-  --source-root datasets/maze_v2/sketch_valid_flattened \
-  --models gemini3_pro_valid gpt5_low_valid thinkmorph_valid consistency_results_nano_banana_valid vilasr_valid \
-  --titles "Gemini-3-Pro-Preview" "GPT-5 (low)" "ThinkMorph" "NanoBanana Pro" "ViLaSR" \
-  --rows "0,4,5,6,7,8,11,12,13,14" \
-  --margin-in 0.15 --header-h-in 0.36 --label-h-in 0.60 --row-gap-in 0 --col-gap-pt 1.0 \
-  --pt-per-inch 30 --header-font-size 8 --header-max-lines 2 \
-  --out-pdf consistency/fig_maze_quality_compare.pdf
-'''
