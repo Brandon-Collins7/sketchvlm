@@ -11,7 +11,8 @@
       "Bash(python /tmp/check_success_count.py:*)",
       "Bash(python /tmp/check_indices.py:*)",
       "Bash(python:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": []
   },
