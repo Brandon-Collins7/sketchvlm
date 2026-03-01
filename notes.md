@@ -978,3 +978,15 @@ vpct_vilasr
 
 /Users/log/Github/sketchvlm/consistency
 Please make a different visualization for vpct_quality that works very similarly to compare_figure_pdf. I want it in latex. Don't include rows where there's any sort of errors. 
+
+
+
+
+                                                                  
+python consistency/process_with_openrouter.py \
+  --input consistency/source_data/count_retry_500_errors.json \
+  --output consistency/judge_output/count_retry_500_errors_results.json \
+  --model google/gemini-3-pro-preview
+
+
+

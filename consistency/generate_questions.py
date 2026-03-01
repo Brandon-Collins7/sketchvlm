@@ -7,7 +7,8 @@ from typing import List, Dict
 
 
 # Standard prompts for consistency checking
-GENERAL_PROMPT = "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.\n\n"
+GENERAL_PROMPT = "You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be. Output your final answer in the following format: $\\boxed{integer}$ \n\n"
+
 BALL_DROP_PROMPT = "The image is a physics simulation of a ball being dropped. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Please respond with what bucket the **annotation shows** the ball will fall into. Please note that it is not your job to determine if the annotation is correct or not, just to extract the answer from the annotation. Your final answer must be formatted as \"$\\boxed{bucket number}$\". For example, if the ball will fall into bucket 2, respond with \"$\\boxed{2}$\". If the annotation does not show the ball falling into any bucket, respond with \"$\\boxed{none}$\". If the the annotation shows that the ball will fall into multiple different buckets, answer with \"$\\boxed{multiple}$\"."
 VPCT_BALL_DROP_PROMPT = "The ball is released from rest, the only force it is subject to is gravity. The black lines are walls and platforms and the ball cannot pass through them. Put your answer of which container it will land in, 1, 2, or 3 (numbered left to right)."
 MAZE_PROMPT = "You are given an image of a maze where the green square marks the START cell and the red square marks the END cell of the maze. The walls of the maze are solid black lines. Dashed gray lines mark cell boundaries that can be crossed. You are given a proposed sequence of moves to reach the end of the maze starting from the green square and ending at the red square. Each move will move exactly one cell length in that direction. For example, \"right\" means move one cell in the maze to the right. A valid path must NOT cross any solid black walls and must end up in the red square cell. A valid path can also move through any of the dashed gray cell lines. Respond with $\\boxed{valid}$ if the path is valid or respond with $\\boxed{invalid}$ if the path is invalid. Determine if the following proposed path is valid.\n\n"
@@ -123,6 +124,80 @@ The original proposed path that the model should have followed is:
 GEMINI_3_SECOND_TURN = """You are given an image that another AI model has annotated. Your task is to analyze the annotation and determine what the final answer should be.
 
 You are given the start frame of a physics simulation. A ball is dropped from the top of the screen and falls due to gravity. The ball can roll off the lines or the walls in the image. The bouncing of the ball is relatively minor and realistic for normal gravity. Nothing in the image will move besides the ball. Predict which bucket will eventually catch the ball. There are 4 different buckets called bucket 1, bucket 2, bucket 3, and bucket 4. Draw the path that the ball will take. Please also respond with what bucket the ball will fall into. Your final answer must be formatted as "$\boxed{bucket number}$". For example, if the ball will fall into bucket 2, respond with "$\boxed{2}$"."""
+
+
+def gather_counting_results(base_dir: str, model: str) -> List[Dict[str, str]]:
+    """
+    Gather counting nano_banana results from a combine/ directory.
+
+    Expected directory structure (inside combine/):
+        {id}.json          - metadata (question, gt_number/count, etc.)
+        {id}.txt           - prompt sent to annotating model
+        {id}_annotated.jpg - annotated image
+        {id}.jpg           - original image
+        {id}_orig.txt      - original question
+
+    Args:
+        base_dir: Directory containing the combine/ subdirectory
+        model: Model name
+
+    Returns:
+        List of dictionaries containing image_path, prompt, etc.
+    """
+    entries = []
+    combine_path = Path(base_dir) / 'combine'
+    if not combine_path.exists():
+        combine_path = Path(base_dir)
+
+    # Find all JSON files that have a matching _annotated.jpg
+    json_files = sorted(combine_path.glob('*.json'))
+
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+
+            item_id = json_file.stem  # e.g., 'countbench_00000' or '0'
+
+            # Annotated image
+            image_path = combine_path / f"{item_id}_annotated.jpg"
+            if not image_path.exists():
+                image_path = combine_path / f"{item_id}_annotated.png"
+
+            # Original image
+            original_image_path = combine_path / f"{item_id}.jpg"
+            if not original_image_path.exists():
+                original_image_path = combine_path / f"{item_id}.png"
+
+            # Read the orig txt file for the prompt content
+            txt_file = combine_path / f"{item_id}_orig.txt"
+            txt_content = ""
+            if txt_file.exists():
+                with open(txt_file, 'r') as f:
+                    txt_content = f.read().strip()
+
+            prompt = GENERAL_PROMPT + txt_content
+
+            entry = {
+                'image_path': str(image_path),
+                'prompt': prompt,
+                'model_answer': '',
+                'extracted_answer': '',
+                'model': model,
+                'gt_number': data.get('gt_number', data.get('count', None)),
+                'question': data.get('question', data.get('question_original', '')),
+            }
+
+            if original_image_path and original_image_path.exists():
+                entry['original_image_path'] = str(original_image_path)
+
+            entries.append(entry)
+
+        except Exception as e:
+            print(f"Warning: Could not process {json_file}: {e}")
+            continue
+
+    return entries
 
 
 def extract_answer_from_response(response_text: str) -> str:
@@ -276,6 +351,12 @@ def gather_image_paths(base_dir: str, model: str = 'thinkmorph', last_image_only
     base_path = Path(base_dir)
 
     # Detect directory structure
+    # Counting nano_banana format: has a combine/ subdirectory with *_annotated.jpg files
+    combine_path = base_path / 'combine'
+    if combine_path.exists() and list(combine_path.glob('*_annotated.jpg')):
+        print("Detected counting nano_banana format (combine/ with *_annotated.jpg files)")
+        return gather_counting_results(base_dir, model)
+
     # SketchVLM format: has item_*.json files in the base directory
     if list(base_path.glob('item_*.json')):
         # Check if it's nano_banana format (has generated images)
