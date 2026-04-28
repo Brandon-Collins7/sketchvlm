@@ -23,6 +23,9 @@ results/mix_eval/*
 # CSV files
 *.csv
 
+# JSON files
+*.json
+
 # PDF files
 *.pdf
 
