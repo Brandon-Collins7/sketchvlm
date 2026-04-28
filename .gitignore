@@ -19,11 +19,20 @@ results/mix_eval/*
 
 # HTML files
 *.html
+
+# CSV files
+*.csv
+
+# PDF files
+*.pdf
+
+# PNG files
+*.png
+
 # Large zip files
 consistency.zip
 analysis/ball_physics/html_output.zip
 *.zip
 
-# PDF files in consistency directory (generated figures)
-consistency/*/*.pdf
-consistency/*.pdf
+# Claude Code config
+.claude/
