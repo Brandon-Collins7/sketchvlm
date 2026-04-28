@@ -8,7 +8,6 @@ including OpenAI, Anthropic Claude, and Google Gemini.
 import os
 import base64
 import re
-import json
 from typing import Optional, List, Dict
 from datetime import datetime
 from dotenv import load_dotenv
@@ -550,7 +549,11 @@ class OpenRouterAdapter(BaseLLMAdapter):
             api_key=api_key
         )
         self._is_image_gen_model = (model == "google/gemini-3-pro-image-preview")
-        self._last_request_payload: Dict = {}
+        # Storage for two-turn image generation results
+        self._last_image_gen_images = []
+        self._last_image_gen_text = None
+        self._last_image_gen_reasoning_turn1 = None  # Reasoning for image generation
+        self._last_image_gen_reasoning_turn2 = None  # Reasoning for text answer
 
     def build_user_content(self, init_canvas_b64: Optional[str], text: str):
         content: List[Dict] = []
@@ -567,29 +570,30 @@ class OpenRouterAdapter(BaseLLMAdapter):
         add_args = additional_args or {}
         temperature = add_args.get("temperature")
         stop_sequences = add_args.get("stop_sequences")
-        reasoning_effort = add_args.get("reasoning_effort")
-        prev_response_id = add_args.get("previous_response_id")
 
         # Build messages with system message
         chat_messages = list(messages or [])  # Make a copy
 
-        extra_body = {
-            "provider": {
-                # "only": ["google-ai-studio"],      # enforce single provider
-                # "allow_fallbacks": False  # never fall back
-            }
-        }
+        # extra_body = {
+        #     "provider": {
+        #         "only": ["google-ai-studio"],      # enforce single provider
+        #         "allow_fallbacks": False  # never fall back
+        #     }
+        # }
+        
+        extra_body = {"provider": {"allow_fallbacks": False}}
 
-        if reasoning_effort:
-            extra_body["reasoning"] = {"effort": reasoning_effort}
-        if prev_response_id:
-            extra_body["previous_response_id"] = prev_response_id
+        # Only lock to google-ai-studio when using Gemini models
+        if self.model.startswith("google/"):
+            extra_body["provider"]["only"] = ["google-ai-studio"]
 
-        # For gemini image gen model, add modalities: ["image"] for single-turn image generation
-        if self._is_image_gen_model:
-            extra_body["modalities"] = ["image"]
 
-        # Standard path
+        # Special handling for image generation model - two-turn approach
+        # Only use it when explicitly requested via use_image_gen flag
+        if self._is_image_gen_model and add_args.get("use_image_gen", False):
+            return self._call_image_gen_two_turn(system_message, chat_messages, temperature)
+
+        # Standard path for non-image models
         if isinstance(system_message, str) and system_message.strip():
             chat_messages = [{"role": "system", "content": system_message}] + chat_messages
 
@@ -604,20 +608,181 @@ class OpenRouterAdapter(BaseLLMAdapter):
         if stop_sequences:
             args["stop"] = stop_sequences if isinstance(stop_sequences, list) else [stop_sequences]
 
-        # Keep a serializable snapshot for debugging/logging purposes
-        self._last_request_payload = {
-            "model": self.model,
-            "max_tokens": self.max_tokens,
-            "temperature": args.get("temperature"),
-            "stop": args.get("stop"),
-            "extra_body": extra_body,
-            "messages": chat_messages,
-        }
+        reasoning_effort = add_args.get("reasoning_effort")
+        if reasoning_effort:
+            args["reasoning_effort"] = reasoning_effort  # OpenRouter expects this for GPT-5
 
         return self._client.chat.completions.create(**args)
 
+    def _call_image_gen_two_turn(self, system_message, chat_messages, temperature):
+        """
+        Two-turn approach for Gemini image generation model:
+        Turn 1: Generate image only (modalities: ["image"])
+        Turn 2: Get text answer only (modalities: ["text"])
+
+        Returns a combined response object with both image and text.
+        """
+        import copy
+
+        # Clear any previous stored results
+        self._last_image_gen_images = []
+        self._last_image_gen_text = None
+        self._last_image_gen_reasoning_turn1 = None
+        self._last_image_gen_reasoning_turn2 = None
+
+        def _extract_reasoning(resp):
+            """Extract reasoning text from response message."""
+            if not (hasattr(resp, 'choices') and resp.choices):
+                return None
+            msg = resp.choices[0].message
+            # Check for reasoning attribute
+            if hasattr(msg, 'reasoning') and msg.reasoning:
+                return msg.reasoning
+            # Check for reasoning_details
+            if hasattr(msg, 'reasoning_details') and msg.reasoning_details:
+                details = msg.reasoning_details
+                if isinstance(details, list):
+                    texts = []
+                    for d in details:
+                        if isinstance(d, dict) and d.get('type') == 'reasoning.text':
+                            texts.append(d.get('text', ''))
+                        elif hasattr(d, 'type') and d.type == 'reasoning.text':
+                            texts.append(getattr(d, 'text', ''))
+                    return '\n'.join(texts) if texts else None
+                return str(details)
+            return None
+
+        extra_body_base = {
+            "provider": {
+                "only": ["google-ai-studio"],
+                "allow_fallbacks": False
+            }
+        }
+
+        # Prepare Turn 1 messages - add system message and image generation trigger
+        turn1_messages = copy.deepcopy(chat_messages)
+        if turn1_messages:
+            first_msg = turn1_messages[0]
+            content = first_msg.get("content", "")
+            sys_prefix = f"{system_message}\n\n" if isinstance(system_message, str) and system_message.strip() else ""
+            img_suffix = "\n\nGenerate the requested image."
+
+            if isinstance(content, str):
+                turn1_messages[0]["content"] = f"{sys_prefix}{content}{img_suffix}"
+            elif isinstance(content, list):
+                new_content = []
+                if sys_prefix:
+                    new_content.append({"type": "text", "text": system_message})
+                new_content.extend(content)
+                new_content.append({"type": "text", "text": img_suffix.strip()})
+                turn1_messages[0] = {"role": first_msg.get("role", "user"), "content": new_content}
+
+        # Turn 1: Image only
+        extra_body_turn1 = {**extra_body_base, "modalities": ["image"]}
+        args_turn1 = dict(
+            model=self.model,
+            messages=turn1_messages,
+            max_tokens=self.max_tokens,
+            extra_body=extra_body_turn1
+        )
+        if temperature is not None:
+            args_turn1["temperature"] = float(temperature)
+
+        print("[IMAGE GEN] Turn 1: Requesting image generation...")
+        resp1 = self._client.chat.completions.create(**args_turn1)
+
+        # Extract reasoning from Turn 1 (full)
+        self._last_image_gen_reasoning_turn1 = _extract_reasoning(resp1)
+
+        # Extract generated images from Turn 1
+        generated_images = []
+        if hasattr(resp1, 'choices') and resp1.choices:
+            msg1 = resp1.choices[0].message
+            if hasattr(msg1, 'images') and msg1.images:
+                for img in msg1.images:
+                    if isinstance(img, dict) and 'image_url' in img:
+                        url_data = img['image_url']
+                        if isinstance(url_data, dict) and 'url' in url_data:
+                            generated_images.append(url_data['url'])
+                        elif isinstance(url_data, str):
+                            generated_images.append(url_data)
+
+        print(f"[IMAGE GEN] Turn 1 complete: {len(generated_images)} image(s) generated")
+
+        # Build Turn 2 messages - include the generated image in conversation
+        turn2_messages = copy.deepcopy(turn1_messages)
+
+        # Add assistant's response (the generated image)
+        assistant_content = []
+        if generated_images:
+            for img_url in generated_images:
+                assistant_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": img_url}
+                })
+        if not assistant_content:
+            assistant_content = [{"type": "text", "text": "(image generated)"}]
+
+        turn2_messages.append({
+            "role": "assistant",
+            "content": assistant_content
+        })
+
+        # Add follow-up question asking for final answer (generic - format is in original prompt)
+        turn2_messages.append({
+            "role": "user",
+            "content": r"Now give your final answer in the format of  \"$\boxed{answer}$\."
+        })
+
+        # Turn 2: Text only
+        extra_body_turn2 = {**extra_body_base, "modalities": ["text"]}
+        args_turn2 = dict(
+            model=self.model,
+            messages=turn2_messages,
+            max_tokens=self.max_tokens,
+            extra_body=extra_body_turn2
+        )
+        if temperature is not None:
+            args_turn2["temperature"] = float(temperature)
+
+        print("[IMAGE GEN] Turn 2: Requesting text answer...")
+        resp2 = self._client.chat.completions.create(**args_turn2)
+
+        # Extract reasoning from Turn 2 (full)
+        self._last_image_gen_reasoning_turn2 = _extract_reasoning(resp2)
+
+        # Extract text from Turn 2
+        text_answer = ""
+        if hasattr(resp2, 'choices') and resp2.choices:
+            msg2 = resp2.choices[0].message
+            if isinstance(msg2.content, str):
+                text_answer = msg2.content
+            elif isinstance(msg2.content, list):
+                for part in msg2.content:
+                    if isinstance(part, dict) and part.get("type") == "text":
+                        text_answer += part.get("text", "")
+                    elif hasattr(part, "type") and part.type == "text":
+                        text_answer += getattr(part, "text", "")
+
+        print(f"[IMAGE GEN] Turn 2 complete: answer = {text_answer[:100]}...")
+
+        # Store both responses for later extraction
+        self._last_image_gen_images = generated_images
+        self._last_image_gen_text = text_answer.strip()
+
+        # Return Turn 2 response (text), but we'll use stored images in extract_images
+        return resp2
+
     def extract_text(self, raw_response) -> str:
         """Extract text from OpenRouter response (same format as OpenAI)."""
+        # For two-turn image gen, use stored text from Turn 2
+        # Only if we actually have stored text (meaning image gen was used)
+        if hasattr(self, '_last_image_gen_text') and self._last_image_gen_text is not None:
+            text = self._last_image_gen_text
+            # Clear the stored text after extraction
+            self._last_image_gen_text = None
+            return text
+
         if hasattr(raw_response, "choices") and raw_response.choices:
             msg = raw_response.choices[0].message
             content = msg.content
@@ -657,7 +822,16 @@ class OpenRouterAdapter(BaseLLMAdapter):
         """
         Extract generated images from Gemini image model response.
         Returns list of base64 data URLs.
+
+        For two-turn image gen, uses stored images from Turn 1.
         """
+        # First check if we have stored images from two-turn approach
+        if hasattr(self, '_last_image_gen_images') and self._last_image_gen_images:
+            images = self._last_image_gen_images
+            print(f"[IMAGE GEN] Returning {len(images)} stored image(s) from Turn 1")
+            return images
+
+        # Fallback: check response directly (for non-two-turn cases)
         images = []
         # Check response.images (OpenRouter format)
         if hasattr(raw_response, "images") and raw_response.images:
@@ -678,28 +852,6 @@ class OpenRouterAdapter(BaseLLMAdapter):
         if images:
             print(f"[IMAGE GEN] Found {len(images)} generated images")
         return images
-
-    def debug_dump(self, raw_response) -> dict:
-        dump: Dict[str, Dict] = {}
-
-        # Include the serialized request we just sent
-        if self._last_request_payload:
-            dump["request"] = self._last_request_payload
-
-        # Best-effort serialization of the provider response
-        try:
-            if hasattr(raw_response, "model_dump"):
-                dump["response"] = raw_response.model_dump()
-            elif hasattr(raw_response, "json"):
-                dump["response"] = json.loads(raw_response.json())
-            elif isinstance(raw_response, dict):
-                dump["response"] = raw_response
-            else:
-                dump["response_repr"] = repr(raw_response)
-        except Exception:
-            dump["response_repr"] = repr(raw_response)
-
-        return dump
 
 
 # =========================
