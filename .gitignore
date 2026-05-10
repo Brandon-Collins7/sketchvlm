@@ -1,0 +1,41 @@
+/results/*
+__pycache__/
+*.pyc
+datasets/
+/data/
+/datasets/
+/TallyQA_dataset/
+
+nano_generated/
+
+# Line visualization comparisons
+analysis/line_visualizations/comparisons/
+analysis/line_visualizations/test_with_background.png
+analysis/line_visualizations/trajectory_comparison.png
+analysis/line_visualizations/*.html
+analysis/line_visualizations/*_comparison.png
+
+results/mix_eval/*
+
+# HTML files
+*.html
+
+# CSV files
+*.csv
+
+# JSON files
+*.json
+
+# PDF files
+*.pdf
+
+# PNG files
+*.png
+
+# Large zip files
+consistency.zip
+analysis/ball_physics/html_output.zip
+*.zip
+
+# Claude Code config
+.claude/

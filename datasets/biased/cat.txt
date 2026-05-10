@@ -1,0 +1,1 @@
+Count the legs of the cat in the image
