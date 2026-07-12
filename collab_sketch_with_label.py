@@ -2365,20 +2365,36 @@ class SketchApp:
                             stop_sequences="</answer>" if use_stop else None,
                         )
                     else:
-                        self._start_generic_session(prompt_from_txt)  # keep the user prompt identical
-                        use_stop = not isinstance(self.llm, GeminiAdapter)
+                        from llm_adapters import OpenRouterAdapter
                         # system message gets the counting template when counting=True
                         sys_msg = sys_count if counting else sys_label if labeling else (self._sys_prompt_or_none() or "")
-                        answer = self.get_response_from_llm(
-                            msg=self.input_prompt,
-                            system_message=sys_msg,
-                            msg_history=[],
-                            init_canvas_str=self.last_canvas_b64,
-                            seed_mode=self.seed_mode,
-                            gen_mode="completion",
-                            prefill_msg=self.assitant_history.strip(),
-                            stop_sequences="</answer>" if use_stop else None
-                        )
+                        if isinstance(self.llm, OpenRouterAdapter):
+                            # ONE clean call: system + plain prompt + image, stop at </answer>.
+                            # The old header-seed + assistant-prefill two-call protocol makes
+                            # Gemini-via-OpenRouter reply with an empty/```-only response.
+                            self.input_prompt = prompt_from_txt
+                            answer = self.get_response_from_llm(
+                                msg=prompt_from_txt,
+                                system_message=sys_msg,
+                                msg_history=[],
+                                init_canvas_str=self.last_canvas_b64,
+                                seed_mode=self.seed_mode,
+                                gen_mode="generation",
+                                stop_sequences="</answer>",
+                            )
+                        else:
+                            self._start_generic_session(prompt_from_txt)  # keep the user prompt identical
+                            use_stop = not isinstance(self.llm, GeminiAdapter)
+                            answer = self.get_response_from_llm(
+                                msg=self.input_prompt,
+                                system_message=sys_msg,
+                                msg_history=[],
+                                init_canvas_str=self.last_canvas_b64,
+                                seed_mode=self.seed_mode,
+                                gen_mode="completion",
+                                prefill_msg=self.assitant_history.strip(),
+                                stop_sequences="</answer>" if use_stop else None
+                            )
 
                     
                     
