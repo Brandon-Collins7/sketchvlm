@@ -198,6 +198,37 @@ Rules:
 - Do not write anything outside <answer>...</strokes>.
 """
 
+# GENERIC_LABEL_PROMPT = """
+# Task:
+# - The object in the image is a {concept}.
+# - Label ONLY the following parts of the {concept}: {labels_hint}.
+# - Do not invent or add any new part names beyond this list.
+# - Use SVG text strokes (no curves) to place each label.
+
+# Output EXACTLY this XML shape:
+# <answer>
+# <concept>Labeling: {concept}</concept>
+# <strokes>
+#   <!-- one <sN> per label -->
+#   <s1>
+#     <text size="1.6" color="#ff0066">'head'</text>   <!-- size: cells or 'px' -->
+#     <points>'xAyB'</points>
+#     <t_values>0.00</t_values>
+#     <id>label_head</id>
+#   </s1>
+# </strokes>
+
+# Rules:
+# - Use ONLY text strokes (no curves).
+# - Anchor each label at the center of the corresponding part ('xAyB').
+# - You MAY style the text labels: <text size="1.8" color="#0057ff"> 
+# - Use one <sN> per label name in the list above.
+# - Choose bigger text size for larger objects, smaller for tiny objects. use bigger size for higher resolution images, smaller for lower resolution.
+# - Choose readable colors that will contrast well with the object/part that you are labeling and the background.
+# - Do not write anything outside <answer>...</strokes>.
+# """
+
+
 GENERIC_LABEL_PROMPT = """
 Task:
 - The object in the image is a {concept}.
@@ -220,13 +251,14 @@ Output EXACTLY this XML shape:
 
 Rules:
 - Use ONLY text strokes (no curves).
-- Anchor each label at the center of the corresponding part ('xAyB').
-- You MAY style the text labels: <text size="1.8" color="#0057ff"> or <style><font_size>…</font_size><color>…</color></style>
+- Anchor each label at the EXACT AND VERIFIED visual centroid of the corresponding part ('xAyB'), fully inside the part and maximally distant from all visible boundaries (NOT near edges, corners, or joints).
+- You MAY style the text labels: <text size="1.8" color="#0057ff"> 
 - Use one <sN> per label name in the list above.
 - Choose bigger text size for larger objects, smaller for tiny objects. use bigger size for higher resolution images, smaller for lower resolution.
 - Choose readable colors that will contrast well with the object/part that you are labeling and the background.
 - Do not write anything outside <answer>...</strokes>.
 """
+
 
 DRAW_PROMPT = """
 Task:
@@ -271,3 +303,147 @@ MIX_TOOLKIT = """
 """
 sketch_first_prompt = """ """
 gt_example = """ """
+
+
+SHAPE_PROMPT = """
+Task:
+Draw {shape_type} around all visible objects belonging to: {categories_str}.
+
+Output format (strict):
+<answer>
+<concept>Draw {shape_type} around {categories_str}</concept>
+<strokes>
+<s1>
+    <points>'xA1yB1','xA2yB2',...,'xANyBN'</points>
+    <t_values>0.00,...,1.00</t_values>
+    <id>{shape_token}_around_{{classname}}_1</id>
+</s1>
+<!-- one <sN> per object -->
+</strokes>
+</answer>
+
+Rules:
+- Use only these tags: <answer>, <concept>, <strokes>, <sN>, <points>, <t_values>, <id>.
+- Do NOT output JSON, “box_2d”, “bbox”, Markdown fences, or any text outside <answer>...</answer>.
+- Coordinates are grid tokens: 'x<int>y<int>' (e.g., 'x14y8'), no spaces inside tokens.
+- The number of <t_values> MUST equal the number of <points>, evenly spanning 0.00 to 1.00 (first=0.00, last=1.00).
+- Each <sN> corresponds to one object instance; IDs must include the detected class name (e.g., rect_around_bottle_1).
+- Closed shapes (rectangles/ovals/polygons): repeat the first point at the end.
+- Open shapes (checkmarks/lines): do NOT repeat the first point.
+- If 0 objects are detected, still return the wrapper with an empty <strokes>.
+"""
+
+
+# SHAPE_PROMPT = """
+# Task:
+# Draw {shape_type} around **ALL visible instances** belonging to the following categories: {categories_str}. 
+# Look carefully and do not miss any objects.
+
+# **IMPORTANT:**  
+# - Include every instance that matches any of the above categories — even small, distant, or partially visible ones.  
+# - Be inclusive: if an object even partially fits a valid category, include it.  
+# - Make each {shape_type} **as tight as possible** around the visible region. 
+
+# Output format (strict):
+# <answer>
+# <concept>Draw {shape_type} around {categories_str}</concept>
+# <strokes>
+# <s1>
+#     <points>'xA1yB1','xA2yB2',...,'xANyBN'</points>
+#     <t_values>0.00,...,1.00</t_values>
+#     <id>{shape_token}_around_{{classname}}_1</id>
+# </s1>
+# <!-- one <sN> per object -->
+# </strokes>
+# </answer>
+
+# Rules:
+# - Use only these tags: <answer>, <concept>, <strokes>, <sN>, <points>, <t_values>, <id>.
+# - Do NOT output JSON, “box_2d”, “bbox”, Markdown fences, or any text outside <answer>...</answer>.
+# - Coordinates are grid tokens: 'x<int>y<int>' (e.g., 'x14y8'), no spaces inside tokens.
+# - The number of <t_values> MUST equal the number of <points>, evenly spanning 0.00 to 1.00 (first=0.00, last=1.00).
+# - Each <sN> corresponds to one object instance; IDs must include the detected class name (e.g., rect_around_bottle_1).
+# - Closed shapes (rectangles/ovals/polygons): repeat the first point at the end.
+# - Open shapes (checkmarks/lines): do NOT repeat the first point.
+# - If 0 objects are detected, still return the wrapper with an empty <strokes>.
+# """
+
+# SHAPE_PROMPT = """
+# Task:
+# Draw {shape_type} around ALL visible instances belonging to the following categories: {categories_str}.
+
+# IMPORTANT (follow carefully):
+# - Systematically scan the entire image before drawing:
+#   first top-left → top-right → bottom-left → bottom-right.
+# - Actively look for small, distant, or partially visible instances.
+# - Do NOT skip tiny objects.
+# - For each object, draw exactly ONE {shape_type}.
+# - Make each {shape_type} as tight as possible using the extreme visible boundaries
+#   (leftmost, rightmost, topmost, bottommost visible pixels).
+# - Do NOT add any margin or padding.
+
+# Output format (strict):
+# <answer>
+# <concept>Draw {shape_type} around {categories_str}</concept>
+# <strokes>
+# <s1>
+#     <points>'xA1yB1','xA2yB2',...,'xANyBN'</points>
+#     <t_values>0.00,...,1.00</t_values>
+#     <id>{shape_token}_around_{{classname}}_1</id>
+# </s1>
+# <!-- one <sN> per object -->
+# </strokes>
+# </answer>
+
+# Rules:
+# - Use only these tags: <answer>, <concept>, <strokes>, <sN>, <points>, <t_values>, <id>.
+# - Do NOT output JSON, “box_2d”, “bbox”, Markdown fences, or any text outside <answer>...</answer>.
+# - Coordinates are grid tokens: 'x<int>y<int>' (e.g., 'x14y8'), no spaces inside tokens.
+# - The number of <t_values> MUST equal the number of <points>, evenly spanning 0.00 to 1.00 (first=0.00, last=1.00).
+# - Each <sN> corresponds to one object instance; IDs must include the detected class name
+#   (e.g., rect_around_bottle_1).
+# - Closed shapes (rectangles/ovals/polygons): repeat the first point at the end.
+# - Open shapes: do NOT repeat the first point.
+# - If 0 objects are detected, still return the wrapper with an empty <strokes>.
+# """
+
+
+# SHAPE_PROMPT = """
+# Task:
+# This is NOT an artistic sketch. This is an exhaustive visual annotation task.
+# Draw {shape_type} around ALL visible instances belonging to the following categories: {categories_str}.
+
+# IMPORTANT (follow carefully):
+# - Completeness is more important than aesthetics.
+# - Before drawing, determine how many instances of each class exist, including tiny, distant, or partially visible ones.
+# - Do NOT skip small objects.
+# - Draw exactly ONE {shape_type} per object instance (do not duplicate shapes for the same object).
+# - Make each {shape_type} as tight as possible around the visible region.
+#   Use the extreme visible boundaries (leftmost, rightmost, topmost, bottommost visible pixels).
+# - Do NOT add any margin or padding.
+
+# Output format (strict):
+# <answer>
+# <concept>Draw {shape_type} around {categories_str}</concept>
+# <strokes>
+# <s1>
+#     <points>'xA1yB1','xA2yB2',...,'xANyBN'</points>
+#     <t_values>0.00,...,1.00</t_values>
+#     <id>{shape_token}_around_{{classname}}_1</id>
+# </s1>
+# <!-- one <sN> per object -->
+# </strokes>
+# </answer>
+
+# Rules:
+# - Use only these tags: <answer>, <concept>, <strokes>, <sN>, <points>, <t_values>, <id>.
+# - Do NOT output JSON, “box_2d”, “bbox”, Markdown fences, or any text outside <answer>...</answer>.
+# - Coordinates are grid tokens: 'x<int>y<int>' (e.g., 'x14y8'), no spaces inside tokens.
+# - The number of <t_values> MUST equal the number of <points>, evenly spanning 0.00 to 1.00
+#   (first = 0.00, last = 1.00).
+# - Each <sN> corresponds to one object instance.
+#   IDs must include the detected class name (e.g., rect_around_bottle_1).
+# - Closed shapes (rectangles / ovals / polygons): repeat the first point at the end.
+# - Open shapes (lines / checkmarks): do NOT repeat the first point.
+# - If 0 objects are detected, still return the wrapper with an empty <strokes>.
+# """

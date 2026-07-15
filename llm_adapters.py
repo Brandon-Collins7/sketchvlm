@@ -581,11 +581,15 @@ class OpenRouterAdapter(BaseLLMAdapter):
         #     }
         # }
         
-        extra_body = {"provider": {"allow_fallbacks": False}}
+        extra_body = {"provider": {"allow_fallbacks": False}, "usage": {"include": True}}
 
         # Only lock to google-ai-studio when using Gemini models
-        if self.model.startswith("google/"):
-            extra_body["provider"]["only"] = ["google-ai-studio"]
+        # if self.model.startswith("google/"):
+        #     extra_body["provider"]["only"] = ["google-ai-studio"]
+        # # else:
+        # #     extra_body["provider"]["only"] = ["modelrun"]
+        # else:
+        extra_body["provider"]["only"] = ["modelrun"]
 
 
         # Special handling for image generation model - two-turn approach

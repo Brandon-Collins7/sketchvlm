@@ -2,6 +2,7 @@
 import argparse
 import ast
 import base64
+import cairosvg
 import io
 import json
 import math
@@ -16,26 +17,6 @@ import uuid
 from datetime import datetime
 from typing import Optional, List, Dict
 import html
-import sys
-import ctypes.util
-
-
-if sys.platform == "darwin":
-    _original_find_library = ctypes.util.find_library
-
-    def _find_library_with_cairo(name):
-        if name in {"cairo", "cairo-2", "libcairo-2"}:
-            for candidate in (
-                "/opt/homebrew/lib/libcairo.2.dylib",
-                "/opt/homebrew/opt/cairo/lib/libcairo.2.dylib",
-            ):
-                if candidate and os.path.exists(candidate):
-                    return candidate
-        return _original_find_library(name)
-
-    ctypes.util.find_library = _find_library_with_cairo
-
-import cairosvg
 
 
 import hashlib, io, base64, os, re
@@ -53,6 +34,8 @@ from prompts import (
     ONE_STROKE_SYSTEM_GUARD, STROKES_ONLY_SYSTEM_GUARD, FINAL_ANSWER_SYSTEM_GUARD,
     build_system_prompt,
 )
+
+from prompts import SHAPE_PROMPT
 
 
 from grid_manager import GridManager
@@ -91,7 +74,45 @@ def _is_axis_aligned_rect(points):
         return False
     return True
 
+import re
+def _parse_label_txt(txt: str):
+    """
+    Returns (concept, labels_hint_str).
+    Works for:
+    "The object in the image is a bottle. Label only the following parts of the bottle: base, body..."
+    and fallback:
+    "Object: bottle\nParts: base, body, ..."
+    """
+    s = (txt or "").strip()
 
+    # concept
+    concept = None
+    m = re.search(r"object in the image is a\s+([^.]+)\.", s, re.I)
+    if m:
+        concept = m.group(1).strip()
+
+    # parts list
+    labels = None
+    m2 = re.search(r"Label\s+only\s+the\s+following\s+parts\s+of\s+the\s+.*?:\s*([^.]+)\.", s, re.I)
+    if m2:
+        labels = m2.group(1).strip()
+
+    # fallback: "Object: X\nParts: a, b, c"
+    if concept is None:
+        m3 = re.search(r"^\s*Object\s*:\s*(.+)\s*$", s, re.I | re.M)
+        if m3:
+            concept = m3.group(1).strip()
+
+    if labels is None:
+        m4 = re.search(r"^\s*Parts\s*:\s*(.+)\s*$", s, re.I | re.M)
+        if m4:
+            labels = m4.group(1).strip()
+
+    concept = concept or "object"
+    labels = labels or "head, torso, leg, arm"
+
+    labels = ", ".join([x.strip() for x in labels.split(",") if x.strip()])
+    return concept, labels
 
 # =========================
 # Flask App
@@ -645,6 +666,146 @@ class SketchApp:
     def call_llm(self, system_message, other_msg, additional_args):
         return self.llm.call(system_message, other_msg, additional_args)
 
+    # def get_response_from_llm(
+    #     self,
+    #     msg,
+    #     system_message,
+    #     msg_history=None,
+    #     init_canvas_str: Optional[str] = None,
+    #     prefill_msg: Optional[str] = None,
+    #     seed_mode: str = "stochastic",
+    #     stop_sequences: Optional[str] = None,
+    #     gen_mode: str = "generation",
+    #     **kw,
+        
+    # ):
+        
+        
+    #     if msg_history is None:
+    #         msg_history = []
+
+    #     additional_args: Dict = {}
+        
+    #     if kw:
+    #         additional_args.update(kw)
+        
+    #     if seed_mode == "deterministic":
+    #         additional_args["temperature"] = 0.0
+    #         additional_args["top_k"] = 1  # ignored by OpenAI adapter
+            
+    #     if getattr(self, "reasoning_effort", None):
+    #         additional_args["reasoning_effort"] = self.reasoning_effort
+
+    #     other_msg = self.define_input_to_llm(msg_history, init_canvas_str, msg)
+
+    #     if gen_mode == "completion" and prefill_msg:
+    #         other_msg = other_msg + [{"role": "assistant", "content": f"{prefill_msg}"}]
+
+    #     additional_args["stop_sequences"] = stop_sequences if stop_sequences else "</answer>"
+        
+    #     # Gemini tends to prematurely STOP on XML-ish stop strings; disable for completion.
+    #     '''
+    #     if isinstance(self.llm, GeminiAdapter) and gen_mode == "completion":
+    #         additional_args.pop("stop_sequences", None)
+    #     '''
+    #     #NOTE: this code was causing duplication issue for GEMINI
+    #     # # Do not use stop-sequences with Gemini (causes premature STOP and empties)
+    #     # if isinstance(self.llm, GeminiAdapter) and "stop_sequences" in additional_args:
+    #     #     additional_args.pop("stop_sequences", None)
+        
+        
+    #     # optional tiny throttle (helps Gemini avoid empty outputs)
+    #     delay = getattr(self, "api_delay_sec", 0.0) or 0.0
+    #     if delay > 0:
+    #         time.sleep(delay)
+
+    #     # ---- call provider ----
+    #     response = self.call_llm(system_message, other_msg, additional_args)
+    #     self._last_raw_response = response
+    #     content  = self.llm.extract_text(response)
+
+    #     if gen_mode == "completion" and prefill_msg:
+    #         other_msg = other_msg[:-1]
+        
+    #     # ---- extract generated images (Gemini image model) ----
+    #     self._last_generated_images = []
+    #     if hasattr(self.llm, "extract_images"):
+    #         gen_images = self.llm.extract_images(response)
+    #         self._last_generated_images = gen_images
+    #         if self.path2save and gen_images:
+    #             for idx, img_data_url in enumerate(gen_images):
+    #                 # img_data_url is like "data:image/png;base64,..."
+    #                 if img_data_url.startswith("data:"):
+    #                     header, b64_data = img_data_url.split(",", 1)
+    #                     ext = "png" if "png" in header else "jpeg"
+    #                     img_bytes = base64.b64decode(b64_data)
+    #                     img_path = f"{self.path2save}/generated_image_{idx}.{ext}"
+    #                     with open(img_path, "wb") as f:
+    #                         f.write(img_bytes)
+    #                     print(f"[IMAGE GEN] Saved generated image to: {img_path}")
+
+    #     if gen_mode == "completion" and prefill_msg:
+    #         other_msg = other_msg[:-1]
+
+    #     # ----- NEW LOGGING -----
+    #     # ... after you compute `content` and still inside get_response_from_llm
+    #     if self.path2save is not None:
+    #         # (a) Keep your original snapshot (overwrites the JSON)
+    #         system_message_json = [{"role": "system", "content": system_message}]
+    #         new_msg_history = other_msg + [{"role": "assistant", "content": [{"type": "text", "text": content}]}]
+    #         with open(f"{self.path2save}/experiment_log.json", 'w', encoding="utf-8") as json_file:
+    #             json.dump(system_message_json + new_msg_history, json_file, indent=4)
+
+    #         # (b) Append provider debug row (JSONL) + console preview
+    #         try:
+    #             provider_debug = self.llm.debug_dump(response)
+    #         except Exception as _e:
+    #             provider_debug = {"error": str(_e)}
+                
+    #         # ----- NEW: cache for per-item JSONs -----
+    #         self._last_provider_debug = provider_debug
+    #         self._last_assistant_text = content
+
+    #         try:
+    #             redacted_msgs = self._redact_b64_in_messages(other_msg)
+    #         except Exception:
+    #             redacted_msgs = None
+    #         self._last_redacted_request = {
+    #             "system": system_message,
+    #             "messages": redacted_msgs,
+    #         }
+
+
+    #         row = {
+    #             "ts": datetime.now().isoformat(timespec="seconds"),
+    #             "adapter": type(self.llm).__name__,
+    #             "model": self.llm.model,
+    #             "seed_mode": seed_mode,
+    #             "gen_mode": gen_mode,
+    #             "stop_sequences": additional_args.get("stop_sequences"),
+    #             "has_image": self.llm.request_has_image(other_msg),
+    #             "assistant_text_preview": (content[:1000] if isinstance(content, str) else None),
+    #             "provider_debug": provider_debug,
+    #         }
+    #         with open(f"{self.path2save}/experiment_log.jsonl", "a", encoding="utf-8") as jf:
+    #             jf.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+    #         # Console helper
+    #         print(
+    #             "\n[GEMINI DEBUG]"
+    #             f"\n gen_mode={gen_mode}"
+    #             f"\n stop_sequences={additional_args.get('stop_sequences')}"
+    #             f"\n combined_text preview:\n{(provider_debug.get('combined_text','')[:1000] or '<EMPTY>')}"
+    #             f"\n finish_reason={provider_debug.get('finish_reason')}"
+    #             f"\n prompt_block_reason={provider_debug.get('prompt_block_reason')}"
+    #             "\n[END GEMINI DEBUG]\n",
+    #             flush=True
+    #         )
+
+
+
+    #     return content
+
     def get_response_from_llm(
         self,
         msg,
@@ -699,9 +860,23 @@ class SketchApp:
             time.sleep(delay)
 
         # ---- call provider ----
-        response = self.call_llm(system_message, other_msg, additional_args)
+        # response = self.call_llm(system_message, other_msg, additional_args)
+        # self._last_raw_response = response
+        # content  = self.llm.extract_text(response)
+        # ---- call provider and measure latency ----
+        request_start_time = time.perf_counter()
+
+        response = self.call_llm(
+            system_message,
+            other_msg,
+            additional_args
+        )
+
+        latency_sec = time.perf_counter() - request_start_time
+
         self._last_raw_response = response
-        content  = self.llm.extract_text(response)
+        content = self.llm.extract_text(response)
+
 
         if gen_mode == "completion" and prefill_msg:
             other_msg = other_msg[:-1]
@@ -740,6 +915,30 @@ class SketchApp:
                 provider_debug = self.llm.debug_dump(response)
             except Exception as _e:
                 provider_debug = {"error": str(_e)}
+
+            # Client-measured request latency
+            provider_debug["latency_sec"] = round(latency_sec, 6)
+            provider_debug["latency_ms"] = round(latency_sec * 1000, 2)
+
+            # OpenRouter cost and token usage
+            usage = getattr(response, "usage", None)
+
+            if usage is not None:
+                provider_debug["cost_usd"] = getattr(usage, "cost", None)
+                provider_debug["prompt_tokens"] = getattr(
+                    usage, "prompt_tokens", None
+                )
+                provider_debug["completion_tokens"] = getattr(
+                    usage, "completion_tokens", None
+                )
+                provider_debug["total_tokens"] = getattr(
+                    usage, "total_tokens", None
+                )
+            else:
+                provider_debug["cost_usd"] = None
+                provider_debug["prompt_tokens"] = None
+                provider_debug["completion_tokens"] = None
+                provider_debug["total_tokens"] = None
                 
             # ----- NEW: cache for per-item JSONs -----
             self._last_provider_debug = provider_debug
@@ -784,6 +983,7 @@ class SketchApp:
 
 
         return content
+
 
     # ---------- sketch flow ----------
     def init_thinking_tags(self):
@@ -933,7 +1133,7 @@ class SketchApp:
         return px, py
 
 
-    def parse_model_to_svg(self, stroke_model: str):
+    # def parse_model_to_svg(self, stroke_model: str):
         
         stroke_model = self._normalize_listish_blocks(stroke_model)
         
@@ -1198,6 +1398,303 @@ class SketchApp:
             dim=self.grid_size,
             stroke_width=self.stroke_width,
             stroke_counter=stroke_no,         # use stroke_no, not self.stroke_counter
+            group_id=stroke_label,
+            stroke_color=stroke_color
+        )
+    def parse_model_to_svg(self, stroke_model: str):
+        import re, ast, html
+        import utils  # assumes your project already imports this elsewhere
+
+        stroke_model = self._normalize_listish_blocks(stroke_model)
+
+        # normalize one-decimal t-values like "0.5" -> "0.50"
+        stroke_model = re.sub(
+            r'(?<=,|\>)\s*([01])\.([0-9])(?![0-9])',
+            lambda m: f"{m.group(1)}.{m.group(2)}0",
+            stroke_model
+        )
+
+        # Which s-number is this block?
+        m_s = re.search(r"<s(\d+)>", stroke_model)
+        stroke_no = int(m_s.group(1)) if m_s else max(1, self.stroke_counter + 1)
+
+        # Optional human-readable id
+        m_id = re.search(r"<id>(.*?)</id>", stroke_model, re.S)
+        stroke_label = (m_id.group(1).strip() if m_id else f"s{stroke_no}")
+        stroke_label = re.sub(r"[^\w\-]", "_", stroke_label)
+
+        # Pink/green color parity (unchanged)
+        stroke_color = "green"
+        if self.sketch_mode == "colab":
+            if self.user_always_first:
+                if stroke_no % 2 == 0:
+                    stroke_color = "pink"
+            else:
+                if stroke_no % 2 == 1:
+                    stroke_color = "pink"
+
+        # ================================================================
+        # TEXT STROKE SUPPORT (robust quoted/unquoted label + point formats)
+        # Supports:
+        #   <text ...>'neck'</text>   OR   <text ...>neck</text>
+        #   <points>'x190y630'</points> OR <points>x190y630</points>
+        # ================================================================
+        # m_text = re.search(r"<text([^>]*)>\s*(.*?)\s*</text>", stroke_model, re.S | re.I)
+        # if m_text:
+        #     # anchor
+        #     m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S | re.I)
+        #     if not m_ptblk:
+        #         raise ValueError(f"Text stroke s{stroke_no} missing <points>")
+
+        #     pts_str = (m_ptblk.group(1) or "").strip()
+
+        #     # accept x190y630 with or without quotes, with optional spaces
+        #     mpt = re.search(r"x\s*(\d+)\s*y\s*(\d+)", pts_str, re.I)
+        #     if not mpt:
+        #         raise ValueError(...)
+        #     gx, gy = mpt.group(1), mpt.group(2)
+        #     key = f"x{int(gx)}y{int(gy)}"
+
+        m_text = re.search(r"<text([^>]*)>\s*(.*?)\s*</text>", stroke_model, re.S | re.I)
+        if m_text:
+            # anchor
+            m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S | re.I)
+            if not m_ptblk:
+                raise ValueError(f"Text stroke s{stroke_no} missing <points>")
+
+            pts_str = (m_ptblk.group(1) or "").strip()
+
+            # accept x190y630 with or without quotes, with optional spaces
+            mpt = re.search(r"x\s*(\d+)\s*y\s*(\d+)", pts_str, re.I)
+
+            if mpt:
+                gx, gy = mpt.group(1), mpt.group(2)
+            else:
+                # tolerate "X Y" or "X,Y" (optionally wrapped by quotes/parens/brackets)
+                cleaned = (pts_str or "").strip()
+
+                # unwrap ONE outer layer only (don't aggressively strip characters)
+                if len(cleaned) >= 2:
+                    if (cleaned[0] == cleaned[-1]) and cleaned[0] in ("'", '"'):
+                        cleaned = cleaned[1:-1].strip()
+                    elif cleaned[0] == "(" and cleaned[-1] == ")":
+                        cleaned = cleaned[1:-1].strip()
+                    elif cleaned[0] == "[" and cleaned[-1] == "]":
+                        cleaned = cleaned[1:-1].strip()
+
+                # try xNyM again after unwrapping
+                mpt2 = re.search(r"x\s*(\d+)\s*y\s*(\d+)", cleaned, re.I)
+                if mpt2:
+                    gx, gy = mpt2.group(1), mpt2.group(2)
+                else:
+                    # finally parse numeric pair: "335 85" or "335,85"
+                    m2 = re.search(r"^\s*(\d+)\s*[, ]\s*(\d+)\s*$", cleaned)
+                    if not m2:
+                        raise ValueError(
+                            f"Text stroke s{stroke_no} has no valid point in <points>: {pts_str} "
+                            f"(expected xNyM or 'xNyM' or 'X Y' or 'X,Y')"
+                        )
+                    gx, gy = m2.group(1), m2.group(2)
+
+            key = f"x{int(gx)}y{int(gy)}"
+
+            if self.no_grid:
+                # Treat text anchor as coord-space point scaled onto the original image
+                if self.res_x <= 0 or self.res_y <= 0:
+                    raise ValueError("No-grid mode requires --res-x and --res-y > 0")
+                cx, cy = self._coord_to_px_no_grid(float(gx), float(gy))
+            else:
+                if key not in self.positions:
+                    raise ValueError(f"Text stroke s{stroke_no} uses out-of-grid cell {key}")
+                cx, cy = self.positions[key]
+
+            # style overrides from your helper (must exist)
+            font_px_override, color_override = self._parse_text_style(stroke_model)
+
+            default_px = self.cell_size * self.text_font_scale
+            font_px = int(round(font_px_override if font_px_override is not None else default_px))
+
+            # If your helper doesn't read color="...", parse it directly from the <text ...> attrs
+            if color_override is None:
+                mcol = re.search(r'\bcolor\s*=\s*"([^"]+)"', m_text.group(1), re.I)
+                if mcol:
+                    color_override = mcol.group(1)
+
+            # color priority: explicit style -> previous parity color -> black
+            fill_color = color_override or stroke_color or "black"
+
+            # label text; strip quotes if present
+            text_val_raw = (m_text.group(2) or "").strip()
+            text_val_raw = re.sub(r"^['\"]|['\"]$", "", text_val_raw).strip()
+            text_val = html.escape(text_val_raw)
+
+            return (
+                f'<g id="{stroke_label}_s{stroke_no}">'
+                f'<text x="{cx:.1f}" y="{cy:.1f}" '
+                f'text-anchor="middle" dominant-baseline="central" '
+                f'font-family="{self.text_font_family}" '
+                f'font-size="{font_px}" fill="{fill_color}">{text_val}</text>'
+                f'</g>'
+            )
+
+        # ================================================================
+        # No-grid coordinate strokes (top-left origin)
+        # Expect:
+        #   <points>(x0,y0),(x1,y1),...</points>
+        # in a 0..res_x by 0..res_y space, origin TOP-LEFT.
+        # ================================================================
+        if self.no_grid and self.grid_size == (self.res_x, self.res_y) and self.res_x > 0 and self.res_y > 0:
+            m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S | re.I)
+            if not m_ptblk:
+                raise ValueError(f"Stroke s{stroke_no} missing <points>")
+
+            pts_text = m_ptblk.group(1)
+            coord_re = re.compile(r"\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?")
+            coords = [(float(a), float(b)) for a, b in coord_re.findall(pts_text)]
+            if not coords:
+                coords = None
+
+            if coords:
+                # t-values
+                m_t = re.search(r"<t_values>(.*?)</t_values>", stroke_model, re.S | re.I)
+                if m_t:
+                    raw = m_t.group(1).strip().strip("[]")
+                    parts = [p.strip() for p in raw.split(",") if p.strip()]
+                    try:
+                        t_values = [float(p) for p in parts]
+                    except Exception:
+                        t_values = []
+                else:
+                    t_values = []
+
+                n = len(coords)
+                if not t_values or len(t_values) != n:
+                    if n <= 1:
+                        t_values = [0.0, 1.0]
+                    elif n == 2:
+                        t_values = [0.0, 1.0]
+                    else:
+                        t_values = [i / (n - 1) for i in range(n)]
+
+                # scale coords -> pixels; clamp into canvas
+                W, H = self.grid_size
+                sx = (W - 1) / float(self.res_x) if self.res_x else 1.0
+                sy = (H - 1) / float(self.res_y) if self.res_y else 1.0
+                sampled_points = []
+                for x, y in coords:
+                    px = max(0.0, min(float(W - 1), x * sx))
+                    py = max(0.0, min(float(H - 1), y * sy))
+                    sampled_points.append([px, py])  # (x,y) for SVG
+
+                group = utils.estimate_bezier_control_points(sampled_points, t_values)
+                return utils.format_svg_single_stroke(
+                    group,
+                    dim=self.grid_size,
+                    stroke_width=self.stroke_width,
+                    stroke_counter=stroke_no,
+                    group_id=stroke_label,
+                    stroke_color=stroke_color,
+                )
+
+        # ================================================================
+        # Bounding box support: detect an axis-aligned rect from xNyM grid pts
+        # ================================================================
+        m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S)
+        if m_ptblk:
+            grid_pts = [(int(gx), int(gy)) for gx, gy in re.findall(r"x(\d+)y(\d+)", m_ptblk.group(1))]
+            if len(grid_pts) >= 4:
+                px_pts = []
+                for gx, gy in grid_pts:
+                    key = f"x{gx}y{gy}"
+                    if key in getattr(self, "positions", {}):
+                        px_pts.append(self.positions[key])
+
+                if len(px_pts) >= 4:
+                    closed = (px_pts[0] == px_pts[-1])
+                    uniq = px_pts[:-1] if closed else px_pts
+                    uniq_corners = list(dict.fromkeys(uniq))
+                    if len(uniq_corners) == 4:
+                        xs = sorted({x for x, _ in uniq_corners})
+                        ys = sorted({y for _, y in uniq_corners})
+                        if len(xs) == 2 and len(ys) == 2:
+                            x0, x1 = xs[0], xs[1]
+                            y0, y1 = ys[0], ys[1]
+                            x, y = min(x0, x1), min(y0, y1)
+                            w, h = abs(x1 - x0), abs(y1 - y0)
+
+                            rect_svg = (
+                                f'<rect x="{x}" y="{y}" width="{w}" height="{h}" '
+                                f'stroke="{stroke_color}" stroke-width="{self.stroke_width}" fill="none" '
+                                f'shape-rendering="crispEdges" vector-effect="non-scaling-stroke"/>'
+                            )
+                            return f'<g id="{stroke_label}_s{stroke_no}">{rect_svg}</g>'
+
+        # ================================================================
+        # NO-GRID + xNyM TOKENS (coords in [0..res_x]x[0..res_y], scaled to image px)
+        # ================================================================
+        if self.no_grid:
+            m_ptblk = re.search(r"<points>(.*?)</points>", stroke_model, re.S | re.I)
+            if not m_ptblk:
+                raise ValueError(f"Stroke s{stroke_no} missing <points>")
+
+            pts = re.findall(r"x(\d+)y(\d+)", m_ptblk.group(1))
+            if pts:
+                W, H = self.grid_size
+                if self.res_x <= 0 or self.res_y <= 0:
+                    raise ValueError("No-grid mode requires --res-x and --res-y > 0")
+
+                sampled_points = []
+                for gx, gy in pts:
+                    # scale into pixel space (top-left origin)
+                    px, py = self._coord_to_px_no_grid(float(gx), float(gy))
+                    sampled_points.append([px, py])
+
+                # t-values
+                m_t = re.search(r"<t_values>(.*?)</t_values>", stroke_model, re.S | re.I)
+                if m_t:
+                    raw = m_t.group(1).strip().strip("[]")
+                    t_values = [float(p) for p in raw.split(",") if p.strip()]
+                else:
+                    t_values = []
+
+                n = len(sampled_points)
+                if not t_values or len(t_values) != n:
+                    t_values = [i / (n - 1) if n > 1 else 0.0 for i in range(n)]
+
+                group = utils.estimate_bezier_control_points(sampled_points, t_values)
+                return utils.format_svg_single_stroke(
+                    group,
+                    dim=self.grid_size,
+                    stroke_width=self.stroke_width,
+                    stroke_counter=stroke_no,
+                    group_id=stroke_label,
+                    stroke_color=stroke_color,
+                )
+
+        # ================================================================
+        # default: curve/path stroke (your existing code path)
+        # ================================================================
+        strokes_list_str, t_values_str = utils.parse_xml_string_single_stroke(
+            stroke_model, self.res, stroke_no, self.res_x, self.res_y
+        )
+        strokes_list = ast.literal_eval(strokes_list_str)
+        t_values = ast.literal_eval(t_values_str)
+
+        if len(t_values) != len(strokes_list):
+            n = len(strokes_list)
+            if n <= 1:
+                t_values = [0.00] * n
+            else:
+                t_values = [round(i / (n - 1), 2) for i in range(n)]
+
+        all_control_points = utils.get_control_points_single_stroke(
+            strokes_list, t_values, self.positions
+        )
+        return utils.format_svg_single_stroke(
+            all_control_points,
+            dim=self.grid_size,
+            stroke_width=self.stroke_width,
+            stroke_counter=stroke_no,
             group_id=stroke_label,
             stroke_color=stroke_color
         )
@@ -1653,18 +2150,39 @@ class SketchApp:
             try:
                 if s.endswith("px"):
                     font_px = float(s[:-2])
+                # else:
+                #     # treat as "grid-cell multiplier"
+                #     mult = float(re.sub(r"[^\d\.]+", "", s))
+                #     font_px = mult * self.cell_size
                 else:
-                    # treat as "grid-cell multiplier"
-                    mult = float(re.sub(r"[^\d\.]+", "", s))
-                    font_px = mult * self.cell_size
+                    v = float(re.sub(r"[^\d\.]+", "", s))
+
+                    if getattr(self, "no_grid", False):
+                        # NO-GRID: interpret size in "coord-space units" and scale to pixels
+                        W, H = self.grid_size  # base image pixel size
+                        rx = float(getattr(self, "res_x", W) or W)
+                        ry = float(getattr(self, "res_y", H) or H)
+                        scale = 2.5 * (W / rx + H / ry)   # px per coord-unit (avg)
+                        font_px = v * scale
+                    else:
+                        # GRID: interpret size in "cell units"
+                        font_px = v * self.cell_size
             except Exception:
                 font_px = None
 
         # clamp to sensible range
         if font_px is not None:
-            lo = self.cell_size * 0.8
-            hi = self.cell_size * 6.0
-            font_px = max(lo, min(font_px, hi))
+            # lo = self.cell_size * 0.8
+            # hi = self.cell_size * 6.0
+            # font_px = max(lo, min(font_px, hi))
+            if getattr(self, "no_grid", False):
+                # sensible pixel clamp for no-grid
+                font_px = max(20.0, min(font_px, 15.0))
+            else:
+                lo = self.cell_size * 0.8
+                hi = self.cell_size * 6.0
+                font_px = max(lo, min(font_px, hi))
+
 
         return (font_px, self._sanitize_color(color_val))
     
@@ -1862,7 +2380,7 @@ class SketchApp:
             only_set = {int(t) for t in tokens if t.isdigit()}
 
         for i, img_path in enumerate(pbar):
-            
+            # i = i + 255
             if only_set is not None and i not in only_set:
                 continue
             if only_set is None and i < skip:
@@ -2365,36 +2883,20 @@ class SketchApp:
                             stop_sequences="</answer>" if use_stop else None,
                         )
                     else:
-                        from llm_adapters import OpenRouterAdapter
+                        self._start_generic_session(prompt_from_txt)  # keep the user prompt identical
+                        use_stop = not isinstance(self.llm, GeminiAdapter)
                         # system message gets the counting template when counting=True
                         sys_msg = sys_count if counting else sys_label if labeling else (self._sys_prompt_or_none() or "")
-                        if isinstance(self.llm, OpenRouterAdapter):
-                            # ONE clean call: system + plain prompt + image, stop at </answer>.
-                            # The old header-seed + assistant-prefill two-call protocol makes
-                            # Gemini-via-OpenRouter reply with an empty/```-only response.
-                            self.input_prompt = prompt_from_txt
-                            answer = self.get_response_from_llm(
-                                msg=prompt_from_txt,
-                                system_message=sys_msg,
-                                msg_history=[],
-                                init_canvas_str=self.last_canvas_b64,
-                                seed_mode=self.seed_mode,
-                                gen_mode="generation",
-                                stop_sequences="</answer>",
-                            )
-                        else:
-                            self._start_generic_session(prompt_from_txt)  # keep the user prompt identical
-                            use_stop = not isinstance(self.llm, GeminiAdapter)
-                            answer = self.get_response_from_llm(
-                                msg=self.input_prompt,
-                                system_message=sys_msg,
-                                msg_history=[],
-                                init_canvas_str=self.last_canvas_b64,
-                                seed_mode=self.seed_mode,
-                                gen_mode="completion",
-                                prefill_msg=self.assitant_history.strip(),
-                                stop_sequences="</answer>" if use_stop else None
-                            )
+                        answer = self.get_response_from_llm(
+                            msg=self.input_prompt,
+                            system_message=sys_msg,
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=self.assitant_history.strip(),
+                            stop_sequences="</answer>" if use_stop else None
+                        )
 
                     
                     
@@ -2538,6 +3040,768 @@ class SketchApp:
 
     
 
+    def evaluate_shape_folder(
+        self,
+        src_dir: str = "datasets/shape_eval",
+        outdir: str = "results/shape_eval",
+        stepwise: bool = False,
+        max_images: int = None,
+        max_turns: int = 40,
+        skip: int = 0,
+        only: str = None,
+        shape_type: str = "ovals",
+        ):
+        """
+        Evaluate shape drawing (strokes) using paired image + .txt category lists and optional .json ground-truth files.
+
+        - Single-shot: one call returns all strokes.
+        - Stepwise: one stroke per turn (like evaluate_mixed_folder), then save final SVG/PNG.
+        - Output naming follows evaluate_mixed_folder style: item_00000... inside timestamp folder.
+        """
+        from pathlib import Path
+        from datetime import datetime
+        import json, re, base64, time
+        from PIL import Image
+        try:
+            from tqdm import tqdm
+            use_tqdm = True
+        except Exception:
+            use_tqdm = False
+
+        def _parse_only_set(only_str: str):
+            if not only_str:
+                return None
+            # supports "5,12,42" (simple) — keep consistent with your mixed logic
+            toks = re.split(r"[,\s]+", only_str.strip())
+            return {int(t) for t in toks if t.isdigit()}
+
+        src = Path(src_dir)
+        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = Path(outdir) / ts
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+        images = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
+        if max_images is not None:
+            images = images[:max_images]
+
+        iterator = tqdm(images, desc=f"Shape folder ({'stepwise' if stepwise else 'single-shot'})", unit="img") if use_tqdm else images
+
+        only_set = _parse_only_set(only)
+        results = []
+
+        # short token used in <id>
+        st = (shape_type or "").strip().lower()
+        shape_token = {
+            "rectangles": "rect", "rectangle": "rect",
+            "boxes": "rect", "box": "rect",
+            "ovals": "oval", "oval": "oval",
+            "ellipses": "oval", "ellipse": "oval",
+            "polygons": "poly", "polygon": "poly",
+            "checkmarks": "check", "checkmark": "check",
+        }.get(st, (st[:5] or "shape"))
+
+        for i, img_path in enumerate(iterator):
+            #i = i + 614
+            if only_set is not None and i not in only_set:
+                continue
+            if only_set is None and i < skip:
+                continue
+
+            txt_path = img_path.with_suffix(".txt")
+            gt_json_path = img_path.with_suffix(".json")
+            prompt_from_txt = None
+            turns = 0
+            turn_trace = []
+
+            raw_path = out_root / f"item_{i:05d}_orig.jpg"
+            svg_path = out_root / f"item_{i:05d}.svg"
+            png_path = out_root / f"item_{i:05d}_annotated.png"
+
+            try:
+                if not txt_path.exists():
+                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
+
+                img = Image.open(img_path).convert("RGB")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    prompt_from_txt = f.read().strip()
+
+                # Extract categories string from .txt (same as your older function)
+                m = re.search(r"belonging to:\s*(.+)", prompt_from_txt, re.IGNORECASE)
+                categories_str = m.group(1).strip() if m else prompt_from_txt.strip()
+
+                gt_data = None
+                if gt_json_path.exists():
+                    with open(gt_json_path, "r", encoding="utf-8") as f:
+                        gt_data = json.load(f)
+
+                # ---- Prepare canvas (this is where --no-grid + --res-x/--res-y take effect)
+                self.set_background_from_pil(img, mode="fit")
+                img.save(str(raw_path), quality=95)
+
+                # Reset stroke state like evaluate_mixed_folder
+                self.all_strokes_svg = self._svg_root_open()
+                self.stroke_counter = 0
+                self.assitant_history = ""
+                self.cur_svg_to_render = "None"
+                self._colored_svg = self._svg_root_open()
+                self.explanations = []
+
+                # Build SHAPE prompt
+                seed_prompt = SHAPE_PROMPT.format(
+                    shape_type=shape_type,
+                    categories_str=categories_str,
+                    shape_token=shape_token
+                )
+
+                base_sys = self._sys_prompt_or_none() or ""
+                use_stop = not isinstance(self.llm, GeminiAdapter)
+
+                if not stepwise:
+                    # ---------------- Single-shot: one call returns all strokes
+                    if self.no_system_prompt:
+                        # no system -> put everything in user msg
+                        # msg_once = seed_prompt
+                        msg_once = prompt_from_txt
+                        answer = self.get_response_from_llm(
+                            msg=msg_once,
+                            system_message=None,
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="generation",
+                            stop_sequences="</answer>" if use_stop else None,
+                        )
+                    else:
+                        # with system prompt (recommended)
+                        self._start_generic_session(seed_prompt)
+                        print("Base prompt")
+                        print(base_sys)
+                        print("\n\n\n\n")
+                        print("="*100)
+                        print("Task prompt")
+                        print(self.input_prompt)
+                        answer = self.get_response_from_llm(
+                            msg=self.input_prompt,
+                            system_message=base_sys,
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=self.assitant_history.strip(),
+                            stop_sequences="</answer>" if use_stop else None,
+                        )
+
+                    answer_xml = self._canon_strokes(answer)
+                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                    final_ans = self._extract_final_answer_any(answer, answer_xml, self.assitant_history)
+
+                else:
+                    # ---------------- Stepwise: one stroke per turn, same pattern as mixed
+                    self._start_generic_session(seed_prompt)
+                    self._prompt_multi_turn = True
+
+                    sys_with_one = (base_sys or "") + "\n" + ONE_STROKE_SYSTEM_GUARD
+
+                    last_step_png = None
+                    while turns < max_turns:
+                        expected_s = self.stroke_counter + 1
+                        turns += 1
+
+                        context_xml = self._canon_strokes_context()
+                        user_msg = self.input_prompt
+                        if not getattr(self, "stepwise_vision_only", False) and context_xml:
+                            user_msg += "\n\n[Context so far]\n" + context_xml
+
+                        # Gemini: stop_sequences=None (defaults to </answer>)
+                        from llm_adapters import OpenRouterAdapter
+                        is_gemini = isinstance(self.llm, GeminiAdapter)
+                        is_openrouter_gemini = (isinstance(self.llm, OpenRouterAdapter) and "gemini" in (getattr(self.llm, "model", "") or "").lower())
+                        stop_seq = None if (is_gemini or is_openrouter_gemini) else f"</s{expected_s}>"
+
+                        prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
+
+                        answer_raw = self.get_response_from_llm(
+                            msg=user_msg,
+                            system_message=sys_with_one,
+                            msg_history=[],
+                            init_canvas_str=self._canvas_b64_for_model(),
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=prefill,
+                            stop_sequences=stop_seq,
+                        )
+
+                        full_text = getattr(self, "_last_assistant_text", None) or self.llm.extract_text(answer_raw)
+                        full_text = self._normalize_listish_blocks(full_text or "")
+
+                        m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
+                        if not m_blk:
+                            # fallback: accept any <sK>...</sK> then retag
+                            m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
+
+                        svg_chunk = m_blk.group(1) if m_blk else ""
+                        if not svg_chunk:
+                            break
+
+                        blk_fixed = self._retag_block_to_no(svg_chunk, expected_s)
+                        self.update_history(blk_fixed)
+
+                        svg = self.parse_model_to_svg(blk_fixed)
+                        self.all_strokes_svg += svg
+                        self.stroke_counter = expected_s
+                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+
+                        step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
+                        self._composite_svg_on_base(self.cur_svg_to_render, str(step_png))
+                        last_step_png = step_png
+
+                        with open(step_png, "rb") as fh:
+                            step_bytes = fh.read()
+                        self.last_canvas_b64 = base64.b64encode(step_bytes).decode("utf-8")
+
+                        turn_trace.append({
+                            "turn": turns,
+                            "s_no": expected_s,
+                            "assistant_text": getattr(self, "_last_assistant_text", None),
+                            "step_png": str(step_png),
+                        })
+
+                        delay = getattr(self, "api_delay_sec", 0.0) or 0.0
+                        if delay > 0:
+                            time.sleep(delay)
+
+                    # Save final SVG and final PNG (use last step if exists)
+                    with open(svg_path, "w", encoding="utf-8") as f:
+                        f.write(self.cur_svg_to_render if isinstance(self.cur_svg_to_render, str) else "")
+
+                    if last_step_png and last_step_png.exists():
+                        import shutil
+                        shutil.copyfile(last_step_png, png_path)
+                    else:
+                        self._composite_svg_on_base(self.cur_svg_to_render, str(png_path))
+
+                    # canonical for JSON
+                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', self.cur_svg_to_render or "", flags=re.S)
+                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+                    final_ans = self._extract_final_answer_any(answer_xml, self.cur_svg_to_render, self.assitant_history)
+
+                total_strokes = len(re.findall(r"(<s\d+>.*?</s\d+>)", answer_xml or "", re.S))
+                text_strokes = self._count_strokes(answer_xml or "", count_only_text=True)
+
+                row = {
+                    "index": i,
+                    "mode": "stepwise" if stepwise else "single_shot",
+                    "turns": turns if stepwise else None,
+
+                    "shape_type": shape_type,
+                    "shape_token": shape_token,
+                    "categories_str": categories_str,
+
+                    "prompt": seed_prompt,
+                    "model_output": answer_xml,
+                    "answer": final_ans,
+                    "num_strokes_total": total_strokes,
+                    "num_strokes_text": text_strokes,
+
+                    "raw_image": str(raw_path),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                    "ground_truth": gt_data,
+
+                    "turn_trace": turn_trace,
+                    "model_output_full": getattr(self, "_last_assistant_text", None),
+                    "provider_debug": getattr(self, "_last_provider_debug", None),
+                    "request_preview": getattr(self, "_last_redacted_request", None),
+
+                    "grid_config": {
+                        "adaptive_grid": self.grid_manager.adaptive_grid,
+                        "cell_size": self.grid_manager.cell_size,
+                        "res_x": self.grid_manager.res_x,
+                        "res_y": self.grid_manager.res_y,
+                        "grid_size_px": self.grid_manager.grid_size,
+                    },
+                    "cell_pixel_map": self.grid_manager.positions,
+                }
+
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(row, jf, indent=2)
+
+                results.append({
+                    "index": i,
+                    "mode": row["mode"],
+                    "num_strokes_total": total_strokes,
+                    "num_strokes_text": text_strokes,
+                })
+
+            except Exception as e:
+                err = {
+                    "index": i,
+                    "mode": "stepwise" if stepwise else "single_shot",
+                    "shape_type": shape_type,
+                    "categories_str": None,
+                    "error": str(e),
+                    "raw_image": str(raw_path),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                    "model_output_full": getattr(self, "_last_assistant_text", None),
+                    "provider_debug": getattr(self, "_last_provider_debug", None),
+                    "request_preview": getattr(self, "_last_redacted_request", None),
+                    "turn_trace": turn_trace,
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(err, jf, indent=2)
+                results.append(err)
+
+        # Write jsonl + summary (same style as mixed)
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+        summary = {
+            "folder": str(src),
+            "timestamp": ts,
+            "total_items": len(images),
+            "processed": len(results),
+            "out_root": str(out_root),
+            "mode": "stepwise" if stepwise else "single_shot",
+            "notes": "Prompts are taken verbatim from paired .txt files (categories).",
+        }
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"\nSaved to: {out_root}")
+        print(f"Processed: {len(results)}")
+        return summary
+    
+
+    def _anchor_radius_px(self):
+        gm = getattr(self, "grid_manager", None)
+        r = None
+        if gm is not None:
+            cs = getattr(gm, "cell_size", None)
+            rx = getattr(gm, "res_x", None)
+            ry = getattr(gm, "res_y", None)
+            if isinstance(cs, (int, float)) and cs > 0:
+                r = cs * 0.10
+            elif isinstance(rx, (int, float)) and isinstance(ry, (int, float)) and rx > 0 and ry > 0:
+                r = min(rx, ry) / 90.0
+        if r is None:
+            r = 5.0
+        r = int(round(r))
+        return max(3, min(10, r))
+
+
+    def _add_label_anchor_dots_to_svg(self, svg_text: str, dot_color: str = "#00ff00") -> str:
+        import re
+        if not svg_text or "<text" not in svg_text:
+            return svg_text
+
+        r_px = self._anchor_radius_px()
+
+        # robust: x/y anywhere in <text ...>
+        pat = re.compile(
+            r'(<text\b[^>]*\bx="([^"]+)"[^>]*\by="([^"]+)"[^>]*>.*?</text>)',
+            re.S | re.I
+        )
+
+        def repl(m):
+            text_block = m.group(1)
+            x, y = m.group(2), m.group(3)
+            dot = (
+                f'<circle cx="{x}" cy="{y}" r="{r_px}" '
+                f'fill="{dot_color}" stroke="white" stroke-width="1" />\n'
+            )
+            return dot + text_block
+
+        return pat.sub(repl, svg_text)
+
+
+    def evaluate_labeling_folder(
+        self,
+        src_dir: str = "datasets/labeling",
+        outdir: str = "results/labeling",
+        stepwise: bool = False,
+        max_images: int = None,
+        max_turns: int = 40,
+        skip: int = 0,
+        only: str = None,
+
+        concept_mode: str = "txt",          # "txt" | "filename" | "constant"
+        constant_concept: str = "object",
+        start: int = 0,
+        end: int = 985,
+
+        add_anchor_dots: bool = True,
+        anchor_dot_color: str = "#00ff00",
+    ):
+        from pathlib import Path
+        from datetime import datetime
+        import json, re, base64, time
+        from PIL import Image
+
+        try:
+            from tqdm import tqdm
+            use_tqdm = True
+        except Exception:
+            use_tqdm = False
+
+        def _parse_only_set(only_str: str):
+            if not only_str:
+                return None
+            toks = re.split(r"[,\s]+", only_str.strip())
+            return {int(t) for t in toks if t.isdigit()}
+
+        def _select_concept(mode: str, img_path: Path, txt_concept: str):
+            mode = (mode or "txt").strip().lower()
+            if mode == "constant":
+                return (constant_concept or "object").strip()
+            if mode == "filename":
+                return img_path.stem
+            return txt_concept or "object"
+
+        def _safe_grid_config():
+            gm = getattr(self, "grid_manager", None)
+            if gm is None:
+                return {"adaptive_grid": None, "cell_size": None, "res_x": None, "res_y": None, "grid_size_px": None}
+            return {
+                "adaptive_grid": getattr(gm, "adaptive_grid", None),
+                "cell_size": getattr(gm, "cell_size", None),
+                "res_x": getattr(gm, "res_x", None),
+                "res_y": getattr(gm, "res_y", None),
+                "grid_size_px": getattr(gm, "grid_size", None),
+            }
+
+        def _safe_cell_pixel_map():
+            gm = getattr(self, "grid_manager", None)
+            return getattr(gm, "positions", None) if gm is not None else None
+
+        def _extract_label_legend(answer_xml: str):
+            import re
+            if not answer_xml:
+                return []
+            labels = []
+            for m in re.finditer(r"<text\b[^>]*>(.*?)</text>", answer_xml, re.S | re.I):
+                t = (m.group(1) or "").strip()
+                t = re.sub(r"^[\"']|[\"']$", "", t).strip()
+                if t:
+                    labels.append(t)
+            seen = set()
+            out = []
+            for x in labels:
+                k = x.lower()
+                if k not in seen:
+                    seen.add(k)
+                    out.append(x)
+            return out
+
+        src = Path(src_dir)
+        assert src.exists() and src.is_dir(), f"Folder not found: {src_dir}"
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = Path(outdir) / ts
+        out_root.mkdir(parents=True, exist_ok=True)
+
+        exts = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
+        images_all = [p for p in sorted(src.iterdir()) if p.suffix.lower() in exts]
+
+        start = int(start or 0)
+        end = int(end or 985)
+        images_all = images_all[start:end]
+
+        if max_images is not None:
+            images_all = images_all[:max_images]
+
+        iterator = tqdm(images_all, desc=f"Label folder ({'stepwise' if stepwise else 'single-shot'})", unit="img") if use_tqdm else images_all
+        only_set = _parse_only_set(only)
+
+        results = []
+        total_labels = 0
+
+        base_sys = self._sys_prompt_or_none() or ""
+        use_stop = not isinstance(self.llm, GeminiAdapter)
+
+        for j, img_path in enumerate(iterator):
+            i = j + start
+
+            if only_set is not None and i not in only_set:
+                continue
+            if only_set is None and i < skip:
+                continue
+
+            txt_path = img_path.with_suffix(".txt")
+            gt_json_path = img_path.with_suffix(".json")
+
+            raw_path = out_root / f"item_{i:05d}_orig.jpg"
+            svg_path = out_root / f"item_{i:05d}.svg"
+            png_path = out_root / f"item_{i:05d}_annotated.png"
+
+            turns = 0
+            turn_trace = []
+
+            try:
+                if not txt_path.exists():
+                    raise FileNotFoundError(f"Missing prompt file: {txt_path.name}")
+
+                prompt_from_txt = txt_path.read_text(encoding="utf-8").strip()
+                txt_concept, labels_hint = _parse_label_txt(prompt_from_txt)
+                concept = _select_concept(concept_mode, img_path, txt_concept)
+
+                gt_data = None
+                if gt_json_path.exists():
+                    with open(gt_json_path, "r", encoding="utf-8") as f:
+                        gt_data = json.load(f)
+
+                img = Image.open(img_path).convert("RGB")
+                self.set_background_from_pil(img, mode="fit")
+                img.save(str(raw_path), quality=95)
+
+                self.all_strokes_svg = self._svg_root_open()
+                self.stroke_counter = 0
+                self.assitant_history = ""
+                self.cur_svg_to_render = "None"
+                self._colored_svg = self._svg_root_open()
+                self.explanations = []
+
+                seed_prompt = GENERIC_LABEL_PROMPT.format(concept=concept, labels_hint=labels_hint)
+
+                if not stepwise:
+                    if getattr(self, "no_system_prompt", False):
+                        answer = self.get_response_from_llm(
+                            msg=prompt_from_txt,
+                            system_message=None,
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            stop_sequences="</answer>" if use_stop else None,
+                        )
+                    else:
+                        self._start_generic_session(seed_prompt)
+                        answer = self.get_response_from_llm(
+                            msg=self.input_prompt,
+                            system_message=base_sys,
+                            msg_history=[],
+                            init_canvas_str=self.last_canvas_b64,
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=self.assitant_history.strip(),
+                            stop_sequences="</answer>" if use_stop else None,
+                        )
+
+                    answer_xml = self._canon_strokes(answer)
+                    self._render_answer_xml(answer_xml, svg_out=svg_path, png_out=png_path)
+
+                    if add_anchor_dots:
+                        svg_str = Path(svg_path).read_text(encoding="utf-8", errors="replace")
+                        svg_str = self._add_label_anchor_dots_to_svg(svg_str, dot_color=anchor_dot_color)
+                        Path(svg_path).write_text(svg_str, encoding="utf-8")
+                        self._composite_svg_on_base(svg_str, str(png_path))
+
+                    legend = _extract_label_legend(answer_xml)
+                    n_labels = len(legend or [])
+                    total_labels += n_labels
+
+                    row = {
+                        "index": i,
+                        "mode": "single_shot",
+                        "turns": None,
+                        "concept": concept,
+                        "labels_hint": labels_hint,
+                        "prompt": seed_prompt,
+                        "model_output": answer_xml,
+                        "labels": legend,
+                        "num_labels": n_labels,
+                        "raw_image": str(raw_path),
+                        "annotated_image": str(png_path),
+                        "svg": str(svg_path),
+                        "source_image": str(img_path),
+                        "source_prompt": str(txt_path),
+                        "ground_truth": gt_data,
+                        "turn_trace": turn_trace,
+                        "model_output_full": getattr(self, "_last_assistant_text", None),
+                        "provider_debug": getattr(self, "_last_provider_debug", None),
+                        "request_preview": getattr(self, "_last_redacted_request", None),
+                        "grid_config": _safe_grid_config(),
+                        "cell_pixel_map": _safe_cell_pixel_map(),
+                    }
+
+                else:
+                    self._start_generic_session(seed_prompt)
+                    self._prompt_multi_turn = True
+                    sys_with_one = (base_sys or "") + "\n" + ONE_STROKE_SYSTEM_GUARD
+
+                    last_step_png = None
+
+                    while turns < max_turns:
+                        expected_s = self.stroke_counter + 1
+                        turns += 1
+
+                        context_xml = self._canon_strokes_context()
+                        user_msg = self.input_prompt
+                        if not getattr(self, "stepwise_vision_only", False) and context_xml:
+                            user_msg += "\n\n[Context so far]\n" + context_xml
+
+                        from llm_adapters import OpenRouterAdapter
+                        is_gemini = isinstance(self.llm, GeminiAdapter)
+                        is_openrouter_gemini = (
+                            isinstance(self.llm, OpenRouterAdapter)
+                            and "gemini" in (getattr(self.llm, "model", "") or "").lower()
+                        )
+                        stop_seq = None if (is_gemini or is_openrouter_gemini) else f"</s{expected_s}>"
+                        prefill = None if getattr(self, "stepwise_vision_only", False) else self.assitant_history.strip()
+
+                        answer_raw = self.get_response_from_llm(
+                            msg=user_msg,
+                            system_message=sys_with_one,
+                            msg_history=[],
+                            init_canvas_str=self._canvas_b64_for_model(),
+                            seed_mode=self.seed_mode,
+                            gen_mode="completion",
+                            prefill_msg=prefill,
+                            stop_sequences=stop_seq,
+                        )
+
+                        full_text = getattr(self, "_last_assistant_text", None) or self.llm.extract_text(answer_raw)
+                        full_text = self._normalize_listish_blocks(full_text or "")
+
+                        m_blk = re.search(rf"(<s{expected_s}>.*?</s{expected_s}>)", full_text or "", re.S)
+                        if not m_blk:
+                            m_blk = re.search(r"(<s\d+>.*?</s\d+>)", full_text or "", re.S)
+
+                        svg_chunk = m_blk.group(1) if m_blk else ""
+                        if not svg_chunk:
+                            break
+
+                        blk_fixed = self._retag_block_to_no(svg_chunk, expected_s)
+                        self.update_history(blk_fixed)
+
+                        svg = self.parse_model_to_svg(blk_fixed)
+                        self.all_strokes_svg += svg
+                        self.stroke_counter = expected_s
+                        self.cur_svg_to_render = f"{self.all_strokes_svg}</svg>"
+
+                        step_svg_for_render = self.cur_svg_to_render
+                        if add_anchor_dots:
+                            step_svg_for_render = self._add_label_anchor_dots_to_svg(step_svg_for_render, dot_color=anchor_dot_color)
+
+                        step_png = out_root / f"item_{i:05d}_step_{turns:03d}.png"
+                        self._composite_svg_on_base(step_svg_for_render, str(step_png))
+                        last_step_png = step_png
+
+                        with open(step_png, "rb") as fh:
+                            self.last_canvas_b64 = base64.b64encode(fh.read()).decode("utf-8")
+
+                        turn_trace.append({
+                            "turn": turns,
+                            "s_no": expected_s,
+                            "assistant_text": getattr(self, "_last_assistant_text", None),
+                            "step_png": str(step_png),
+                        })
+
+                        delay = getattr(self, "api_delay_sec", 0.0) or 0.0
+                        if delay > 0:
+                            time.sleep(delay)
+
+                    final_svg = self.cur_svg_to_render if isinstance(self.cur_svg_to_render, str) else ""
+                    if add_anchor_dots:
+                        final_svg = self._add_label_anchor_dots_to_svg(final_svg, dot_color=anchor_dot_color)
+
+                    with open(svg_path, "w", encoding="utf-8") as f:
+                        f.write(final_svg)
+
+                    if last_step_png and last_step_png.exists():
+                        import shutil
+                        shutil.copyfile(last_step_png, png_path)
+                    else:
+                        self._composite_svg_on_base(final_svg, str(png_path))
+
+                    answer_xml = re.sub(r'^.*?<svg.*?>', '<strokes>', final_svg or "", flags=re.S)
+                    answer_xml = re.sub(r'</svg>\s*$', '</strokes>', answer_xml, flags=re.S)
+
+                    legend = _extract_label_legend(answer_xml)
+                    n_labels = len(legend or [])
+                    total_labels += n_labels
+
+                    row = {
+                        "index": i,
+                        "mode": "stepwise",
+                        "turns": turns,
+                        "concept": concept,
+                        "labels_hint": labels_hint,
+                        "prompt": seed_prompt,
+                        "model_output": answer_xml,
+                        "labels": legend,
+                        "num_labels": n_labels,
+                        "raw_image": str(raw_path),
+                        "annotated_image": str(png_path),
+                        "svg": str(svg_path),
+                        "source_image": str(img_path),
+                        "source_prompt": str(txt_path),
+                        "ground_truth": gt_data,
+                        "turn_trace": turn_trace,
+                        "model_output_full": getattr(self, "_last_assistant_text", None),
+                        "provider_debug": getattr(self, "_last_provider_debug", None),
+                        "request_preview": getattr(self, "_last_redacted_request", None),
+                        "grid_config": _safe_grid_config(),
+                        "cell_pixel_map": _safe_cell_pixel_map(),
+                    }
+
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(row, jf, indent=2)
+
+                results.append({"index": i, "mode": row["mode"], "num_labels": row["num_labels"]})
+
+            except Exception as e:
+                err = {
+                    "index": i,
+                    "mode": "stepwise" if stepwise else "single_shot",
+                    "error": str(e),
+                    "raw_image": str(raw_path),
+                    "annotated_image": str(png_path),
+                    "svg": str(svg_path),
+                    "source_image": str(img_path),
+                    "source_prompt": str(txt_path),
+                    "turn_trace": turn_trace,
+                    "model_output_full": getattr(self, "_last_assistant_text", None),
+                    "provider_debug": getattr(self, "_last_provider_debug", None),
+                    "request_preview": getattr(self, "_last_redacted_request", None),
+                }
+                with open(out_root / f"item_{i:05d}.json", "w", encoding="utf-8") as jf:
+                    json.dump(err, jf, indent=2)
+                results.append(err)
+
+        with open(out_root / "results.jsonl", "w", encoding="utf-8") as f:
+            for r in results:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+        summary = {
+            "folder": str(src),
+            "timestamp": ts,
+            "total_items": len(images_all),
+            "processed": len(results),
+            "total_labels": total_labels,
+            "out_root": str(out_root),
+            "mode": "stepwise" if stepwise else "single_shot",
+            "notes": "Semantic info from paired .txt; output contract from GENERIC_LABEL_PROMPT.",
+            "start": start,
+            "add_anchor_dots": add_anchor_dots,
+            "anchor_dot_color": anchor_dot_color,
+        }
+        with open(out_root / "summary.json", "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+        print(f"\nSaved to: {out_root}")
+        print(f"Processed: {len(results)}   Total labels: {total_labels}")
+        return summary
 
 
     def run(self, hostname, ip_address):
@@ -2557,7 +3821,7 @@ class SketchApp:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="SketchAgent (Claude, GPT, Gemini, or Qwen3)")
-    parser.add_argument("--llm", choices=["claude", "gpt", "gemini", "qwen3", "openrouter"], required=True, help="Which provider to use.")
+    parser.add_argument("--llm", choices=["claude", "gpt", "gemini", "qwen3", "openrouter", "huggingface", "hf", "qwen35"], required=True, help="Which model provider/backend to use.")
     parser.add_argument("--model", type=str, default=None, help="Model id (e.g., claude-3-5-sonnet-20240620, o3, or gemini-2.5-pro).")
     parser.add_argument("--deterministic", action="store_true", help="Set temperature=0 and top_k=1 (if supported).")
     parser.add_argument("--max-tokens", type=int, default=30000)
@@ -2699,7 +3963,37 @@ if __name__ == '__main__':
     parser.add_argument("--save-annotated-no-grid", action="store_true",
     help="Also save an annotated image without the grid background (in addition to the normal annotated image).")
 
+    # --- Shape eval (stroke-based) ---
+    parser.add_argument("--shape-dir", type=str,
+        help="Folder with paired image + .txt categories for shape drawing eval.")
+    parser.add_argument("--shape-outdir", type=str, default="results/shape_eval",
+        help="Output root for shape drawing eval.")
+    parser.add_argument("--shape-stepwise", action="store_true",
+        help="Run shape drawing one stroke per turn (stepwise).")
+    parser.add_argument("--shape-max-turns", type=int, default=40,
+        help="Max turns (strokes) per image in shape-stepwise mode.")
+    parser.add_argument("--shape-type", type=str, default="ovals",
+        help="Shape to draw: rectangles/ovals/polygons/checkmarks etc.")
 
+
+    # ---- labeling ----
+    parser.add_argument("--label_dir", type=str, default=None,
+                        help="Folder with labeling images + paired .txt (and optional .json).")
+    parser.add_argument("--label_outdir", type=str, default="results/labeling",
+                        help="Output folder for labeling results.")
+    parser.add_argument("--label_stepwise", action="store_true",
+                        help="Run labeling in stepwise mode (one stroke per turn).")
+    parser.add_argument("--label_max_turns", type=int, default=40,
+                        help="Max turns for stepwise labeling.")
+    parser.add_argument("--label_concept_mode", type=str, default="txt",
+                        choices=["txt", "filename", "constant"],
+                        help="Where to get concept name: from .txt, from filename, or constant.")
+    parser.add_argument("--label_constant_concept", type=str, default="object",
+                        help="Used when --label_concept_mode=constant.")
+    parser.add_argument("--label_start", type=int, default=0,
+                        help="Start index offset (skip first N images) like your shape[124:] pattern.")
+    parser.add_argument("--label_end", type=int, default=985,
+                        help="End index offset (skip remain N images) like your shape[:400] pattern.")
 
 
     args = parser.parse_args()
@@ -2712,6 +4006,8 @@ if __name__ == '__main__':
             args.model = "o3"
         elif args.llm == "gemini":
             args.model = "gemini-2.5-pro"  # set whatever Gemini model string you want here
+        elif args.llm in ("huggingface", "hf", "qwen35"):
+            args.model = "Qwen/Qwen3.5-9B"
             
     
 
@@ -2788,6 +4084,39 @@ if __name__ == '__main__':
             labels_hint=args.labels_hint,
         )
         
+        raise SystemExit(0)
+
+
+    # If --shape-dir is provided, run shape folder eval and exit
+    if args.shape_dir:
+        app.evaluate_shape_folder(
+            src_dir=args.shape_dir,
+            outdir=args.shape_outdir,
+            stepwise=args.shape_stepwise,
+            max_images=args.max_examples,
+            max_turns=args.shape_max_turns,
+            skip=args.skip,
+            only=args.only,
+            shape_type=args.shape_type,
+        )
+        raise SystemExit(0)
+
+
+    if args.label_dir:
+        app.evaluate_labeling_folder(
+            src_dir=args.label_dir,
+            outdir=args.label_outdir,
+            stepwise=args.label_stepwise,
+            max_images=args.max_examples,
+            max_turns=args.label_max_turns,
+            skip=args.skip,
+            only=args.only,
+
+            concept_mode=args.label_concept_mode,
+            constant_concept=args.label_constant_concept,
+            start=args.label_start,
+            end=args.label_end,
+        )
         raise SystemExit(0)
 
 
