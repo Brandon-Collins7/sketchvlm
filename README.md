@@ -94,6 +94,11 @@ python collab_sketch_with_label.py --llm openrouter --model google/gemini-3-pro-
 python collab_sketch_with_label.py --llm gpt --model gpt-5 --mixed-dir datasets/ball_drop --reasoning-effort medium --adaptive-grid --target-cols 50 --target-rows 50 --min-cell-px 20
 ```
 
+**OpenRouter** (fix Kimi K3 issue)
+```bash
+nohup python collab_sketch_with_label_kimi_k26_test.py   --llm openrouter   --model moonshotai/kimi-k3   --disable-stop-sequences   --label-dir datasets/paco_pascal_part_1000_images   --label-outdir results/paco_pascal_part_1000_images_kimi_k3_labeling_no_grid_top_left_res1000_nostop_reasoning_high   --label_start 0   --label_end 100   --no-grid   --res-x 1000   --res-y 1000   --prompt-origin top_left   --api-delay 10   > logs/paco_pascal_part_1000_images_kimi_k3_labeling_no_grid_top_left_res1000_nostop_reasoning_high_0_to_100.log 2>&1 &
+```
+
 ### Multi-turn (stepwise) inference
 
 If you want the model to refine its sketch over multiple turns — seeing the canvas update after each stroke — use `--mixed-stepwise`. This mirrors how a human might iteratively draw and correct. The model sees the updated image after each turn and can add or adjust strokes accordingly:
